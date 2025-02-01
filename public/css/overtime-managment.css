@@ -1,0 +1,290 @@
+:root {
+    --primary-blue: #70c8e8;
+    --primary-dark: #333333;
+    --hover-blue: #5ab1d9;
+    --light-blue: #f8fbfd;
+    --border-color: #e9eef2;
+    --success-color: #43a047;
+    --danger-color: #e53935;
+    --warning-color: #ffa040;
+    --pending-color: #ffa040;
+    --approved-color: #43a047;
+    --rejected-color: #e53935;
+}
+
+/* Container and Card Styling */
+.container {
+    width: 100%;
+    max-width: 100% !important;
+    padding: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    width: 100% !important;
+    margin: 0;
+    padding: 0;
+}
+
+.card:hover {
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #70c8e8, #5ab1d9) !important;
+    border-bottom: none;
+    padding: 1.5rem;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.card-header h5 {
+    color: white;
+    font-weight: 500;
+    margin: 0;
+}
+
+.card-body {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+/* Table Styling */
+.table-responsive {
+    width: 100% !important;
+    margin: 0;
+    padding: 0;
+}
+
+.table {
+    width: 100% !important;
+    margin: 0;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.table thead th {
+    background-color: var(--light-blue);
+    color: var(--primary-dark);
+    border-bottom: 2px solid var(--primary-blue);
+    padding: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: var(--light-blue);
+}
+
+.table td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+/* Column specific widths */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+    min-width: 150px; /* Name */
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+    min-width: 100px; /* Date */
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3),
+.table th:nth-child(4),
+.table td:nth-child(4) {
+    min-width: 80px; /* Time */
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+    min-width: 200px; /* Reason */
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+    width: 10%; /* Status */
+}
+
+.table th:nth-child(7),
+.table td:nth-child(7) {
+    width: 20%; /* Actions */
+}
+
+/* Badge Styling */
+.badge {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.badge.bg-pending {
+    background-color: #fff5e6 !important;
+    color: var(--pending-color) !important;
+}
+
+.badge.bg-approved {
+    background-color: #e8f5e9 !important;
+    color: var(--approved-color) !important;
+}
+
+.badge.bg-rejected {
+    background-color: #ffebee !important;
+    color: var(--rejected-color) !important;
+}
+
+/* Button Styling */
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #70c8e8, #5ab1d9);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5ab1d9, #4597bf);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #e53935, #c62828);
+    border: none;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ffa040, #f57c00);
+    border: none;
+    color: white;
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(112, 200, 232, 0.25);
+}
+
+.form-label {
+    color: var(--primary-dark);
+    font-weight: 500;
+}
+
+/* Modal Styling */
+.modal-content {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #70c8e8, #5ab1d9);
+    border-radius: 1rem 1rem 0 0;
+    padding: 1.5rem;
+}
+
+.modal-header .modal-title {
+    color: white;
+    font-weight: 500;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 1.5rem;
+}
+
+.page-link {
+    color: var(--primary-blue);
+    border-radius: 0.5rem;
+    margin: 0 0.2rem;
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.response-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 0.5rem;
+    }
+
+    .card-header {
+        padding: 1rem;
+    }
+
+    .table-responsive {
+        margin: 0;
+        padding: 0;
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100% !important;
+    }
+
+    .btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Custom Scrollbar */
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+/* إضافة تنسيق للنص الطويل */
+.table td.text-wrap {
+    white-space: normal;
+    min-width: 200px;
+}
