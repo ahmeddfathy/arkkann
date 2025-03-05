@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AbsenceRequest extends Model
 {
@@ -12,7 +13,19 @@ class AbsenceRequest extends Model
     'user_id',
     'absence_date',
     'reason',
-    'status'
+    'status',
+    'manager_status',
+    'hr_status',
+    'manager_rejection_reason',
+    'hr_rejection_reason'
+  ];
+
+  protected $attributes = [
+    'status' => 'pending',
+    'manager_status' => 'pending',
+    'hr_status' => 'pending',
+    'manager_rejection_reason' => null,
+    'hr_rejection_reason' => null
   ];
 
   protected $dates = [
@@ -21,24 +34,22 @@ class AbsenceRequest extends Model
 
   protected $casts = [
     'absence_date' => 'datetime',
-
   ];
-
 
   public function user(): BelongsTo
   {
     return $this->belongsTo(User::class);
   }
 
-  // التحقق من إمكانية الرد على الطلب
+  // Check if user can respond to request
   public function canRespond(User $user): bool
   {
-    // HR يمكنه الرد على أي طلب
+    // HR can respond to any request
     if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
       return true;
     }
 
-    // التحقق من ألاحيات المدير
+    // Check manager permissions
     if (
       $user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])
       && $user->hasPermissionTo('manager_respond_absence_request')
@@ -49,13 +60,13 @@ class AbsenceRequest extends Model
     return false;
   }
 
-  // التحقق من إمكانية إنشاء طلب
+  // Check if user can create request
   public function canCreate(User $user): bool
   {
     return $user->hasPermissionTo('create_absence');
   }
 
-  // التحقق من إمكانية تعديل الطلب
+  // Check if user can update request
   public function canUpdate(User $user): bool
   {
     if (!$user->hasPermissionTo('update_absence')) {
@@ -64,7 +75,7 @@ class AbsenceRequest extends Model
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
-  // التحقق من إمكانية حذف الطلب
+  // Check if user can delete request
   public function canDelete(User $user): bool
   {
     if (!$user->hasPermissionTo('delete_absence')) {
@@ -73,36 +84,30 @@ class AbsenceRequest extends Model
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
-  // التحقق من إمكانية تعديل الرد
+  // Check if user can modify response
   public function canModifyResponse(User $user): bool
   {
     try {
-      // HR يمكنه الرد على أي طلب
+      // HR can modify any response
       if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
         return true;
       }
 
-      // التحقق من صلاحيات المدير
+      // Check manager permissions
       if (
         $user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])
         && $user->hasPermissionTo('manager_respond_absence_request')
       ) {
-
-        // التحقق من أن المستخدم هو مالك أو مدير في الفريق
         if ($this->user && $this->user->currentTeam) {
-          // طريقة 1: التحقق من خلال العلاقة المباشرة
           if ($this->user->currentTeam->user_id === $user->id) {
-            return true; // المستخدم هو مالك الفريق
+            return true;
           }
 
-          // طريقة 2: التحقق من خلال جدول team_user
-          $isTeamOwnerOrAdmin = DB::table('team_user')
+          return DB::table('team_user')
             ->where('team_user.user_id', $user->id)
             ->where('team_user.team_id', $this->user->currentTeam->id)
             ->whereIn('team_user.role', ['owner', 'admin'])
             ->exists();
-
-          return $isTeamOwnerOrAdmin;
         }
       }
 
@@ -117,7 +122,7 @@ class AbsenceRequest extends Model
     }
   }
 
-  // تحديث حالة المدير
+  // Update manager status and final status
   public function updateManagerStatus(string $status, ?string $rejectionReason = null): void
   {
     $this->manager_status = $status;
@@ -126,7 +131,7 @@ class AbsenceRequest extends Model
     $this->save();
   }
 
-  // تحديث حالة HR
+  // Update HR status and final status
   public function updateHrStatus(string $status, ?string $rejectionReason = null): void
   {
     $this->hr_status = $status;
@@ -135,22 +140,47 @@ class AbsenceRequest extends Model
     $this->save();
   }
 
-  // تحديث الحالة النهائية
+  // Update final status based on manager and HR responses
   public function updateFinalStatus(): void
   {
-    // إذا كان أحد الردود مرفوض، الطلب مرفوض
     if ($this->manager_status === 'rejected' || $this->hr_status === 'rejected') {
       $this->status = 'rejected';
       return;
     }
 
-    // إذا كان كلا الردين موافق، الطلب موافق
     if ($this->manager_status === 'approved' && $this->hr_status === 'approved') {
       $this->status = 'approved';
       return;
     }
 
-    // في أي حالة أخرى، الطلب معلق
     $this->status = 'pending';
+  }
+
+  public function hasExceededLimit(): bool
+  {
+    $maxDays = $this->user->getMaxAllowedAbsenceDays();
+    $startOfYear = Carbon::now()->startOfYear();
+    $endOfYear = Carbon::now()->endOfYear();
+
+    $approvedDays = static::where('user_id', $this->user_id)
+        ->where('status', 'approved')
+        ->whereBetween('absence_date', [$startOfYear, $endOfYear])
+        ->count();
+
+    return $approvedDays > $maxDays;
+  }
+
+  public function getRemainingDays(): int
+  {
+    $maxDays = $this->user->getMaxAllowedAbsenceDays();
+    $startOfYear = Carbon::now()->startOfYear();
+    $endOfYear = Carbon::now()->endOfYear();
+
+    $approvedDays = static::where('user_id', $this->user_id)
+        ->where('status', 'approved')
+        ->whereBetween('absence_date', [$startOfYear, $endOfYear])
+        ->count();
+
+    return max(0, $maxDays - $approvedDays);
   }
 }

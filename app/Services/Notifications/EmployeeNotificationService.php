@@ -4,7 +4,7 @@ namespace App\Services\Notifications;
 
 use App\Models\Notification;
 use App\Models\AbsenceRequest;
-use App\Models\User;
+
 use Illuminate\Support\Facades\Log;
 
 class EmployeeNotificationService

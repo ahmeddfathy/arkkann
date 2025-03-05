@@ -123,6 +123,12 @@ class DashboardController extends Controller
 
     public function previewAttendance($employee_id, AttendanceReportService $reportService)
     {
+        // التحقق من وجود employee_id وصلاحية الوصول
+        $user = Auth::user();
+        if (!$employee_id || $user->employee_id != $employee_id) {
+            abort(403, 'غير مصرح بالوصول');
+        }
+
         // تهيئة المتغير بقيم افتراضية
         $attendanceStats = [
             'present_days' => 0,

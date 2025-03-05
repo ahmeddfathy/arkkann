@@ -8,7 +8,7 @@ class Employee extends Model
 {
   protected $fillable = [
     'name',
-    // أضف الحقول الأخرى المطلوبة للموظف
+    // Add other employee fields here
   ];
 
   public function specialCases()

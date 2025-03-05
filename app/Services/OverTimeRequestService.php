@@ -9,7 +9,8 @@ use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
-use App\Models\Notification;
+use Illuminate\Support\Facades\Log;
+
 
 class OverTimeRequestService
 {
@@ -144,6 +145,7 @@ class OverTimeRequestService
     {
         return DB::transaction(function () use ($data) {
             $userId = $data['user_id'] ?? Auth::id();
+            $currentUser = Auth::user();
 
             $this->validateOverTimeRequest(
                 $userId,
@@ -152,15 +154,18 @@ class OverTimeRequestService
                 $data['end_time']
             );
 
+            // إذا كان المستخدم الحالي يقوم بإنشاء طلب لشخص آخر
+            $managerStatus = ($userId !== $currentUser->id) ? 'approved' : 'pending';
+
             $request = OverTimeRequests::create([
                 'user_id' => $userId,
                 'overtime_date' => $data['overtime_date'],
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'],
                 'reason' => $data['reason'],
-                'manager_status' => 'pending',
+                'manager_status' => $managerStatus,
                 'hr_status' => 'pending',
-                'status' => 'pending'
+                'status' => ($managerStatus === 'approved') ? 'pending' : 'pending'
             ]);
 
             // إرسال الإشعارات
@@ -385,6 +390,7 @@ class OverTimeRequestService
 
         // للمدراء، نتحقق من وجود فريق
         if (!$user->currentTeam) {
+            \Log::info('User has no current team', ['user_id' => $user->id]);
             return collect();
         }
 
@@ -398,7 +404,13 @@ class OverTimeRequestService
             $allowedRoles = ['employee', 'team_leader', 'department_manager'];
         }
 
-        return $user->currentTeam->users()
+        \Log::info('Fetching users for team', [
+            'user_id' => $user->id,
+            'team_id' => $user->currentTeam->id,
+            'allowed_roles' => $allowedRoles
+        ]);
+
+        $users = $user->currentTeam->users()
             ->select('users.*')
             ->whereHas('roles', function ($q) use ($allowedRoles) {
                 $q->whereIn('name', $allowedRoles);
@@ -411,5 +423,14 @@ class OverTimeRequestService
                     });
             })
             ->get();
+
+        \Log::info('Found users', [
+            'user_id' => $user->id,
+            'team_id' => $user->currentTeam->id,
+            'users_count' => $users->count(),
+            'users' => $users->pluck('name', 'id')
+        ]);
+
+        return $users;
     }
 }

@@ -7,7 +7,6 @@ use App\Models\PermissionRequest;
 use App\Services\PermissionRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Events\PermissionRequestStatusUpdated;
 use App\Models\Violation;
 use App\Services\NotificationPermissionService;
 use Carbon\Carbon;

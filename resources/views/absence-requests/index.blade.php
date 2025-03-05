@@ -72,7 +72,10 @@
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-calendar-alt"></i> طلباتي
-                        <small class="ms-2">(عدد أيام الغياب المعتمدة: {{ $myAbsenceDays }})</small>
+                        @php
+                            $maxAllowedDays = Auth::user()->getMaxAllowedAbsenceDays();
+                        @endphp
+                        <small class="ms-2">(عدد أيام الغياب المعتمدة: {{ $myAbsenceDays }} من أصل {{ $maxAllowedDays }} يوم)</small>
                     </h5>
                     @if($canCreateAbsence)
                     <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#createAbsenceModal">
@@ -209,7 +212,11 @@
                                 <td>{{ $request->user->name }}</td>
                                 <td>
                                     <span class="badge bg-info">
-                                        {{ $absenceDaysCount[$request->user_id] ?? 0 }} أيام
+                                        @php
+                                            $maxDays = $request->user->getMaxAllowedAbsenceDays();
+                                            $approvedDays = $absenceDaysCount[$request->user_id] ?? 0;
+                                        @endphp
+                                        {{ $approvedDays }} من أصل {{ $maxDays }} يوم
                                     </span>
                                 </td>
                                 <td>{{ $request->absence_date }}</td>
@@ -405,7 +412,11 @@
                                 <td>{{ $request->reason }}</td>
                                 <td>
                                     <span class="badge bg-info">
-                                        {{ $hrAbsenceDaysCount[$request->user_id] ?? 0 }} أيام
+                                        @php
+                                            $maxDays = $request->user->getMaxAllowedAbsenceDays();
+                                            $approvedDays = $hrAbsenceDaysCount[$request->user_id] ?? 0;
+                                        @endphp
+                                        {{ $approvedDays }} من أصل {{ $maxDays }} يوم
                                     </span>
                                 </td>
                                 <td>
@@ -525,7 +536,11 @@
                                 <td>{{ $request->user->name }}</td>
                                 <td>
                                     <span class="badge bg-info">
-                                        {{ $noTeamAbsenceDaysCount[$request->user_id] ?? 0 }} أيام
+                                        @php
+                                            $maxDays = $request->user->getMaxAllowedAbsenceDays();
+                                            $approvedDays = $noTeamAbsenceDaysCount[$request->user_id] ?? 0;
+                                        @endphp
+                                        {{ $approvedDays }} من أصل {{ $maxDays }} يوم
                                     </span>
                                 </td>
                                 <td>{{ $request->absence_date }}</td>
@@ -878,7 +893,7 @@
                         </div>
                         <div class="col-12">
                             <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">تجاوزوا الحد المسموح (21 يوم)</h6>
+                                <h6 class="text-muted mb-2">تجاوزوا الحد المسموح</h6>
                                 <h4 class="mb-0 text-danger">
                                     <a href="#" data-bs-toggle="modal" data-bs-target="#exceededLimitModal" class="text-danger text-decoration-none">
                                         {{ $statistics['team']['employees_exceeded_limit'] }} موظفين
@@ -968,17 +983,22 @@
                                     <tr>
                                         <th>#</th>
                                         <th>اسم الموظف</th>
+                                        <th>الحد المسموح</th>
                                         <th>أيام الغياب</th>
                                         <th>تجاوز الحد بـ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($statistics['team']['exceeded_employees'] ?? [] as $index => $employee)
+                                    @php
+                                        $maxDays = $employee->date_of_birth && \Carbon\Carbon::parse($employee->date_of_birth)->age >= 50 ? 45 : 21;
+                                    @endphp
                                     <tr>
                                         <td>{{ $index + 1 }}</td>
                                         <td>{{ $employee->name }}</td>
+                                        <td>{{ $maxDays }} يوم</td>
                                         <td>{{ $employee->total_days }} يوم</td>
-                                        <td class="text-danger">{{ $employee->total_days - 21 }} يوم</td>
+                                        <td class="text-danger">{{ $employee->total_days - $maxDays }} يوم</td>
                                     </tr>
                                     @endforeach
                                 </tbody>

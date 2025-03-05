@@ -161,9 +161,15 @@
         <i class="fas fa-file-pdf text-white text-2xl"></i>
       </div>
       <h3 class="text-xl font-semibold mb-3">تقرير الحضور</h3>
-      <a href="{{ route('user.previewAttendance', ['employee_id' => Auth::user()->employee_id]) }}" class="btn-dashboard">
-        عرض التقرير
-      </a>
+      @if(Auth::user()->employee_id)
+        <a href="{{ route('user.previewAttendance', Auth::user()->employee_id) }}" class="btn-dashboard">
+          عرض التقرير
+        </a>
+      @else
+        <div class="alert alert-warning">
+          لا يوجد رقم موظف مسجل
+        </div>
+      @endif
     </div>
     <div class="action-card">
       <div class="action-icon">

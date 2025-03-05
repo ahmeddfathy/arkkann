@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use App\Models\Team;
 
 class AbsenceRequestController extends Controller
 {
@@ -53,10 +52,17 @@ class AbsenceRequestController extends Controller
         $statistics = $this->getStatistics($user, $dateStart, $dateEnd);
 
         // جلب قائمة المستخدمين المناسبة حسب دور المستخدم
+        $users = collect();
         if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
-            if ($user->currentTeam) {
-                $users = User::whereIn('id', $this->getTeamMembers($user->currentTeam, $this->getAllowedRoles($user)))->get();
+            // جمع المستخدمين من جميع الفرق التي يديرها المستخدم
+            $managedTeams = $user->ownedTeams;
+            foreach ($managedTeams as $team) {
+                $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
+                if (!empty($teamMembers)) {
+                    $users = $users->concat(User::whereIn('id', $teamMembers)->get());
             }
+            }
+            $users = $users->unique('id');
         } elseif ($user->hasRole('hr')) {
             $users = User::whereDoesntHave('roles', function ($q) {
                 $q->whereIn('name', ['company_manager', 'hr']);
@@ -90,11 +96,15 @@ class AbsenceRequestController extends Controller
 
         // طلبات الفريق للمدراء
         if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
-            if ($user->currentTeam) {
-                $teamMembers = $this->getTeamMembers($user->currentTeam, $this->getAllowedRoles($user));
+            $managedTeamMembers = collect();
+            foreach ($user->ownedTeams as $team) {
+                $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
+                $managedTeamMembers = $managedTeamMembers->concat($teamMembers);
+            }
 
+            if ($managedTeamMembers->isNotEmpty()) {
                 $teamRequests = (clone $baseQuery)
-                    ->whereIn('user_id', $teamMembers)
+                    ->whereIn('user_id', $managedTeamMembers->unique())
                     ->latest()
                     ->paginate(10, ['*'], 'team_page');
             }
@@ -105,14 +115,10 @@ class AbsenceRequestController extends Controller
             $hrRequests = (clone $baseQuery)
                 ->where(function ($query) use ($user) {
                     $query->whereHas('user', function ($q) use ($user) {
-                        $q->whereHas('teams', function ($q) use ($user) {
-                            $q->whereIn('teams.id', $user->allTeams()->pluck('id'));
-                        });
+                        $q->whereHas('teams');
                     })
                         ->orWhereHas('user', function ($q) use ($user) {
-                            $q->whereHas('teams')
-                                ->where('users.id', '!=', $user->id)
-                                ->whereDoesntHave('roles', function ($q) {
+                        $q->whereDoesntHave('roles', function ($q) {
                                     $q->whereIn('name', ['hr', 'company_manager']);
                                 });
                         });
@@ -124,7 +130,6 @@ class AbsenceRequestController extends Controller
             $noTeamRequests = (clone $baseQuery)
                 ->whereHas('user', function ($q) use ($user) {
                     $q->whereDoesntHave('teams')
-                        ->where('users.id', '!=', $user->id)
                         ->whereDoesntHave('roles', function ($q) {
                             $q->whereIn('name', ['hr', 'company_manager']);
                         });
@@ -141,6 +146,7 @@ class AbsenceRequestController extends Controller
 
         $absenceDaysCount = [];
         $noTeamAbsenceDaysCount = [];
+        $hrAbsenceDaysCount = [];
 
         // حساب أيام الغياب للفريق
         if ($teamRequests instanceof \Illuminate\Pagination\LengthAwarePaginator) {
@@ -166,8 +172,7 @@ class AbsenceRequestController extends Controller
             }
         }
 
-        // إضافة حساب أيام الغياب المعتمدة لكل موظف في طلبات HR
-        $hrAbsenceDaysCount = [];
+        // حساب أيام الغياب لطلبات HR
         if ($hrRequests instanceof \Illuminate\Pagination\LengthAwarePaginator) {
             foreach ($hrRequests->items() as $request) {
                 if (!isset($hrAbsenceDaysCount[$request->user_id])) {
@@ -209,36 +214,28 @@ class AbsenceRequestController extends Controller
         }
 
         $user = Auth::user();
-
-        if ($user->role !== 'employee' && $user->role !== 'manager') {
-            return redirect()->route('welcome')->with('error', 'Unauthorized action.');
-        }
-
-        // تحديد المستخدم المستهدف بناءً على دور المدير أو الموظف
-        $targetUserId = $user->role === 'manager' && $request->input('user_id')
-            ? $request->input('user_id')
-            : $user->id;
+        $targetUserId = $request->input('user_id', $user->id);
 
         // تحقق من صحة البيانات المدخلة
         $validated = $request->validate([
             'absence_date' => 'required|date',
             'reason' => 'required|string|max:255',
-            'user_id' => 'required_if:role,manager|exists:users,id|nullable',
+            'user_id' => 'sometimes|exists:users,id',
         ]);
 
-        // إنشاء الطلب بناءً على دور المستخدم
-        if ($user->role === 'manager') {
-            if ($request->input('user_id') && $request->input('user_id') !== $user->id) {
-                $this->absenceRequestService->createRequestForUser($validated['user_id'], $validated);
+        try {
+            // إذا كان الطلب لشخص آخر
+            if ($targetUserId !== $user->id) {
+                $this->absenceRequestService->createRequestForUser($targetUserId, $validated);
             } else {
                 $this->absenceRequestService->createRequest($validated);
             }
-        } else {
-            $this->absenceRequestService->createRequest($validated);
-        }
 
-        return redirect()->route('absence-requests.index')
-            ->with('success', 'Absence request submitted successfully.');
+            return redirect()->route('absence-requests.index')
+                ->with('success', 'Absence request submitted successfully.');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
     }
 
     public function update(Request $request, AbsenceRequest $absenceRequest)
@@ -458,12 +455,15 @@ class AbsenceRequestController extends Controller
                                 ->whereIn('user_id', $teamMembers)
                                 ->where('status', 'approved')
                                 ->whereBetween('absence_date', [$dateStart, $dateEnd])
-                                ->groupBy('user_id')
-                                ->having('total_days', '>', 21);
+                                ->groupBy('user_id');
                         }, 'exceeded_users')
                             ->join('users', 'users.id', '=', 'exceeded_users.user_id')
-                            ->select('users.name', 'exceeded_users.total_days')
-                            ->get();
+                            ->select('users.name', 'users.date_of_birth', 'exceeded_users.total_days')
+                            ->get()
+                            ->filter(function ($employee) {
+                                $maxDays = $employee->date_of_birth && Carbon::parse($employee->date_of_birth)->age >= 50 ? 45 : 21;
+                                return $employee->total_days > $maxDays;
+                            });
 
                         // الموظف الأكثر غياباً
                         $mostAbsent = DB::table('absence_requests')
@@ -516,12 +516,15 @@ class AbsenceRequestController extends Controller
                         ->whereIn('user_id', $allEmployees)
                         ->where('status', 'approved')
                         ->whereBetween('absence_date', [$dateStart, $dateEnd])
-                        ->groupBy('user_id')
-                        ->having('total_days', '>', 21);
+                        ->groupBy('user_id');
                 }, 'exceeded_users')
                     ->join('users', 'users.id', '=', 'exceeded_users.user_id')
-                    ->select('users.name', 'exceeded_users.total_days')
-                    ->get();
+                    ->select('users.name', 'users.date_of_birth', 'exceeded_users.total_days')
+                    ->get()
+                    ->filter(function ($employee) {
+                        $maxDays = $employee->date_of_birth && Carbon::parse($employee->date_of_birth)->age >= 50 ? 45 : 21;
+                        return $employee->total_days > $maxDays;
+                    });
 
                 // الموظف الأكثر غياباً
                 $mostAbsent = DB::table('absence_requests')

@@ -73,12 +73,33 @@ class AbsenceRequestService
 
     public function createRequestForUser(int $userId, array $data)
     {
+        $currentUser = Auth::user();
+
+        // التحقق من أن المستخدم الحالي لديه دور إداري باستخدام Spatie Permissions
+        if (!($currentUser->hasRole('team_leader') ||
+              $currentUser->hasRole('department_manager') ||
+              $currentUser->hasRole('company_manager') ||
+              $currentUser->hasRole('hr'))) {
+            throw new \Illuminate\Auth\Access\AuthorizationException('You are not authorized to create requests for other users.');
+        }
+
+        // إذا كان المستخدم يقوم بإنشاء طلب لنفسه، استخدم createRequest بدلاً من ذلك
+        if ($userId === $currentUser->id) {
+            return $this->createRequest($data);
+        }
+
         $request = AbsenceRequest::create([
             'user_id' => $userId,
             'absence_date' => $data['absence_date'],
             'reason' => $data['reason'],
-            'status' => 'pending'
+            'manager_status' => 'approved',
+            'hr_status' => 'pending',
+            'status' => 'pending' // سيتم تحديثه لاحقاً
         ]);
+
+        // تحديث الحالة النهائية بناءً على حالات الموافقة
+        $request->updateFinalStatus();
+        $request->save();
 
         // Send notification to managers
         $this->notificationService->createLeaveRequestNotification($request);

@@ -82,13 +82,11 @@ class User extends Authenticatable
    *
    * @return array<string, string>
    */
-  protected function casts(): array
-  {
-    return [
-      'email_verified_at' => 'datetime',
-      'password' => 'hashed',
-    ];
-  }
+  protected $casts = [
+    'email_verified_at' => 'datetime',
+    'password' => 'hashed',
+    'date_of_birth' => 'date',
+  ];
 
   public function attendanceRecords()
   {
@@ -119,12 +117,13 @@ class User extends Authenticatable
 
   /**
    * Override hasPermissionTo from HasRoles trait
+   * Check if user has permission after verifying there are no direct permission bans
    */
   public function hasPermissionTo($permission, $guardName = null): bool
   {
     $permissionName = $permission instanceof Permission ? $permission->name : $permission;
 
-    // التحقق من وجود حظر مباشر للصلاحية
+    // Check if there is a direct permission ban
     $permissionModel = Permission::where('name', $permissionName)->first();
     if (!$permissionModel) {
       return false;
@@ -143,7 +142,7 @@ class User extends Authenticatable
       return false;
     }
 
-    // التحقق من الصلاحيات بشكل مباشر
+    // Check permissions directly
     return $this->permissions->contains('name', $permissionName) ||
       $this->roles->flatMap->permissions->contains('name', $permissionName);
   }
@@ -151,5 +150,24 @@ class User extends Authenticatable
   public function overtimeRequests()
   {
     return $this->hasMany(OverTimeRequests::class);
+  }
+
+  public function getMaxAllowedAbsenceDays(): int
+  {
+    if ($this->date_of_birth) {
+        $age = abs(now()->diffInYears($this->date_of_birth));
+
+        \Log::info('User age calculation', [
+            'user_id' => $this->id,
+            'name' => $this->name,
+            'date_of_birth' => $this->date_of_birth,
+            'age' => $age
+        ]);
+
+        if ($age >= 50) {
+            return 45;
+        }
+    }
+    return 21;
   }
 }

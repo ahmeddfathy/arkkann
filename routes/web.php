@@ -111,7 +111,8 @@ Route::middleware(['auth', 'role:manager,employee'])->group(function () {
     Route::get('/notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.mark-as-read');
     Route::get('/user/{employee_id}/attendance-preview', [DashboardController::class, 'previewAttendance'])
-        ->name('user.previewAttendance');
+        ->name('user.previewAttendance')
+        ->where('employee_id', '[0-9]+');
     Route::get('/user/{employee_id}/attendance-report', [DashboardController::class, 'generateAttendancePDF'])
         ->name('user.downloadAttendanceReport');
 
@@ -284,3 +285,4 @@ Route::middleware(['auth'])->group(function () {
 
 Route::resource('special-cases', SpecialCaseController::class);
 Route::post('special-cases/import', [SpecialCaseController::class, 'import'])->name('special-cases.import');
+

@@ -39,17 +39,17 @@ class PermissionRequest extends Model
     return $this->hasMany(Violation::class, 'permission_requests_id');
   }
 
-  // التحقق من إمكانية الرد على الطلب
+  // Check if user can respond to request
   public function canRespond(User $user): bool
   {
-    // HR يمكنه الرد على أي طلب
+    // HR can respond to any request
     if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_permission_request')) {
       return true;
     }
 
-    // المدير يمكنه الرد فقط على طلبات فريقه
+    // Manager can only respond to their team's requests
     if ($user->hasPermissionTo('manager_respond_permission_request')) {
-      // التحقق من أن صاحب الطلب في فريق
+      // Check if request owner is in a team
       if ($this->user && $this->user->teams()->exists()) {
         return DB::table('team_user')
           ->where('user_id', $user->id)
@@ -65,13 +65,13 @@ class PermissionRequest extends Model
     return false;
   }
 
-  // التحقق من إمكانية إنشاء طلب
+  // Check if user can create request
   public function canCreate(User $user): bool
   {
     return $user->hasPermissionTo('create_permission');
   }
 
-  // التحقق من إمكانية تعديل الطلب
+  // Check if user can update request
   public function canUpdate(User $user): bool
   {
     if (!$user->hasPermissionTo('update_permission')) {
@@ -80,7 +80,7 @@ class PermissionRequest extends Model
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
-  // التحقق من إمكانية حذف الطلب
+  // Check if user can delete request
   public function canDelete(User $user): bool
   {
     if (!$user->hasPermissionTo('delete_permission')) {
@@ -89,10 +89,10 @@ class PermissionRequest extends Model
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
-  // التحقق من إمكانية تعديل الرد
+  // Check if user can modify response
   public function canModifyResponse(User $user): bool
   {
-    // نفس منطق canRespond
+    // Same logic as canRespond
     if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_permission_request')) {
       return true;
     }
@@ -115,7 +115,7 @@ class PermissionRequest extends Model
     return false;
   }
 
-  // تحديث حالة المدير
+  // Update manager status
   public function updateManagerStatus(string $status, ?string $rejectionReason = null): void
   {
     $this->manager_status = $status;
@@ -124,7 +124,7 @@ class PermissionRequest extends Model
     $this->save();
   }
 
-  // تحديث حالة HR
+  // Update HR status
   public function updateHrStatus(string $status, ?string $rejectionReason = null): void
   {
     $this->hr_status = $status;
@@ -133,10 +133,10 @@ class PermissionRequest extends Model
     $this->save();
   }
 
-  // تحديث الحالة النهائية
+  // Update final status
   public function updateFinalStatus(): void
   {
-    // للموظفين الذين ليس لديهم فريق أو في فريق HR، نعتمد على رد HR فقط
+    // For employees without team or in HR team, only HR response is needed
     if ($this->user && (!$this->user->teams()->exists() || $this->user->teams()->where('name', 'HR')->exists())) {
       if ($this->hr_status === 'rejected') {
         $this->status = 'rejected';
@@ -146,7 +146,7 @@ class PermissionRequest extends Model
         $this->status = 'pending';
       }
     } else {
-      // للموظفين في الفرق الأخرى، نحتاج موافقة المدير و HR
+      // For employees in other teams, both manager and HR approval needed
       if ($this->manager_status === 'rejected' || $this->hr_status === 'rejected') {
         $this->status = 'rejected';
       } elseif ($this->manager_status === 'approved' && $this->hr_status === 'approved') {
@@ -157,7 +157,7 @@ class PermissionRequest extends Model
     }
   }
 
-  // الدوال الخاصة بطلبات الاستئذان
+  // Permission request specific functions
 
   public function isApproved(): bool
   {
@@ -181,7 +181,7 @@ class PermissionRequest extends Model
 
   public function calculateRemainingMinutes()
   {
-    $totalAllowed = 180; // 3 ساعات في الشهر
+    $totalAllowed = 180; // 3 hours per month
     $startOfMonth = Carbon::now()->startOfMonth();
     $endOfMonth = Carbon::now()->endOfMonth();
 
