@@ -10,6 +10,7 @@ use App\Services\ViolationService;
 use App\Services\NotificationPermissionService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PermissionRequestService
 {
@@ -59,15 +60,9 @@ class PermissionRequestService
 
     public function createRequest(array $data): array
     {
-        return DB::transaction(function () use ($data) {
-            $userId = $data['user_id'] ?? Auth::id();
-            $currentUser = Auth::user();
-
-            $validation = $this->validateTimeRequest(
-                $userId,
-                $data['departure_time'],
-                $data['return_time']
-            );
+        try {
+            $userId = Auth::id();
+            $validation = $this->validateTimeRequest($userId, $data['departure_time'], $data['return_time']);
 
             if (!$validation['valid']) {
                 return [
@@ -76,136 +71,196 @@ class PermissionRequestService
                 ];
             }
 
+            $currentUser = Auth::user();
+
             $managerStatus = 'pending';
+            $hrStatus = 'pending';
+            $status = 'pending';
 
-            // إذا كان المدير يقوم بإنشاء طلب لأحد موظفيه
-            if ($userId != $currentUser->id) {
-                $isTeamOwner = false;
+            if ($currentUser) {
+                $roles = $currentUser->getRoleNames();
 
-                if ($currentUser->currentTeam && $currentUser->currentTeam->user_id == $currentUser->id) {
-                    $isTeamOwner = true;
-                }
-
-                $requestUser = User::find($userId);
-                $isTeamMember = false;
-
-                if ($requestUser && $currentUser->currentTeam) {
-                    $isTeamMember = DB::table('team_user')
-                        ->where('team_id', $currentUser->currentTeam->id)
-                        ->where('user_id', $userId)
-                        ->exists();
-                }
-
-                if ($isTeamOwner && $isTeamMember) {
+                if ($roles->contains('team_leader') || $roles->contains('department_manager') || $roles->contains('company_manager')) {
                     $managerStatus = 'approved';
+                }
+
+                if ($roles->contains('hr')) {
+                    $hrStatus = 'approved';
                 }
             }
 
-            // حساب الدقائق المتبقية
-            $startOfMonth = Carbon::now()->startOfMonth();
-            $endOfMonth = Carbon::now()->endOfMonth();
-            $usedMinutes = PermissionRequest::where('user_id', $userId)
-                ->whereBetween('departure_time', [$startOfMonth, $endOfMonth])
-                ->where('status', 'approved')
-                ->sum('minutes_used');
-            $remainingMinutes = self::MONTHLY_LIMIT_MINUTES - $usedMinutes;
+            if ($managerStatus === 'approved' && $hrStatus === 'approved') {
+                $status = 'approved';
+            }
+
+            $returnTime = Carbon::parse($data['return_time']);
+            $user = User::find($userId);
+            $workShift = $user->workShift;
+            $returnedOnTime = null;
+
+            if ($workShift) {
+                $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($returnTime);
+
+                if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
+                    $returnedOnTime = 1;
+                }
+            }
 
             $request = PermissionRequest::create([
                 'user_id' => $userId,
                 'departure_time' => $data['departure_time'],
                 'return_time' => $data['return_time'],
                 'minutes_used' => $validation['duration'],
+                'remaining_minutes' => $this->getRemainingMinutes($userId) - $validation['duration'],
                 'reason' => $data['reason'],
                 'manager_status' => $managerStatus,
-                'hr_status' => 'pending',
-                'status' => 'pending',
-                'remaining_minutes' => max(0, $remainingMinutes - $validation['duration']),
-                'returned_on_time' => false
+                'hr_status' => $hrStatus,
+                'status' => $status,
+                'returned_on_time' => $returnedOnTime,
             ]);
 
-            $this->notificationService->createPermissionRequestNotification($request);
+            if ($status === 'approved') {
+                $this->notificationService->createPermissionRequestNotification($request);
+            }
 
             return [
                 'success' => true,
-                'used_minutes' => $validation['duration'],
-                'remaining_minutes' => $request->remaining_minutes
+                'request_id' => $request->id,
+                'message' => 'تم إنشاء طلب الاستئذان بنجاح.',
+                'exceeded_limit' => $validation['exceeded_limit'] ?? false
             ];
-        });
+        } catch (\Exception $e) {
+            Log::error('Error creating request: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function createRequestForUser(int $userId, array $data): array
     {
-        $user = Auth::user();
+        try {
+            $validation = $this->validateTimeRequest($userId, $data['departure_time'], $data['return_time']);
 
-        $validation = $this->validateTimeRequest(
-            $userId,
-            $data['departure_time'],
-            $data['return_time']
-        );
+            if (!$validation['valid']) {
+                return [
+                    'success' => false,
+                    'message' => $validation['message']
+                ];
+            }
 
-        if (!$validation['valid']) {
+            $user = Auth::user();
+
+            $remainingMinutes = $this->getRemainingMinutes($userId);
+
+            $managerStatus = 'pending';
+            $hrStatus = 'pending';
+            $status = 'pending';
+
+            if ($user) {
+                $roles = $user->getRoleNames();
+
+                if ($roles->contains('team_leader') || $roles->contains('department_manager') || $roles->contains('company_manager')) {
+                    $managerStatus = 'approved';
+                }
+
+                if ($roles->contains('hr')) {
+                    $hrStatus = 'approved';
+                }
+            }
+
+            if ($managerStatus === 'approved' && $hrStatus === 'approved') {
+                $status = 'approved';
+            }
+
+            $returnTime = Carbon::parse($data['return_time']);
+            $targetUser = User::find($userId);
+            $workShift = $targetUser->workShift;
+            $returnedOnTime = null;
+
+            if ($workShift) {
+                $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($returnTime);
+
+                if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
+                    $returnedOnTime = 1;
+                }
+            }
+
+            $request = PermissionRequest::create([
+                'user_id' => $userId,
+                'departure_time' => $data['departure_time'],
+                'return_time' => $data['return_time'],
+                'minutes_used' => $validation['duration'],
+                'remaining_minutes' => $remainingMinutes - $validation['duration'],
+                'reason' => $data['reason'],
+                'manager_status' => $managerStatus,
+                'hr_status' => $hrStatus,
+                'status' => $status,
+                'returned_on_time' => $returnedOnTime,
+            ]);
+
+            if ($status === 'approved') {
+                $this->notificationService->createPermissionRequestNotification($request);
+            }
+
             return [
-                'success' => false,
-                'message' => $validation['message']
+                'success' => true,
+                'request_id' => $request->id,
+                'message' => 'تم إنشاء طلب الاستئذان بنجاح للموظف.',
+                'exceeded_limit' => $validation['exceeded_limit'] ?? false
             ];
+        } catch (\Exception $e) {
+            Log::error('Error creating request for user: ' . $e->getMessage());
+            throw $e;
         }
-
-        $remainingMinutes = $this->getRemainingMinutes($userId);
-
-        $managerStatus = $user->hasRole(['team_leader', 'department_manager', 'company_manager']) ? 'approved' : 'pending';
-        $hrStatus = $user->hasRole('hr') ? 'approved' : 'pending';
-
-        $request = PermissionRequest::create([
-            'user_id' => $userId,
-            'departure_time' => $data['departure_time'],
-            'return_time' => $data['return_time'],
-            'minutes_used' => $validation['duration'],
-            'reason' => $data['reason'],
-            'remaining_minutes' => $remainingMinutes - $validation['duration'],
-            'status' => 'pending',
-            'manager_status' => $managerStatus,
-            'hr_status' => $hrStatus,
-            'returned_on_time' => false,
-        ]);
-
-        $request->updateFinalStatus();
-        $request->save();
-
-        $this->notificationService->createPermissionRequestNotification($request);
-
-        return [
-            'success' => true,
-            'used_minutes' => $validation['used_minutes'],
-            'remaining_minutes' => $validation['remaining_minutes']
-        ];
     }
 
     public function updateRequest(PermissionRequest $request, array $data): array
     {
-        $validation = $this->validateTimeRequest(
-            $request->user_id,
-            $data['departure_time'],
-            $data['return_time'],
-            $request->id
-        );
+        try {
+            $validation = $this->validateTimeRequest($request->user_id, $data['departure_time'], $data['return_time'], $request->id);
 
-        if (!$validation['valid']) {
-            return [
-                'success' => false,
-                'message' => $validation['message']
+            if (!$validation['valid']) {
+                return [
+                    'success' => false,
+                    'message' => $validation['message']
+                ];
+            }
+
+            $returnTime = Carbon::parse($data['return_time']);
+            $user = User::find($request->user_id);
+            $workShift = $user->workShift;
+            $returnedOnTime = null;
+
+            if ($workShift) {
+                $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($returnTime);
+
+                if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
+                    $returnedOnTime = 1;
+                }
+            }
+
+            $remainingMinutes = $this->getRemainingMinutes($request->user_id);
+            $minutesUsed = $validation['duration'];
+            $oldMinutesUsed = $request->minutes_used;
+
+            $updateData = [
+                'departure_time' => $data['departure_time'],
+                'return_time' => $data['return_time'],
+                'minutes_used' => $minutesUsed,
+                'remaining_minutes' => $remainingMinutes + ($oldMinutesUsed - $minutesUsed),
+                'reason' => $data['reason']
             ];
+
+            if ($returnedOnTime !== null) {
+                $updateData['returned_on_time'] = $returnedOnTime;
+            }
+
+            $request->update($updateData);
+
+            return ['success' => true];
+        } catch (\Exception $e) {
+            Log::error('Error updating request: ' . $e->getMessage());
+            throw $e;
         }
-
-        $request->update([
-            'departure_time' => $data['departure_time'],
-            'return_time' => $data['return_time'],
-            'reason' => $data['reason'],
-            'minutes_used' => $validation['duration'],
-        ]);
-
-        $this->notificationService->notifyPermissionModified($request);
-
-        return ['success' => true];
     }
 
     public function updateStatus(PermissionRequest $request, array $data): array
@@ -227,23 +282,89 @@ class PermissionRequestService
 
     public function resetStatus(PermissionRequest $request, string $responseType)
     {
-        if ($responseType === 'manager') {
-            $request->updateManagerStatus('pending', null);
-        } elseif ($responseType === 'hr') {
-            $request->updateHrStatus('pending', null);
+        try {
+            if ($responseType === 'manager') {
+                $request->updateManagerStatus('pending', null);
+                $request->updateFinalStatus();
+                $request->save();
+                $this->notificationService->notifyManagerResponseDeleted($request);
+            } elseif ($responseType === 'hr') {
+                $request->updateHrStatus('pending', null);
+                $request->updateFinalStatus();
+                $request->save();
+                $this->notificationService->notifyStatusReset($request, 'hr');
+            }
+
+            return $request;
+        } catch (\Exception $e) {
+            \Log::error('Error resetting status: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function modifyResponse(PermissionRequest $request, array $data): array
+    {
+        if (isset($data['status'])) {
+            $status = $data['status'];
+            $rejectionReason = $status === 'rejected' ? ($data['rejection_reason'] ?? null) : null;
+
+            $request->updateManagerStatus($status, $rejectionReason);
+            $request->save();
+
+            $this->notificationService->notifyManagerStatusUpdate($request);
         }
 
-        $this->notificationService->notifyManagerResponseDeleted($request);
-
-        return $request;
+        return ['success' => true];
     }
 
     public function updateReturnStatus(PermissionRequest $request, int $returnStatus): array
     {
-        $request->update(['returned_on_time' => $returnStatus]);
-        $this->violationService->handleReturnViolation($request, $returnStatus);
+        try {
+            $now = Carbon::now();
+            $returnTime = Carbon::parse($request->return_time);
+            $workShiftEndTime = null;
 
-        return ['success' => true];
+            $user = User::find($request->user_id);
+            if ($user && $user->workShift) {
+                $workShiftEndTime = Carbon::parse($user->workShift->check_out_time)->setDateFrom($returnTime);
+            } else {
+                $workShiftEndTime = Carbon::parse($request->return_time)->setTime(16, 0, 0);
+            }
+
+            if ($returnTime->format('H:i') === $workShiftEndTime->format('H:i')) {
+                $request->returned_on_time = 1;
+            } else {
+                $request->returned_on_time = $returnStatus;
+            }
+
+            if ($request->returned_on_time == 1) {
+                $request->actual_return_time = now();
+                $request->updateActualMinutesUsed();
+            } elseif ($request->returned_on_time == 2) {
+                $request->actual_return_time = now();
+                $request->updateActualMinutesUsed();
+
+                $this->violationService->handleReturnViolation(
+                    $request,
+                    $request->returned_on_time
+                );
+            }
+
+            $request->save();
+
+            $this->notificationService->notifyReturnStatus($request);
+
+            return [
+                'success' => true,
+                'message' => 'تم تحديث حالة العودة بنجاح'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error updating return status: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث حالة العودة: ' . $e->getMessage()
+            ];
+        }
     }
 
     public function getRemainingMinutes(int $userId): int
@@ -261,75 +382,112 @@ class PermissionRequestService
 
     private function validateTimeRequest(int $userId, string $departureTime, string $returnTime, ?int $excludeId = null): array
     {
-        try {
-            $departure = Carbon::parse($departureTime);
-            $return = Carbon::parse($returnTime);
-            $duration = $departure->diffInMinutes($return);
+        $departureDateTime = Carbon::parse($departureTime);
+        $returnDateTime = Carbon::parse($returnTime);
+        $duration = $departureDateTime->diffInMinutes($returnDateTime);
 
-            // التحقق من أن وقت العودة بعد وقت المغادرة
-            if ($return <= $departure) {
-                return [
-                    'valid' => false,
-                    'message' => 'يجب أن يكون وقت العودة بعد وقت المغادرة'
-                ];
-            }
+        $user = User::find($userId);
+        $workShift = $user->workShift;
 
-            // التحقق من عدم وجود تداخل مع طلبات أخرى
-            $query = PermissionRequest::where('user_id', $userId)
-                ->where(function ($q) use ($departureTime, $returnTime) {
-                    $q->where(function ($q) use ($departureTime, $returnTime) {
-                        $q->where('departure_time', '<=', $departureTime)
-                            ->where('return_time', '>', $departureTime);
-                    })
-                    ->orWhere(function ($q) use ($departureTime, $returnTime) {
-                        $q->where('departure_time', '<', $returnTime)
-                            ->where('return_time', '>=', $returnTime);
-                    })
-                    ->orWhere(function ($q) use ($departureTime, $returnTime) {
-                        $q->where('departure_time', '>=', $departureTime)
-                            ->where('return_time', '<=', $returnTime);
-                    });
-                });
+        if ($workShift) {
+            $shiftStartTime = Carbon::parse($workShift->check_in_time)->setDateFrom($departureDateTime);
+            $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($departureDateTime);
+        } else {
+            $shiftStartTime = Carbon::parse($departureTime)->setTime(8, 0, 0);
+            $shiftEndTime = Carbon::parse($departureTime)->setTime(16, 0, 0);
+        }
 
-            if ($excludeId) {
-                $query->where('id', '!=', $excludeId);
-            }
+        Log::info('Validating time request', [
+            'user_id' => $userId,
+            'departure_time' => $departureTime,
+            'return_time' => $returnTime,
+            'shift_start_time' => $shiftStartTime->format('Y-m-d H:i:s'),
+            'shift_end_time' => $shiftEndTime->format('Y-m-d H:i:s')
+        ]);
 
-            $overlappingRequest = $query->first();
-
-            if ($overlappingRequest) {
-                return [
-                    'valid' => false,
-                    'message' => 'يوجد تداخل مع طلب استئذان آخر في نفس الوقت'
-                ];
-            }
-
-            // التحقق من الحد الأقصى للدقائق المسموح بها شهرياً
-            $startOfMonth = Carbon::now()->startOfMonth();
-            $endOfMonth = Carbon::now()->endOfMonth();
-
-            $usedMinutes = PermissionRequest::where('user_id', $userId)
-                ->whereBetween('departure_time', [$startOfMonth, $endOfMonth])
-                ->where('status', 'approved')
-                ->sum('minutes_used');
-
-            if (($usedMinutes + $duration) > self::MONTHLY_LIMIT_MINUTES) {
-                return [
-                    'valid' => false,
-                    'message' => 'لقد تجاوزت الحد الأقصى المسموح به للاستئذان هذا الشهر'
-                ];
-            }
-
-            return [
-                'valid' => true,
-                'duration' => $duration
-            ];
-        } catch (\Exception $e) {
+        if ($departureDateTime->greaterThanOrEqualTo($returnDateTime)) {
             return [
                 'valid' => false,
-                'message' => 'حدث خطأ أثناء التحقق من صحة الطلب'
+                'message' => 'وقت المغادرة يجب أن يكون قبل وقت العودة.',
+                'duration' => $duration,
+                'exceeded_limit' => false
             ];
         }
+
+        if ($departureDateTime->lessThan($shiftStartTime)) {
+            return [
+                'valid' => false,
+                'message' => 'وقت المغادرة يجب أن يكون بعد بداية الوردية (' . $shiftStartTime->format('h:i A') . ').',
+                'duration' => $duration,
+                'exceeded_limit' => false
+            ];
+        }
+
+        if ($returnDateTime->greaterThan($shiftEndTime)) {
+            return [
+                'valid' => false,
+                'message' => 'وقت العودة يجب أن يكون قبل نهاية الوردية (' . $shiftEndTime->format('h:i A') . ').',
+                'duration' => $duration,
+                'exceeded_limit' => false
+            ];
+        }
+
+        if ($departureDateTime->diffInMinutes($returnDateTime) > 180) {
+            return [
+                'valid' => false,
+                'message' => 'مدة الاستئذان يجب أن لا تزيد عن 3 ساعات.',
+                'duration' => $duration,
+                'exceeded_limit' => false
+            ];
+        }
+
+        $overlappingRequests = PermissionRequest::where('user_id', $userId)
+            ->where('status', '!=', 'rejected')
+            ->where(function ($query) use ($departureTime, $returnTime) {
+                $query->where(function ($query) use ($departureTime, $returnTime) {
+                    $query->where('departure_time', '<=', $departureTime)
+                        ->where('return_time', '>=', $departureTime);
+                })->orWhere(function ($query) use ($departureTime, $returnTime) {
+                    $query->where('departure_time', '<=', $returnTime)
+                        ->where('return_time', '>=', $returnTime);
+                })->orWhere(function ($query) use ($departureTime, $returnTime) {
+                    $query->where('departure_time', '>=', $departureTime)
+                        ->where('return_time', '<=', $returnTime);
+                });
+            });
+
+        if ($excludeId !== null) {
+            $overlappingRequests->where('id', '!=', $excludeId);
+        }
+
+        $count = $overlappingRequests->count();
+
+        if ($count > 0) {
+            return [
+                'valid' => false,
+                'message' => 'هناك تعارض مع طلب استئذان آخر في نفس الوقت.',
+                'duration' => $duration,
+                'exceeded_limit' => false
+            ];
+        }
+
+        $remainingMinutes = $this->getRemainingMinutes($userId);
+        $requestedMinutes = $departureDateTime->diffInMinutes($returnDateTime);
+
+        if ($requestedMinutes > $remainingMinutes) {
+            return [
+                'valid' => true,
+                'message' => "لقد استنفدت الحد الأقصى المسموح به من الاستئذان الشهري. المتبقي: {$remainingMinutes} دقيقة.",
+                'duration' => $duration,
+                'exceeded_limit' => true
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'duration' => $duration,
+            'exceeded_limit' => false
+        ];
     }
 
     public function canRespond($user = null)

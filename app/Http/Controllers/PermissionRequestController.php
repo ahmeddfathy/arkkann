@@ -11,6 +11,7 @@ use App\Models\Violation;
 use App\Services\NotificationPermissionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PermissionRequestController extends Controller
 {
@@ -75,30 +76,65 @@ class PermissionRequestController extends Controller
 
         $teamRequests = PermissionRequest::where('id', 0)->paginate(10);
         $noTeamRequests = PermissionRequest::where('id', 0)->paginate(10);
+        $hrRequests = PermissionRequest::where('id', 0)->paginate(10);
         $remainingMinutes = [];
 
         if ($user->hasRole('hr')) {
-            $teamQuery = PermissionRequest::with(['user', 'violations'])
-                ->whereHas('user', function ($q) {
-                    $q->whereHas('teams');
+            // إستعلام طلبات موظفي الشركه - لموظفي الـ HR فقط
+            $hrQuery = PermissionRequest::with(['user', 'violations'])
+                ->where(function ($query) use ($user) {
+                    $query->whereHas('user', function ($q) use ($user) {
+                        $q->whereDoesntHave('roles', function ($q) {
+                            $q->whereIn('name', ['hr', 'company_manager']);
+                        });
+                    });
                 });
 
             if ($employeeName) {
-                $teamQuery->whereHas('user', function ($q) use ($employeeName) {
+                $hrQuery->whereHas('user', function ($q) use ($employeeName) {
                     $q->where('name', 'like', "%{$employeeName}%");
                 });
             }
 
             if ($status) {
-                $teamQuery->where('status', $status);
+                $hrQuery->where('status', $status);
             }
 
             if ($fromDate && $toDate) {
-                $teamQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
+                $hrQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
             }
 
-            $teamRequests = $teamQuery->latest()->paginate(10);
+            $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
 
+            // إستعلام طلبات الفريق - للفريق الذي يديره المستخدم فقط
+            if ($user->currentTeam) {
+                $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
+
+                $teamQuery = PermissionRequest::with(['user', 'violations'])
+                    ->whereIn('user_id', $teamMembers);
+
+                if ($employeeName) {
+                    $teamQuery->whereHas('user', function ($q) use ($employeeName) {
+                        $q->where('name', 'like', "%{$employeeName}%");
+                    });
+                }
+
+                if ($status) {
+                    $teamQuery->where('status', $status);
+                }
+
+                if ($fromDate && $toDate) {
+                    $teamQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
+                }
+
+                $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
+
+                foreach ($teamMembers as $userId) {
+                    $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
+                }
+            }
+
+            // إستعلام طلبات الموظفين بدون فريق - لموظفي الـ HR فقط
             $noTeamQuery = PermissionRequest::with(['user', 'violations'])
                 ->whereHas('user', function ($q) {
                     $q->whereDoesntHave('teams');
@@ -141,24 +177,24 @@ class PermissionRequestController extends Controller
                     ->pluck('id')
                     ->toArray();
 
-                $query = PermissionRequest::with(['user', 'violations'])
+                $teamQuery = PermissionRequest::with(['user', 'violations'])
                     ->whereIn('user_id', $teamMembers);
 
                 if ($employeeName) {
-                    $query->whereHas('user', function ($q) use ($employeeName) {
+                    $teamQuery->whereHas('user', function ($q) use ($employeeName) {
                         $q->where('name', 'like', "%{$employeeName}%");
                     });
                 }
 
                 if ($status) {
-                    $query->where('status', $status);
+                    $teamQuery->where('status', $status);
                 }
 
                 if ($fromDate && $toDate) {
-                    $query->whereBetween('departure_time', [$dateStart, $dateEnd]);
+                    $teamQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
                 }
 
-                $teamRequests = $query->latest()->paginate(10);
+                $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
 
                 foreach ($teamMembers as $userId) {
                     $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
@@ -193,7 +229,8 @@ class PermissionRequestController extends Controller
             'currentMonthEnd',
             'dateStart',
             'dateEnd',
-            'statistics'
+            'statistics',
+            'hrRequests'
         ));
     }
 
@@ -222,16 +259,15 @@ class PermissionRequestController extends Controller
             return redirect()->back()->with('error', $result['message']);
         }
 
-        $message = 'Permission request submitted successfully.';
-        if (isset($result['used_minutes'])) {
-            $message .= " Total minutes used this month: {$result['used_minutes']} minutes.";
-            if (isset($result['remaining_minutes']) && $result['remaining_minutes'] > 0) {
-                $message .= " Remaining minutes: {$result['remaining_minutes']} minutes.";
-            }
+        // استخدام الرسالة المخصصة إذا كانت موجودة
+        $message = $result['message'] ?? 'تم إنشاء طلب الاستئذان بنجاح.';
+
+        // إضافة معلومات الدقائق المستخدمة
+        if (isset($result['used_minutes']) && !isset($result['exceeded_limit'])) {
+            $message .= " إجمالي الدقائق المستخدمة هذا الشهر: {$result['used_minutes']} دقيقة.";
         }
 
-        return redirect()->route('permission-requests.index')
-            ->with('success', $message);
+        return redirect()->route('permission-requests.index')->with('success', $message);
     }
 
     public function resetStatus(PermissionRequest $permissionRequest)
@@ -242,7 +278,7 @@ class PermissionRequestController extends Controller
             return redirect()->route('welcome')->with('error', 'Unauthorized action.');
         }
 
-        $this->permissionRequestService->resetStatus($permissionRequest);
+        $this->permissionRequestService->resetStatus($permissionRequest, 'manager');
 
         return redirect()->route('permission-requests.index')
             ->with('success', 'Request status reset to pending successfully.');
@@ -370,7 +406,7 @@ class PermissionRequestController extends Controller
         try {
             $now = Carbon::now()->setTimezone('Africa/Cairo');
             $returnTime = Carbon::parse($permissionRequest->return_time);
-            $maxReturnTime = $returnTime->copy()->addMinutes(10);
+            $maxReturnTime = $returnTime->copy();
             $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
             if ($returnTime->gte($endOfWorkDay)) {
@@ -385,36 +421,65 @@ class PermissionRequestController extends Controller
             }
 
             if ($validated['return_status'] == 1) {
-                if ($now->gt($maxReturnTime)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'لقد تجاوزت الوقت المسموح به للعودة'
+                // السماح بتسجيل العودة حتى لو تجاوز الوقت المحدد
+                // لكن نسجل ما إذا كان الموظف عاد في الوقت المحدد أم متأخراً
+                $isOnTime = $now->lte($maxReturnTime);
+                $permissionRequest->returned_on_time = 1;
+
+                // تحديث الدقائق المستخدمة الفعلية
+                $permissionRequest->updateActualMinutesUsed();
+                $permissionRequest->save();
+
+                // إذا كان متأخراً، نضيف مخالفة
+                if (!$isOnTime) {
+                    Violation::create([
+                        'user_id' => $permissionRequest->user_id,
+                        'permission_requests_id' => $permissionRequest->id,
+                        'reason' => 'تسجيل العودة من الاستئذان بعد الموعد المحدد',
+                        'manager_mistake' => false
                     ]);
+                } else {
+                    // إذا عاد في الوقت المحدد، نحذف أي مخالفات سابقة لهذا الطلب
+                    Violation::where('permission_requests_id', $permissionRequest->id)
+                            ->where('reason', 'تسجيل العودة من الاستئذان بعد الموعد المحدد')
+                            ->delete();
                 }
-            }
 
-            $oldStatus = $permissionRequest->returned_on_time;
-            $permissionRequest->returned_on_time = (int)$validated['return_status'];
-            $permissionRequest->updateActualMinutesUsed();
-
-            if ($returnTime->lt($endOfWorkDay) && $now->gt($maxReturnTime) && $permissionRequest->returned_on_time === null) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $isOnTime ? 'تم تسجيل العودة بنجاح' : 'تم تسجيل العودة، لكن بعد انتهاء الوقت المحدد'
+                ]);
+            } elseif ($validated['return_status'] == 2) {
                 $permissionRequest->returned_on_time = 2;
                 $permissionRequest->updateActualMinutesUsed();
-            }
+                $permissionRequest->save();
 
-            $permissionRequest->save();
-
-            if ($permissionRequest->returned_on_time == 2) {
                 Violation::create([
                     'user_id' => $permissionRequest->user_id,
                     'permission_requests_id' => $permissionRequest->id,
                     'reason' => 'عدم العودة من الاستئذان في الوقت المحدد',
                     'manager_mistake' => false
                 ]);
-            } else {
-                Violation::where('permission_requests_id', $permissionRequest->id)
-                        ->where('reason', 'عدم العودة من الاستئذان في الوقت المحدد')
-                        ->delete();
+            }
+
+            // لا يمكن إعادة التعيين إذا كان وقت العودة قد انتهى
+            if ($validated['return_status'] == 0 && $user->id === $permissionRequest->user_id) {
+                if (!$permissionRequest->canResetReturnStatus($user)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'لا يمكن إعادة تعيين الحالة بعد انتهاء وقت العودة'
+                    ]);
+                }
+            }
+
+            // لا يمكن تسجيل العودة إذا كان وقت العودة قد انتهى
+            if ($validated['return_status'] == 1 && $user->id === $permissionRequest->user_id) {
+                if (!$permissionRequest->canMarkAsReturned($user)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'لقد تجاوزت الوقت المسموح به للعودة'
+                    ]);
+                }
             }
 
             return response()->json([
@@ -481,24 +546,39 @@ class PermissionRequestController extends Controller
         return redirect()->back()->with('success', 'تم تعديل الرد بنجاح');
     }
 
-    public function resetHrStatus(PermissionRequest $permissionRequest)
+    public function resetHrStatus(Request $request, PermissionRequest $permissionRequest)
     {
         $user = Auth::user();
 
         if (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_permission_request')) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان'
+                ]);
+            }
             return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان');
         }
 
         try {
-            $permissionRequest->hr_status = 'pending';
-            $permissionRequest->hr_rejection_reason = null;
-            $permissionRequest->updateFinalStatus();
-            $permissionRequest->save();
+            $this->permissionRequestService->resetStatus($permissionRequest, 'hr');
 
-            $this->notificationService->notifyStatusReset($permissionRequest, 'hr');
-
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إعادة تعيين الرد بنجاح'
+                ]);
+            }
             return redirect()->back()->with('success', 'تم إعادة تعيين الرد بنجاح');
         } catch (\Exception $e) {
+            \Log::error('Reset HR Status Error: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حدث خطأ أثناء إعادة تعيين الرد'
+                ]);
+            }
             return redirect()->back()->with('error', 'حدث خطأ أثناء إعادة تعيين الرد');
         }
     }
@@ -549,12 +629,7 @@ class PermissionRequestController extends Controller
         }
 
         try {
-            $permissionRequest->manager_status = 'pending';
-            $permissionRequest->manager_rejection_reason = null;
-            $permissionRequest->updateFinalStatus();
-            $permissionRequest->save();
-
-            $this->notificationService->notifyStatusReset($permissionRequest, 'manager');
+            $this->permissionRequestService->resetStatus($permissionRequest, 'manager');
 
             return response()->json([
                 'success' => true,
@@ -825,11 +900,11 @@ class PermissionRequestController extends Controller
                     ->whereIn('user_id', $allEmployees)
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->groupBy('user_id');
-            }, 'request_counts')
-                ->join('users', 'users.id', '=', 'request_counts.user_id')
-                ->select('users.name', 'request_counts.request_count')
-                ->orderByDesc('request_count')
-                ->first();
+                }, 'request_counts')
+                    ->join('users', 'users.id', '=', 'request_counts.user_id')
+                    ->select('users.name', 'request_counts.request_count')
+                    ->orderByDesc('request_count')
+                    ->first();
 
             // الموظف الأكثر استخداماً للدقائق
             $highestMinutes = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
@@ -839,11 +914,11 @@ class PermissionRequestController extends Controller
                     ->where('status', 'approved')
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->groupBy('user_id');
-            }, 'minute_totals')
-                ->join('users', 'users.id', '=', 'minute_totals.user_id')
-                ->select('users.name', 'minute_totals.total_minutes')
-                ->orderByDesc('total_minutes')
-                ->first();
+                }, 'minute_totals')
+                    ->join('users', 'users.id', '=', 'minute_totals.user_id')
+                    ->select('users.name', 'minute_totals.total_minutes')
+                    ->orderByDesc('total_minutes')
+                    ->first();
 
             // تفاصيل الموظفين المتجاوزين للحد
             $exceededEmployees = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
@@ -854,17 +929,17 @@ class PermissionRequestController extends Controller
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->groupBy('user_id')
                     ->having('total_minutes', '>', 180);
-            }, 'exceeded_users')
-                ->join('users', 'users.id', '=', 'exceeded_users.user_id')
-                ->select('users.name', 'exceeded_users.total_minutes')
-                ->orderByDesc('total_minutes')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'name' => $item->name,
-                        'total_minutes' => $item->total_minutes
-                    ];
-                });
+                }, 'exceeded_users')
+                    ->join('users', 'users.id', '=', 'exceeded_users.user_id')
+                    ->select('users.name', 'exceeded_users.total_minutes')
+                    ->orderByDesc('total_minutes')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'name' => $item->name,
+                            'total_minutes' => $item->total_minutes
+                        ];
+                    });
 
             $statistics['hr'] = [
                 'total_requests' => $hrStats->total ?? 0,

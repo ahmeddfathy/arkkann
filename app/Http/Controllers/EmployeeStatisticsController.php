@@ -213,7 +213,7 @@ class EmployeeStatisticsController extends Controller
                 ->count();
 
             $employee->taken_leaves = $takenLeaves;
-            $employee->remaining_leaves = 21 - $takenLeaves;
+            $employee->remaining_leaves = $employee->getMaxAllowedAbsenceDays() - $takenLeaves;
 
             $currentMonthLeaves = AbsenceRequest::where('user_id', $employee->id)
                 ->where('status', 'approved')
@@ -324,7 +324,7 @@ class EmployeeStatisticsController extends Controller
             ->count();
 
         $statistics['taken_leaves'] = $takenLeaves;
-        $statistics['remaining_leaves'] = 21 - $takenLeaves;
+        $statistics['remaining_leaves'] = $employee->getMaxAllowedAbsenceDays() - $takenLeaves;
 
         $approvedLeavesDates = AbsenceRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
@@ -349,8 +349,16 @@ class EmployeeStatisticsController extends Controller
             ])
             ->count();
 
+        $employeeData = $employee->only([
+            'id', 'name', 'employee_id', 'email', 'phone_number', 'position', 'department',
+            'date_of_birth', 'hire_date', 'employment_status', 'profile_photo_url'
+        ]);
+
+        // Add max allowed absence days
+        $employeeData['max_allowed_absence_days'] = $employee->getMaxAllowedAbsenceDays();
+
         return response()->json([
-            'employee' => $employee,
+            'employee' => $employeeData,
             'statistics' => $statistics
         ]);
     }

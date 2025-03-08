@@ -35,6 +35,29 @@ class PermissionRequest extends Model
     return $this->belongsTo(User::class);
   }
 
+  /**
+   * الحصول على وردية المستخدم المرتبط بطلب الاستئذان
+   */
+  public function userWorkShift()
+  {
+    return $this->user->workShift;
+  }
+
+  /**
+   * الحصول على وقت نهاية الوردية للمستخدم
+   */
+  public function getShiftEndTime()
+  {
+    $workShift = $this->userWorkShift();
+
+    if ($workShift) {
+      return \Carbon\Carbon::parse($workShift->check_out_time);
+    }
+
+    // إذا لم يكن للمستخدم وردية محددة، استخدم الوقت الافتراضي (4:00 PM)
+    return \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
+  }
+
   public function violations()
   {
     return $this->hasMany(Violation::class, 'permission_requests_id');
@@ -151,11 +174,19 @@ class PermissionRequest extends Model
 
   public function getReturnStatusLabel(): string
   {
-    return match ($this->returned_on_time) {
-      0 => 'Not Specified',
-      1 => 'Returned On Time',
-      2 => 'Did Not Return On Time',
-      default => 'N/A'
+    Log::info('getReturnStatusLabel for request #' . $this->id, [
+      'request_id' => $this->id,
+      'returned_on_time' => $this->returned_on_time,
+      'returned_on_time_type' => gettype($this->returned_on_time),
+      'as_int' => (int)$this->returned_on_time,
+      'is_null' => $this->returned_on_time === null
+    ]);
+
+    // استعمال == بدل === لمعالجة الحالات المختلفة (0, null, false)
+    return match (true) {
+      $this->returned_on_time == 1 => 'عاد في الوقت المحدد',
+      $this->returned_on_time == 2 => 'لم يعد في الوقت المحدد',
+      default => 'غير محدد'
     };
   }
 
@@ -196,7 +227,7 @@ class PermissionRequest extends Model
     $now = Carbon::now()->setTimezone('Africa/Cairo');
     $departure = $this->departure_time;
     $scheduledReturn = $this->return_time;
-    $maxReturnTime = $scheduledReturn->copy()->addMinutes(10);
+    $maxReturnTime = $scheduledReturn->copy();
     $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
     Log::info('Calculating actual minutes used', [
@@ -209,7 +240,6 @@ class PermissionRequest extends Model
       'end_of_work_day' => $endOfWorkDay->format('Y-m-d H:i:s')
     ]);
 
-    // If return time is after work day end, use work day end as return time
     if ($scheduledReturn->gte($endOfWorkDay)) {
       $scheduledReturn = $endOfWorkDay;
       Log::info('Using end of work day as return time', [
@@ -220,10 +250,8 @@ class PermissionRequest extends Model
 
     $minutesUsed = 0;
 
-    // If returned on time (within 10 minutes of scheduled return)
     if ($this->returned_on_time === 1) {
-      // Use current time if it's within the allowed return window
-      if ($now->lte($maxReturnTime)) {
+      if ($now->lte($scheduledReturn)) {
         $minutesUsed = $departure->diffInMinutes($now);
         Log::info('Returned on time - using current time', [
           'request_id' => $this->id,
@@ -231,28 +259,27 @@ class PermissionRequest extends Model
           'current_time' => $now->format('Y-m-d H:i:s')
         ]);
       } else {
-        $minutesUsed = $departure->diffInMinutes($maxReturnTime);
-        Log::info('Returned on time but past max time - using max return time', [
+        $minutesUsed = $departure->diffInMinutes($now);
+        Log::info('Returned late - using actual late time', [
           'request_id' => $this->id,
           'minutes_used' => $minutesUsed,
-          'max_return_time' => $maxReturnTime->format('Y-m-d H:i:s')
+          'current_time' => $now->format('Y-m-d H:i:s'),
+          'expected_return_time' => $scheduledReturn->format('Y-m-d H:i:s')
         ]);
       }
     }
-    // If returned late
     else if ($this->returned_on_time === 2) {
-      $minutesUsed = $departure->diffInMinutes($now);
-      Log::info('Returned late - using current time', [
+      $minutesUsed = $departure->diffInMinutes($endOfWorkDay);
+      Log::info('Marked as not returned - using end of work day', [
         'request_id' => $this->id,
         'minutes_used' => $minutesUsed,
-        'current_time' => $now->format('Y-m-d H:i:s')
+        'end_of_work_day' => $endOfWorkDay->format('Y-m-d H:i:s')
       ]);
     }
-    // If not returned yet
     else if ($this->returned_on_time === null) {
-      if ($now->gt($maxReturnTime)) {
+      if ($now->gt($scheduledReturn)) {
         $minutesUsed = $departure->diffInMinutes($now);
-        Log::info('Not returned and past max time - using current time', [
+        Log::info('Not returned and past return time - using current time', [
           'request_id' => $this->id,
           'minutes_used' => $minutesUsed,
           'current_time' => $now->format('Y-m-d H:i:s')
@@ -266,7 +293,6 @@ class PermissionRequest extends Model
         ]);
       }
     }
-    // Default case - use scheduled return time
     else {
       $minutesUsed = $departure->diffInMinutes($scheduledReturn);
       Log::info('Default case - using scheduled return time', [
@@ -298,5 +324,143 @@ class PermissionRequest extends Model
       'request_id' => $this->id,
       'final_minutes' => $this->minutes_used
     ]);
+  }
+
+  public function canMarkAsReturned(User $user): bool
+  {
+    if ($user->id !== $this->user_id) {
+      return false;
+    }
+
+    if ($this->status !== 'approved') {
+      return false;
+    }
+
+    if ($this->returned_on_time === 1 || $this->returned_on_time === 2) {
+      return false;
+    }
+
+    $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
+    $departureTime = \Carbon\Carbon::parse($this->departure_time);
+    $returnTime = \Carbon\Carbon::parse($this->return_time);
+
+    // استخدام وقت نهاية الوردية بدلاً من الوقت الثابت
+    $shiftEndTime = $this->getShiftEndTime();
+
+    $isSameDay = $now->isSameDay($returnTime);
+    $isBeforeEndOfShift = $now->lt($shiftEndTime);
+
+    // يمكن وضع علامة العودة إذا كان الوقت الحالي بعد وقت المغادرة وقبل نهاية الوردية
+    $isTimeToShow = $now->gte($departureTime) && $isBeforeEndOfShift;
+
+    Log::info('canMarkAsReturned check', [
+      'request_id' => $this->id,
+      'now' => $now->format('Y-m-d H:i:s'),
+      'departureTime' => $departureTime->format('Y-m-d H:i:s'),
+      'returnTime' => $returnTime->format('Y-m-d H:i:s'),
+      'shiftEndTime' => $shiftEndTime->format('Y-m-d H:i:s'),
+      'isSameDay' => $isSameDay,
+      'isBeforeEndOfShift' => $isBeforeEndOfShift,
+      'result' => $isSameDay && $isTimeToShow
+    ]);
+
+    return $isSameDay && $isTimeToShow;
+  }
+
+  public function canResetReturnStatus(User $user): bool
+  {
+    if ($user->id !== $this->user_id) {
+      return false;
+    }
+
+    if ($this->status !== 'approved') {
+      return false;
+    }
+
+    if ($this->returned_on_time === null) {
+      return false;
+    }
+
+    $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
+    $returnTime = \Carbon\Carbon::parse($this->return_time);
+    $maxReturnTime = $this->getShiftEndTime();
+
+    return !$now->gt($maxReturnTime);
+  }
+
+  public function isReturnTimePassed(): bool
+  {
+    $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
+    $returnTime = \Carbon\Carbon::parse($this->return_time);
+
+    // استخدام وقت العودة المحدد في الطلب أو وقت نهاية الوردية أيهما أقل
+    $maxReturnTime = min($returnTime, $this->getShiftEndTime());
+
+    // إذا كان وقت العودة هو نفس وقت نهاية الوردية، فاعتبر وقت العودة قد مر
+    if ($returnTime->format('H:i') === $this->getShiftEndTime()->format('H:i')) {
+      Log::info('Return time is end of shift', [
+        'request_id' => $this->id,
+        'return_time' => $returnTime->format('Y-m-d H:i:s'),
+        'shift_end_time' => $this->getShiftEndTime()->format('Y-m-d H:i:s')
+      ]);
+
+      // إذا لم يكن هناك حالة محددة بالفعل، فقم بتعيين حالة العودة تلقائيًا
+      if ($this->returned_on_time === null) {
+        $this->returned_on_time = 1; // عاد في الوقت المحدد
+        $this->save();
+      }
+
+      return true;
+    }
+
+    return $now->gt($maxReturnTime);
+  }
+
+  public function shouldShowCountdown(): bool
+  {
+    Log::info('shouldShowCountdown check for request #' . $this->id, [
+      'request_id' => $this->id,
+      'returned_on_time' => $this->returned_on_time,
+      'returned_on_time_type' => gettype($this->returned_on_time),
+      'is_null' => $this->returned_on_time === null,
+      'departure_time' => $this->departure_time,
+      'return_time' => $this->return_time,
+      'now' => \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->format('Y-m-d H:i:s'),
+      'shift_end_time' => $this->getShiftEndTime()->format('Y-m-d H:i:s')
+    ]);
+
+    if ($this->returned_on_time == 1 || $this->returned_on_time == 2) {
+      Log::info('shouldShowCountdown returning false due to returned_on_time being 1 or 2', [
+        'request_id' => $this->id,
+        'returned_on_time' => $this->returned_on_time
+      ]);
+      return false;
+    }
+
+    // إذا كان وقت العودة هو نفس وقت نهاية الوردية، لا تعرض العد التنازلي
+    $returnTime = \Carbon\Carbon::parse($this->return_time);
+    if ($returnTime->format('H:i') === $this->getShiftEndTime()->format('H:i')) {
+      return false;
+    }
+
+    $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
+
+    // إذا لم يتم تحديد وقت العودة، فلا داعي لإظهار العد التنازلي
+    if (!$this->return_time) {
+      return false;
+    }
+
+    $departureTime = \Carbon\Carbon::parse($this->departure_time);
+
+    // استخدام وقت العودة المحدد في الطلب أو وقت نهاية الوردية أيهما أقل
+    $maxReturnTime = min($returnTime, $this->getShiftEndTime());
+
+    // لا تعرض العد التنازلي إذا لم يبدأ الاستئذان بعد
+    if ($now->lt($departureTime)) {
+      return false;
+    }
+
+    // تعرض العد التنازلي فقط إذا كان الوقت الحالي بين وقت المغادرة ووقت العودة (أو نهاية الوردية)
+    return $now->gte($departureTime) && $now->lte($maxReturnTime);
   }
 }

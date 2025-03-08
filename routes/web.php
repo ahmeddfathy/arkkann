@@ -20,6 +20,7 @@ use App\Http\Controllers\OnlineStatusController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\EmployeeStatisticsController;
 use App\Http\Controllers\SpecialCaseController;
+use App\Http\Controllers\WorkShiftController;
 
 Route::get('/send-mail', function () {
     $data = [
@@ -48,6 +49,14 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // مسارات إدارة الورديات
+    Route::resource('work-shifts', WorkShiftController::class);
+    Route::patch('/work-shifts/{workShift}/toggle-status', [WorkShiftController::class, 'toggleStatus'])->name('work-shifts.toggle-status');
+
+    // مسارات تعيين الورديات للمستخدمين
+    Route::get('/users/assign-work-shifts', [UserController::class, 'assignWorkShifts'])->name('users.assign-work-shifts');
+    Route::post('/users/save-work-shifts', [UserController::class, 'saveWorkShifts'])->name('users.save-work-shifts');
 });
 
 Route::middleware(['auth'])->group(function () {

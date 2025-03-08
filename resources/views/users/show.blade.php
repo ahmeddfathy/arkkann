@@ -100,6 +100,24 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Work Shift Information -->
+                        <div class="col-md-6 mb-4">
+                            <div class="detail-card">
+                                <div class="detail-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="detail-info">
+                                    <label>وردية العمل</label>
+                                    @if($user->workShift)
+                                        <p>{{ $user->workShift->name }} ({{ $user->workShift->check_in_time->format('h:i A') }} - {{ $user->workShift->check_out_time->format('h:i A') }})</p>
+                                    @else
+                                        <p>غير محدد</p>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Action Buttons -->

@@ -182,6 +182,18 @@
     </div>
   </div>
 
+  <div class="action-cards">
+    <div class="action-card">
+      <div class="action-icon">
+        <i class="fas fa-chart-line text-white text-2xl"></i>
+      </div>
+      <h3 class="text-xl font-semibold mb-3">إحصائيات الموظف</h3>
+      <a href="{{ route('employee-statistics.index') }}" class="btn-dashboard">
+        عرض الإحصائيات
+      </a>
+    </div>
+  </div>
+
   @if($salaryFiles->count() > 0)
   <div>
 

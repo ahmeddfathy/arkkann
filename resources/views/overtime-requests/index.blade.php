@@ -562,6 +562,80 @@
         </div>
     </div>
 
+    <!-- جدول طلبات موظفي الشركة - لل HR فقط -->
+    @if(Auth::user()->hasRole('hr'))
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-building"></i> طلبات العمل الإضافي لموظفي الشركة
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>التاريخ</th>
+                            <th>من</th>
+                            <th>إلى</th>
+                            <th>المدة</th>
+                            <th>السبب</th>
+                            <th>رد المدير</th>
+                            <th>رد HR</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($hrRequests as $request)
+                        <tr>
+                            <td>{{ $request->user->name }}</td>
+                            <td>{{ \Carbon\Carbon::parse($request->overtime_date)->format('Y-m-d') }}</td>
+                            <td>{{ $request->start_time }}</td>
+                            <td>{{ $request->end_time }}</td>
+                            <td>{{ $request->getFormattedDuration() }}</td>
+                            <td>{{ $request->reason }}</td>
+                            <td>
+                                <span class="badge bg-{{ $request->manager_status === 'approved' ? 'success' : ($request->manager_status === 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ $request->manager_status === 'approved' ? 'موافق' : ($request->manager_status === 'rejected' ? 'مرفوض' : 'معلق') }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ $request->hr_status === 'approved' ? 'success' : ($request->hr_status === 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ $request->hr_status === 'approved' ? 'موافق' : ($request->hr_status === 'rejected' ? 'مرفوض' : 'معلق') }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ $request->status === 'approved' ? 'success' : ($request->status === 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ $request->status === 'approved' ? 'معتمد' : ($request->status === 'rejected' ? 'مرفوض' : 'معلق') }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($canRespondAsHR && $request->hr_status === 'pending')
+                                <button class="btn btn-sm btn-primary respond-btn"
+                                    data-toggle="modal"
+                                    data-target="#respondModal"
+                                    data-request-id="{{ $request->id }}"
+                                    data-response-type="hr">
+                                    <i class="fas fa-reply"></i> رد HR
+                                </button>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center">لا توجد طلبات</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+                {{ $hrRequests->links() }}
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- جدول الموظفين بدون فريق - لل HR -->
     @if(Auth::user()->hasRole('hr') && $noTeamRequests->count() > 0)
     <div class="card mb-4">

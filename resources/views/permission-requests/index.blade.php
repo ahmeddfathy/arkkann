@@ -434,32 +434,42 @@ use Carbon\Carbon;
                                             @php
                                             $returnTime = \Carbon\Carbon::parse($request->return_time);
                                             $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
-                                            $departureTime = \Carbon\Carbon::parse($request->departure_time);
-                                            $maxReturnTime = $returnTime->copy()->addMinutes(10);
-                                            $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
-
-                                            $isTimeToShow = $now->gte($departureTime) && $now->lte($maxReturnTime);
+                                            $endOfWorkDay = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
+                                            $isBeforeEndOfDay = $now->lt($endOfWorkDay);
                                             $isSameDay = $now->isSameDay($returnTime);
-                                            $isBeforeEndOfDay = $returnTime->lt($endOfWorkDay);
+                                            $departureTime = \Carbon\Carbon::parse($request->departure_time);
+                                            $isAfterDeparture = $now->gte($departureTime);
                                             @endphp
 
                                             <div class="d-flex align-items-center">
-                                                @if($isSameDay && $isTimeToShow && $isBeforeEndOfDay && !$request->returned_on_time)
+                                                @if($request->shouldShowCountdown())
                                                 <div class="countdown-timer countdown" data-return-time="{{ $returnTime->format('Y-m-d H:i:s') }}">
                                                     <div class="timer-label">الوقت المتبقي</div>
                                                     <div class="timer-value"></div>
                                                 </div>
+                                                @else
+                                                <!-- عداد بديل للتحقق من المشكلة -->
+                                                <div class="p-2 bg-light border rounded mb-2">
+                                                    <p class="m-0"><small>العداد غير ظاهر لأن:</small></p>
+                                                    <p class="m-0"><small>قيمة returned_on_time: [{{ $request->returned_on_time === null ? 'null' : $request->returned_on_time }}]</small></p>
+                                                    <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'العودة مسجلة (لم يعد)' : '') }}</small></p>
+                                                    <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->isSameDay($returnTime) ? 'ليس في نفس اليوم' : '' }}</small></p>
+                                                    <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->lt(\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)) ? 'تجاوز نهاية يوم العمل' : '' }}</small></p>
+                                                    <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time)) ? 'لم يبدأ وقت المغادرة بعد' : '' }}</small></p>
+                                                </div>
                                                 @endif
 
+                                                <!-- زر الرجوع - يظهر فقط لصاحب الطلب ويعمل فقط في الوقت المناسب -->
+                                                @if($request->canMarkAsReturned(Auth::user()))
                                                 <button type="button"
                                                     class="btn btn-success btn-sm return-btn me-2"
                                                     data-request-id="{{ $request->id }}"
-                                                    data-status="1"
-                                                    {{ $request->returned_on_time === 1 || $request->returned_on_time === 2 || !$isTimeToShow ? 'disabled' : '' }}>
+                                                    data-status="1">
                                                     <i class="fas fa-check me-1"></i>رجع
                                                 </button>
+                                                @endif
 
-                                                <!-- تعديل زر "لم يرجع" -->
+                                                <!-- زر "لم يرجع" - يظهر فقط للمدراء وHR -->
                                                 @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
                                                 <button type="button"
                                                     class="btn btn-danger btn-sm return-btn me-2"
@@ -470,13 +480,15 @@ use Carbon\Carbon;
                                                 </button>
                                                 @endif
 
+                                                <!-- زر إعادة تعيين - يظهر لصاحب الطلب فقط إذا لم يكن وقت العودة قد انتهى -->
+                                                @if($request->canResetReturnStatus(Auth::user()))
                                                 <button type="button"
                                                     class="btn btn-secondary btn-sm reset-btn"
                                                     data-request-id="{{ $request->id }}"
-                                                    data-status="0"
-                                                    {{ $request->returned_on_time === null ? 'disabled' : '' }}>
+                                                    data-status="0">
                                                     <i class="fas fa-undo me-1"></i>إعادة تعيين
                                                 </button>
+                                                @endif
                                             </div>
                                         </div>
                                         @endif
@@ -659,16 +671,30 @@ use Carbon\Carbon;
                                         @if($request->status === 'approved')
                                         <div class="btn-group" role="group">
                                             @php
-                                            $returnTime = \Carbon\Carbon::parse($request->return_time)->addMinutes(10);
+                                            $returnTime = \Carbon\Carbon::parse($request->return_time);
                                             $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
-                                            $isWithinTimeLimit = $now->lte($returnTime);
+                                            $endOfWorkDay = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
+                                            $isBeforeEndOfDay = $now->lt($endOfWorkDay);
+                                            $isSameDay = $now->isSameDay($returnTime);
+                                            $departureTime = \Carbon\Carbon::parse($request->departure_time);
+                                            $isAfterDeparture = $now->gte($departureTime);
                                             @endphp
 
                                             <div class="d-flex align-items-center">
-                                                @if($isWithinTimeLimit && Carbon::now()->setTimezone('Africa/Cairo')->lt(Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)))
+                                                @if($request->shouldShowCountdown())
                                                 <div class="countdown-timer countdown" data-return-time="{{ $returnTime->format('Y-m-d H:i:s') }}">
                                                     <div class="timer-label">الوقت المتبقي</div>
                                                     <div class="timer-value"></div>
+                                                </div>
+                                                @else
+                                                <!-- عداد بديل للتحقق من المشكلة -->
+                                                <div class="p-2 bg-light border rounded mb-2">
+                                                    <p class="m-0"><small>العداد غير ظاهر لأن:</small></p>
+                                                    <p class="m-0"><small>قيمة returned_on_time: [{{ $request->returned_on_time === null ? 'null' : $request->returned_on_time }}]</small></p>
+                                                    <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'العودة مسجلة (لم يعد)' : '') }}</small></p>
+                                                    <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->isSameDay($returnTime) ? 'ليس في نفس اليوم' : '' }}</small></p>
+                                                    <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->lt(\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)) ? 'تجاوز نهاية يوم العمل' : '' }}</small></p>
+                                                    <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time)) ? 'لم يبدأ وقت المغادرة بعد' : '' }}</small></p>
                                                 </div>
                                                 @endif
 
@@ -713,6 +739,121 @@ use Carbon\Carbon;
                         </tbody>
                     </table>
                     {{ $teamRequests->links() }}
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- جدول طلبات موظفي الشركه (لل HR فقط) -->
+    @if(Auth::user()->hasRole('hr'))
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-building"></i> طلبات موظفي الشركه
+                    </h5>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الموظف</th>
+                                <th>وقت المغادرة</th>
+                                <th>وقت العودة</th>
+                                <th>المدة</th>
+                                <th>الدقائق المتبقية</th>
+                                <th>السبب</th>
+                                <th>رد المدير</th>
+                                <th>سبب رفض المدير</th>
+                                <th>رد HR</th>
+                                <th>سبب رفض HR</th>
+                                <th>الحالة النهائية</th>
+                                <th>حالة العودة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($hrRequests as $request)
+                            <tr class="request-row">
+                                <td>{{ $request->user->name }}</td>
+                                <td>{{ \Carbon\Carbon::parse($request->departure_time)->format('Y-m-d H:i') }}</td>
+                                <td>{{ \Carbon\Carbon::parse($request->return_time)->format('Y-m-d H:i') }}</td>
+                                <td>{{ $request->minutes_used }} دقيقة</td>
+                                <td>
+                                    @php
+                                    $userTotalMinutes = PermissionRequest::where('user_id', $request->user_id)
+                                    ->where('status', 'approved')
+                                    ->whereBetween('departure_time', [$dateStart, $dateEnd])
+                                    ->sum('minutes_used');
+                                    @endphp
+                                    <span title="الحد الشهري المسموح: 180 دقيقة">
+                                        استخدم {{ $userTotalMinutes }} دقيقة في الفترة المحددة
+                                        @if($userTotalMinutes > 180)
+                                        <br>
+                                        <small class="text-danger">
+                                            (تجاوز الحد بـ {{ $userTotalMinutes - 180 }} دقيقة)
+                                        </small>
+                                        @endif
+                                    </span>
+                                </td>
+                                <td>{{ $request->reason }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $request->manager_status === 'approved' ? 'success' : ($request->manager_status === 'rejected' ? 'danger' : 'warning') }}">
+                                        {{ $request->manager_status === 'approved' ? 'موافق' : ($request->manager_status === 'rejected' ? 'مرفوض' : 'معلق') }}
+                                    </span>
+                                </td>
+                                <td>{{ $request->manager_rejection_reason ?? '-' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $request->hr_status === 'approved' ? 'success' : ($request->hr_status === 'rejected' ? 'danger' : 'warning') }}">
+                                        {{ $request->hr_status === 'approved' ? 'موافق' : ($request->hr_status === 'rejected' ? 'مرفوض' : 'معلق') }}
+                                    </span>
+                                </td>
+                                <td>{{ $request->hr_rejection_reason ?? '-' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $request->status === 'approved' ? 'success' : ($request->status === 'rejected' ? 'danger' : 'warning') }}">
+                                        {{ $request->status === 'approved' ? 'موافق' : ($request->status === 'rejected' ? 'مرفوض' : 'معلق') }}
+                                    </span>
+                                </td>
+                                <td>{{ $request->getReturnStatusLabel() }}</td>
+                                <td>
+                                    @if($request->hr_status === 'pending')
+                                    <button class="btn btn-sm btn-info respond-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#respondModal"
+                                        data-request-id="{{ $request->id }}"
+                                        data-response-type="hr">
+                                        <i class="fas fa-reply"></i> رد HR
+                                    </button>
+                                    @else
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-warning modify-response-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modifyResponseModal"
+                                            data-request-id="{{ $request->id }}"
+                                            data-response-type="hr"
+                                            data-status="{{ $request->hr_status }}"
+                                            data-reason="{{ $request->hr_rejection_reason }}">
+                                            <i class="fas fa-edit"></i> تعديل رد HR
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                            onclick="resetStatus('{{ $request->id }}', 'hr')">
+                                            <i class="fas fa-undo"></i> إعادة تعيين
+                                        </button>
+                                    </div>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="13" class="text-center">لا توجد طلبات استئذان</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    {{ $hrRequests->links() }}
                 </div>
             </div>
         </div>
@@ -821,16 +962,30 @@ use Carbon\Carbon;
                                 @if($request->status === 'approved')
                                 <div class="btn-group" role="group">
                                     @php
-                                    $returnTime = \Carbon\Carbon::parse($request->return_time)->addMinutes(10);
+                                    $returnTime = \Carbon\Carbon::parse($request->return_time);
                                     $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
-                                    $isWithinTimeLimit = $now->lte($returnTime);
+                                    $endOfWorkDay = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
+                                    $isBeforeEndOfDay = $now->lt($endOfWorkDay);
+                                    $isSameDay = $now->isSameDay($returnTime);
+                                    $departureTime = \Carbon\Carbon::parse($request->departure_time);
+                                    $isAfterDeparture = $now->gte($departureTime);
                                     @endphp
 
                                     <div class="d-flex align-items-center">
-                                        @if($isWithinTimeLimit && Carbon::now()->setTimezone('Africa/Cairo')->lt(Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)))
+                                        @if($request->shouldShowCountdown())
                                         <div class="countdown-timer countdown" data-return-time="{{ $returnTime->format('Y-m-d H:i:s') }}">
                                             <div class="timer-label">الوقت المتبقي</div>
                                             <div class="timer-value"></div>
+                                        </div>
+                                        @else
+                                        <!-- عداد بديل للتحقق من المشكلة -->
+                                        <div class="p-2 bg-light border rounded mb-2">
+                                            <p class="m-0"><small>العداد غير ظاهر لأن:</small></p>
+                                            <p class="m-0"><small>قيمة returned_on_time: [{{ $request->returned_on_time === null ? 'null' : $request->returned_on_time }}]</small></p>
+                                            <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'العودة مسجلة (لم يعد)' : '') }}</small></p>
+                                            <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->isSameDay($returnTime) ? 'ليس في نفس اليوم' : '' }}</small></p>
+                                            <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->lt(\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)) ? 'تجاوز نهاية يوم العمل' : '' }}</small></p>
+                                            <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time)) ? 'لم يبدأ وقت المغادرة بعد' : '' }}</small></p>
                                         </div>
                                         @endif
 
@@ -1125,19 +1280,41 @@ use Carbon\Carbon;
         // دالة تحديث التايمر
         function startCountdown(element) {
             const returnTime = new Date(element.dataset.returnTime).getTime();
+            let timerLabel = element.querySelector('.timer-label');
 
             function updateTimer() {
                 const now = new Date().getTime();
                 const distance = returnTime - now;
 
+                // إذا تخطى وقت العودة، نعرض الوقت الإضافي المستهلك
                 if (distance < 0) {
-                    element.querySelector('.timer-value').innerHTML = "انتهى الوقت";
+                    // تغيير النص من "الوقت المتبقي" إلى "متأخر بـ"
+                    timerLabel.textContent = "متأخر بـ";
                     element.classList.add('danger');
-                    const returnBtn = element.closest('.d-flex').querySelector('.return-btn');
-                    if (returnBtn) returnBtn.disabled = true;
-                    return false;
+
+                    // حساب الوقت المتأخر (مقلوب distance لأنه سالب)
+                    const overtime = Math.abs(distance);
+                    const hours = Math.floor((overtime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((overtime % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((overtime % (1000 * 60)) / 1000);
+
+                    let timeDisplay = '';
+                    if (hours > 0) {
+                        timeDisplay += `${hours}:`;
+                    }
+                    timeDisplay += `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                    element.querySelector('.timer-value').innerHTML = timeDisplay;
+
+                    // لا نقوم بتعطيل زر العودة حتى يتمكن الموظف من تسجيل عودته
+                    // const returnBtn = element.closest('.d-flex').querySelector('.return-btn');
+                    // if (returnBtn) returnBtn.disabled = true;
+
+                    return true; // استمر في تحديث العداد
                 }
 
+                // وقت العودة لم ينته بعد - عرض الوقت المتبقي
+                timerLabel.textContent = "الوقت المتبقي";
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
@@ -1168,18 +1345,27 @@ use Carbon\Carbon;
 
         // تهيئة كل التايمرات
         const timers = [];
+        console.log("محاولة تهيئة العدادات، عدد العناصر:", document.querySelectorAll('.countdown').length);
         document.querySelectorAll('.countdown').forEach(element => {
             const returnTime = new Date(element.dataset.returnTime);
             const now = new Date();
+            console.log("معلومات العداد:", {
+                elementExists: !!element,
+                returnTime: element.dataset.returnTime,
+                parsedReturnTime: returnTime,
+                currentTime: now,
+                hasDiffInDays: returnTime.toDateString() !== now.toDateString(),
+                timerLabelExists: !!element.querySelector('.timer-label'),
+                timerValueExists: !!element.querySelector('.timer-value')
+            });
 
-            // عرض التايمر فقط في نفس يوم الطلب
-            if (returnTime.toDateString() === now.toDateString()) {
-                const timer = startCountdown(element);
-                if (timer) {
-                    timers.push(timer);
-                }
+            // دائماً نبدأ العداد بغض النظر عن اليوم
+            const timer = startCountdown(element);
+            if (timer) {
+                timers.push(timer);
+                console.log("تمت إضافة المؤقت بنجاح");
             } else {
-                element.style.display = 'none';
+                console.log("فشل إضافة المؤقت");
             }
         });
 
@@ -1221,6 +1407,142 @@ use Carbon\Carbon;
         window.addEventListener('beforeunload', () => {
             timers.forEach(timer => clearInterval(timer));
         });
+
+        // معالجة تبديل نوع الطلب (لنفسي/لموظف آخر)
+        const registrationTypeInputs = document.querySelectorAll('input[name="registration_type"]');
+        const employeeSelectContainer = document.getElementById('employee_select_container');
+        const userIdSelect = document.getElementById('user_id');
+
+        if (registrationTypeInputs && employeeSelectContainer) {
+            registrationTypeInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    if (this.value === 'other') {
+                        employeeSelectContainer.style.display = 'block';
+                        if (userIdSelect) {
+                            userIdSelect.required = true;
+                        }
+                    } else {
+                        employeeSelectContainer.style.display = 'none';
+                        if (userIdSelect) {
+                            userIdSelect.required = false;
+                            userIdSelect.value = '';
+                        }
+                    }
+                });
+            });
+        }
+
+        // معالجة أزرار الرد (للمدير و HR)
+        document.querySelectorAll('.respond-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const requestId = this.dataset.requestId;
+                const responseType = this.dataset.responseType;
+                const form = document.getElementById('respondForm');
+                const responseTypeInput = document.getElementById('response_type');
+
+                // تعيين نوع الرد (مدير أو HR)
+                responseTypeInput.value = responseType;
+
+                // تعيين عنوان النموذج بناءً على نوع الرد
+                form.action = responseType === 'hr'
+                    ? "{{ url('/permission-requests') }}/" + requestId + "/hr-status"
+                    : "{{ url('/permission-requests') }}/" + requestId + "/manager-status";
+            });
+        });
+
+        // معالجة أزرار التعديل
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const requestId = this.dataset.id;
+                const departureTime = this.dataset.departure;
+                const returnTime = this.dataset.return;
+                const reason = this.dataset.reason;
+
+                // تعيين عنوان النموذج
+                const form = document.getElementById('editPermissionForm');
+                form.action = `/permission-requests/${requestId}`;
+
+                // تعيين القيم في حقول النموذج
+                document.getElementById('edit_departure_time').value = departureTime.replace(' ', 'T');
+                document.getElementById('edit_return_time').value = returnTime.replace(' ', 'T');
+                document.getElementById('edit_reason').value = reason;
+            });
+        });
+
+        // معالجة أزرار تعديل الرد
+        document.querySelectorAll('.modify-response-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const requestId = this.dataset.requestId;
+                const responseType = this.dataset.responseType;
+                const status = this.dataset.status;
+                const reason = this.dataset.reason || '';
+
+                const form = document.getElementById('modifyResponseForm');
+                const responseTypeInput = document.getElementById('modify_response_type');
+                const statusInput = document.getElementById('modify_status');
+                const reasonInput = document.getElementById('modify_reason');
+
+                // تعيين قيم النموذج
+                responseTypeInput.value = responseType;
+                statusInput.value = status;
+                reasonInput.value = reason;
+
+                // تعيين عنوان النموذج بناءً على نوع الرد
+                form.action = `/permission-requests/${requestId}/${responseType === 'hr' ? 'modify-hr-status' : 'modify-manager-status'}`;
+
+                // إظهار/إخفاء حقل سبب الرفض
+                const reasonContainer = document.getElementById('modify_reason_container');
+                reasonContainer.style.display = status === 'rejected' ? 'block' : 'none';
+            });
+        });
+
+        // عند تغيير حالة الرد، يتم إظهار/إخفاء حقل سبب الرفض
+        document.getElementById('response_status').addEventListener('change', function() {
+            const reasonContainer = document.getElementById('rejection_reason_container');
+            reasonContainer.style.display = this.value === 'rejected' ? 'block' : 'none';
+        });
+
+        document.getElementById('modify_status').addEventListener('change', function() {
+            const reasonContainer = document.getElementById('modify_reason_container');
+            reasonContainer.style.display = this.value === 'rejected' ? 'block' : 'none';
+        });
+
+        // دالة إعادة تعيين حالة الطلب
+        window.resetStatus = function(requestId, type) {
+            if (confirm('هل أنت متأكد من إعادة تعيين هذا الرد؟')) {
+                // استخدام fetch API للتعامل مع الاستجابة JSON
+                fetch("{{ url('/permission-requests') }}/" + requestId + "/reset-" + type + "-status", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        _token: document.querySelector('meta[name="csrf-token"]').content
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // إعادة تحميل الصفحة عند النجاح
+                        window.location.reload();
+                    } else {
+                        // عرض رسالة الخطأ
+                        alert(data.message || 'حدث خطأ أثناء إعادة تعيين الرد');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('حدث خطأ أثناء إعادة تعيين الرد');
+                });
+            }
+        };
     });
 </script>
 @endpush

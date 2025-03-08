@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\DB;
+use App\Models\WorkShift;
 
 class UserController extends Controller
 {
@@ -45,7 +46,7 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with('workShift')->findOrFail($id);
         return view('users.show', compact('user'));
     }
 
@@ -259,5 +260,52 @@ class UserController extends Controller
             ->toArray();
 
         return response()->json($forbiddenPermissions);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        $user = User::findOrFail($id);
+        $workShifts = WorkShift::where('is_active', true)->get(); // تحميل الورديات النشطة فقط
+        return view('users.edit', compact('user', 'workShifts'));
+    }
+
+    /**
+     * عرض صفحة تعيين الورديات للمستخدمين
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function assignWorkShifts()
+    {
+        $users = User::orderBy('name')->get();
+        $workShifts = WorkShift::where('is_active', true)->get();
+
+        return view('users.assign-work-shifts', compact('users', 'workShifts'));
+    }
+
+    /**
+     * حفظ تعيينات الورديات للمستخدمين
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function saveWorkShifts(Request $request)
+    {
+        $validated = $request->validate([
+            'work_shifts' => 'required|array',
+            'work_shifts.*' => 'nullable|exists:work_shifts,id',
+        ]);
+
+        foreach ($validated['work_shifts'] as $userId => $workShiftId) {
+            User::where('id', $userId)->update(['work_shift_id' => $workShiftId]);
+        }
+
+        return redirect()->route('users.assign-work-shifts')
+            ->with('success', 'تم تعيين الورديات للمستخدمين بنجاح.');
     }
 }

@@ -10,7 +10,7 @@
   <div class="dashboard-header">
     <h1 class="text-3xl font-bold text-white mb-2">مرحباً، {{ Auth::user()->name }}</h1>
     <p class="text-white/80">
-      @if(Auth::user()->role === 'manager')
+      @if(Auth::user()->hasRole('hr'))
       إدارة حضور وأداء الفريق
       @else
       متابعة الحضور والانصراف
@@ -18,7 +18,7 @@
     </p>
   </div>
 
-  @if(Auth::user()->role === 'manager')
+  @if(Auth::user()->hasRole('hr'))
   <!-- إحصائيات اليوم للمدير -->
   <div class="stats-container">
     <h2 class="text-xl font-semibold mb-4">إحصائيات اليوم</h2>
@@ -139,7 +139,7 @@
   @endif
 
   <div class="quick-actions">
-    @if(Auth::user()->role === 'manager')
+    @if(Auth::user()->hasRole('hr'))
     <a href="{{ route('users.index') }}" class="quick-action-btn">
       <i class="fas fa-users mb-2"></i>
       <span>إدارة الموظفين</span>
@@ -147,6 +147,14 @@
     <a href="{{ route('salary-sheets.index') }}" class="quick-action-btn">
       <i class="fas fa-file-invoice-dollar mb-2"></i>
       <span>كشوف المرتبات</span>
+    </a>
+    <a href="{{ route('work-shifts.index') }}" class="quick-action-btn">
+      <i class="fas fa-clock mb-2"></i>
+      <span>إدارة الورديات</span>
+    </a>
+    <a href="{{ route('users.assign-work-shifts') }}" class="quick-action-btn">
+      <i class="fas fa-user-clock mb-2"></i>
+      <span>تعيين الورديات للموظفين</span>
     </a>
     @endif
 

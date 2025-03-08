@@ -46,7 +46,7 @@ class User extends Authenticatable
     'marital_status',
     'number_of_children',
     'employee_status',
-
+    'work_shift_id',
   ];
 
   protected $hidden = [
@@ -134,5 +134,10 @@ class User extends Authenticatable
         }
     }
     return 21;
+  }
+
+  public function workShift()
+  {
+    return $this->belongsTo(WorkShift::class);
   }
 }

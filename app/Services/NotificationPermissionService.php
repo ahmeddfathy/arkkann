@@ -115,6 +115,18 @@ class NotificationPermissionService
         $this->employeeNotificationService->notifyEmployee($request, 'manager_response_update', $data);
     }
 
+    public function notifyManagerResponseDeleted(PermissionRequest $request): void
+    {
+        $message = "تم حذف الرد على طلب الاستئذان";
+
+        $data = [
+            'message' => $message,
+            'status' => 'pending'
+        ];
+
+        $this->employeeNotificationService->notifyEmployee($request, 'manager_response_deleted', $data);
+    }
+
     public function notifyHRStatusUpdate(PermissionRequest $request): void
     {
         $this->employeeNotificationService->deleteExistingNotifications($request, 'hr_response_update');

@@ -65,12 +65,14 @@ class OverTimeRequestsController extends Controller
 
         $teamRequests = collect([]);
         $noTeamRequests = collect([]);
+        $hrRequests = collect([]);
         $users = collect([]);
         $pendingCount = 0;
         $overtimeHoursCount = [];
         $noTeamOvertimeHoursCount = [];
 
         if ($user->hasRole('hr')) {
+            // طلبات الموظفين بدون فريق - لموظفي HR فقط
             $noTeamRequests = $this->overTimeRequestService->getNoTeamRequests(
                 $employeeName,
                 $status,
@@ -78,12 +80,12 @@ class OverTimeRequestsController extends Controller
                 $dateEnd
             );
 
-            $teamRequests = OverTimeRequests::with('user')
+            // طلبات موظفي الشركه - لموظفي HR فقط
+            $hrQuery = OverTimeRequests::with('user')
                 ->whereHas('user', function ($query) {
-                    $query->whereHas('teams')
-                        ->whereDoesntHave('teams', function ($q) {
-                            $q->whereRaw('team_user.role = ?', ['admin']);
-                        });
+                    $query->whereDoesntHave('roles', function ($q) {
+                        $q->whereIn('name', ['hr', 'company_manager']);
+                    });
                 })
                 ->whereBetween('overtime_date', [$dateStart, $dateEnd])
                 ->when($employeeName, function ($query) use ($employeeName) {
@@ -95,8 +97,28 @@ class OverTimeRequestsController extends Controller
                     $query->where('status', $status);
                 });
 
-            $pendingCount = $teamRequests->clone()->where('status', 'pending')->count();
-            $teamRequests = $teamRequests->latest()->paginate(10);
+            $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
+
+            // طلبات الفريق - للفريق الذي يديره المستخدم (إذا كان لديه فريق)
+            if ($user->currentTeam) {
+                $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
+
+                $teamQuery = OverTimeRequests::with('user')
+                    ->whereIn('user_id', $teamMembers)
+                    ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                    ->when($employeeName, function ($query) use ($employeeName) {
+                        $query->whereHas('user', function ($q) use ($employeeName) {
+                            $q->where('name', 'like', "%{$employeeName}%");
+                        });
+                    })
+                    ->when($status, function ($query) use ($status) {
+                        $query->where('status', $status);
+                    });
+
+                $pendingCount = $teamQuery->clone()->where('status', 'pending')->count();
+                $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
+            }
+
             $users = User::select('id', 'name')->get();
         } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
             $team = $user->currentTeam;
@@ -280,6 +302,7 @@ class OverTimeRequestsController extends Controller
             'myRequests',
             'teamRequests',
             'noTeamRequests',
+            'hrRequests',
             'users',
             'canCreateOvertime',
             'canUpdateOvertime',

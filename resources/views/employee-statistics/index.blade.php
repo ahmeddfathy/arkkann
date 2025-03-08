@@ -4,14 +4,13 @@
 use Carbon\Carbon;
 @endphp
 
-@section('content')
-<style>
-    .bg-purple {
-        background-color: #6f42c1;
-    }
-</style>
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/employee-statistics.css') }}">
+@endpush
 
-<div class="container">
+@section('content')
+
+<div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card shadow-sm">
@@ -130,7 +129,7 @@ use Carbon\Carbon;
                                                 {{ $employee->attendance_percentage >= 90 ? 'bg-success' :
                                                    ($employee->attendance_percentage >= 75 ? 'bg-warning' : 'bg-danger') }}"
                                                 role="progressbar"
-                                                style="width: {{ $employee->attendance_percentage }}%"
+                                                style="width: {{ $employee->attendance_percentage }}%;"
                                                 aria-valuenow="{{ $employee->attendance_percentage }}"
                                                 aria-valuemin="0"
                                                 aria-valuemax="100">
@@ -171,7 +170,7 @@ use Carbon\Carbon;
                                                 onclick="showLeaveDetails('{{ $employee->employee_id }}', '{{ $startDate }}', '{{ $endDate }}')">
                                                 {{ $employee->taken_leaves }} يوم
                                             </span>
-                                            <small class="text-muted mt-1">من أصل 21 يوم</small>
+                                            <small class="text-muted mt-1">من أصل {{ $employee->getMaxAllowedAbsenceDays() }} يوم</small>
                                         </div>
                                     </td>
                                     <td>
@@ -346,7 +345,7 @@ use Carbon\Carbon;
                                         onclick="showLeaveDetails('${data.employee.employee_id}', '${startDate}', '${endDate}')">
                                         ${data.statistics.taken_leaves} يوم
                                     </span>
-                                    <small class="text-muted d-block mt-1">من أصل 21 يوم</small>
+                                    <small class="text-muted d-block mt-1">من أصل ${data.employee.max_allowed_absence_days} يوم</small>
                                 </div>
                             </div>
                         </div>

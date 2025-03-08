@@ -81,7 +81,7 @@ class DashboardController extends Controller
             : 0;
         $attendanceStats['max_delay_minutes'] = $lateRecords->max('delay_minutes') ?? 0;
 
-        if ($user->role === 'manager') {
+        if ($user->hasRole('hr')) {
             $todayStats = [
                 'totalEmployees' => User::where('role', 'employee')->count(),
                 'presentToday' => AttendanceRecord::whereDate('attendance_date', Carbon::today())
