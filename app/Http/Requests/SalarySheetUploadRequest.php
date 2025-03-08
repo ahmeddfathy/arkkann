@@ -8,7 +8,7 @@ class SalarySheetUploadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Add your authorization logic here
+        return true;
     }
 
     public function rules(): array

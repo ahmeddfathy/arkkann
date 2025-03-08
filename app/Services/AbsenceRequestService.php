@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\AbsenceRequest;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 
 class AbsenceRequestService
@@ -65,7 +64,6 @@ class AbsenceRequestService
             'status' => 'pending'
         ]);
 
-        // Send notification to managers
         $this->notificationService->createLeaveRequestNotification($request);
 
         return $request;
@@ -75,7 +73,6 @@ class AbsenceRequestService
     {
         $currentUser = Auth::user();
 
-        // التحقق من أن المستخدم الحالي لديه دور إداري باستخدام Spatie Permissions
         if (!($currentUser->hasRole('team_leader') ||
               $currentUser->hasRole('department_manager') ||
               $currentUser->hasRole('company_manager') ||
@@ -83,7 +80,6 @@ class AbsenceRequestService
             throw new \Illuminate\Auth\Access\AuthorizationException('You are not authorized to create requests for other users.');
         }
 
-        // إذا كان المستخدم يقوم بإنشاء طلب لنفسه، استخدم createRequest بدلاً من ذلك
         if ($userId === $currentUser->id) {
             return $this->createRequest($data);
         }
@@ -94,14 +90,12 @@ class AbsenceRequestService
             'reason' => $data['reason'],
             'manager_status' => 'approved',
             'hr_status' => 'pending',
-            'status' => 'pending' // سيتم تحديثه لاحقاً
+            'status' => 'pending'
         ]);
 
-        // تحديث الحالة النهائية بناءً على حالات الموافقة
         $request->updateFinalStatus();
         $request->save();
 
-        // Send notification to managers
         $this->notificationService->createLeaveRequestNotification($request);
 
         return $request;
@@ -123,7 +117,6 @@ class AbsenceRequestService
             'reason' => $data['reason']
         ]);
 
-        // Notify managers about the modification
         $this->notificationService->notifyRequestModified($request);
 
         return $request;
@@ -131,7 +124,6 @@ class AbsenceRequestService
 
     public function deleteRequest(AbsenceRequest $request)
     {
-        // Notify managers about the deletion before deleting the request
         $this->notificationService->notifyRequestDeleted($request);
         return $request->delete();
     }
@@ -159,7 +151,6 @@ class AbsenceRequestService
             $request->updateFinalStatus();
             $request->save();
 
-            // إرسال إشعار فقط إذا تغيرت الحالة
             if (
                 $oldStatus['manager_status'] !== $request->manager_status ||
                 $oldStatus['hr_status'] !== $request->hr_status
@@ -185,7 +176,6 @@ class AbsenceRequestService
             $request->updateFinalStatus();
             $request->save();
 
-            // إرسال إشعار دائماً عند إعادة تعيين الحالة
             $this->notificationService->createStatusResetNotification($request, $responseType);
 
             return $request;
@@ -211,12 +201,12 @@ class AbsenceRequestService
             $request->updateFinalStatus();
             $request->save();
 
-            // إرسال إشعار دائماً عند تعديل الرد
             $this->notificationService->createResponseModificationNotification($request, $data['response_type']);
 
             return $request;
         });
     }
+
     public function calculateAbsenceDays($userId)
     {
         $startOfYear = Carbon::now()->startOfYear();
@@ -251,7 +241,6 @@ class AbsenceRequestService
     {
         $user = $user ?? Auth::user();
 
-        // التحقق من صلاحيات المديرين
         if (
             $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_absence_request')
@@ -259,7 +248,6 @@ class AbsenceRequestService
             return true;
         }
 
-        // التحقق من صلاحيات HR
         if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
             return true;
         }
@@ -271,12 +259,10 @@ class AbsenceRequestService
     {
         $user = $user ?? Auth::user();
 
-        // يمكن للمستخدم تعديل طلبه الخاص إذا كان معلقاً
         if ($user->id === $request->user_id && $request->status === 'pending') {
             return true;
         }
 
-        // يمكن للمديرين تعديل الطلبات إذا كان لديهم الصلاحية
         if (
             $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_absence_request')
@@ -284,7 +270,6 @@ class AbsenceRequestService
             return true;
         }
 
-        // يمكن لـ HR تعديل الطلبات إذا كان لديه الصلاحية
         if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
             return true;
         }

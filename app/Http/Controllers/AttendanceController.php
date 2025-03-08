@@ -8,13 +8,11 @@ use App\Models\User;
 use Carbon\Carbon;
 use App\Models\AttendanceRecord;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
     public function index()
     {
-        // التحقق من الصلاحيات
         if (!auth()->user()->hasRole('hr')) {
             abort(403, 'غير مصرح لك بالوصول لهذه الصفحة');
         }
@@ -25,7 +23,6 @@ class AttendanceController extends Controller
 
     public function create()
     {
-        // التحقق من الصلاحيات
         if (!auth()->user()->hasRole('hr')) {
             abort(403, 'غير مصرح لك بالوصول لهذه الصفحة');
         }
@@ -48,7 +45,6 @@ class AttendanceController extends Controller
                     $checkInTime = Carbon::parse($value)->setTimezone('Africa/Cairo');
                     $now = Carbon::now('Africa/Cairo');
 
-                    // التحقق من أن التاريخ ليس في الماضي
                     if ($checkInTime->isPast() && $checkInTime->diffInHours($now) > 24) {
                         $fail('لا يمكن تسجيل الحضور لتاريخ في الماضي.');
                     }
@@ -73,15 +69,13 @@ class AttendanceController extends Controller
             foreach ($request->check_in_time as $checkInTime) {
                 $date = Carbon::parse($checkInTime)->setTimezone('Africa/Cairo');
 
-                // التحقق من وجود تسجيل سابق لنفس اليوم
                 $existingAttendance = Attendance::where('user_id', $request->user_id)
                     ->whereDate('check_in_time', $date->toDateString())
                     ->first();
 
                 if ($existingAttendance) {
-                    // إضافة التاريخ المكرر إلى مصفوفة التكرارات
                     $duplicates[] = $date->format('Y-m-d');
-                    continue; // تخطي هذا التاريخ والانتقال للتالي
+                    continue;
                 }
 
                 Attendance::create([
@@ -103,14 +97,12 @@ class AttendanceController extends Controller
                 ->with('success', 'تم تسجيل الحضور بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error creating attendance: ' . $e->getMessage());
             return back()->with('error', 'حدث خطأ أثناء تسجيل الحضور');
         }
     }
 
     public function show($id)
     {
-        // التحقق من الصلاحيات
         if (!auth()->user()->hasRole('hr')) {
             abort(403, 'غير مصرح لك بعرض سجل الحضور');
         }
@@ -121,7 +113,6 @@ class AttendanceController extends Controller
 
     public function destroy($id)
     {
-        // التحقق من الصلاحيات
         if (!auth()->user()->hasRole('hr')) {
             abort(403, 'غير مصرح لك بحذف سجل الحضور');
         }
@@ -136,7 +127,6 @@ class AttendanceController extends Controller
         try {
             $user = User::where('employee_id', $employee_id)->firstOrFail();
 
-            // التحقق من الصلاحيات
             if (auth()->user()->id !== $user->id && !auth()->user()->hasRole('hr')) {
                 abort(403, 'غير مصرح لك بعرض هذا السجل');
             }

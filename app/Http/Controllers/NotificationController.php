@@ -10,7 +10,6 @@ class NotificationController extends Controller
 {
     public function index()
     {
-        // جلب الإشعارات الخاصة بالمستخدم والإشعارات العامة
         $notifications = Notification::where(function ($query) {
             $query->where('user_id', Auth::id())
                 ->orWhere(function ($q) {
@@ -45,7 +44,6 @@ class NotificationController extends Controller
 
     public function markAsRead(Notification $notification)
     {
-        // إذا كان الإشعار عام، نقوم بإنشاء سجل قراءة جديد للمستخدم الحالي
         if ($notification->type === 'admin_broadcast') {
             Notification::create([
                 'user_id' => Auth::id(),
@@ -81,7 +79,6 @@ class NotificationController extends Controller
 
     public function acknowledge(AdministrativeDecision $decision)
     {
-        // التحقق من أن القرار للمستخدم الحالي
         if ($decision->user_id !== Auth::id()) {
             abort(403);
         }

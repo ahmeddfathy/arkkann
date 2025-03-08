@@ -4,14 +4,12 @@ namespace App\Services\Notifications;
 
 use App\Models\Notification;
 use App\Models\OverTimeRequests;
-use Illuminate\Support\Facades\Log;
 
 class OvertimeEmployeeNotificationService
 {
     public function notifyEmployee(OverTimeRequests $request, string $type, string $message): void
     {
         try {
-            // التحقق من عدم وجود إشعار مكرر
             $existingNotification = Notification::where([
                 'user_id' => $request->user_id,
                 'type' => $type,
@@ -37,17 +35,8 @@ class OvertimeEmployeeNotificationService
                     ],
                     'related_id' => $request->id
                 ]);
-
-                Log::info("Employee notification ({$type}) created for user: {$request->user_id}", [
-                    'request_id' => $request->id
-                ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error in notifyEmployee: ' . $e->getMessage(), [
-                'request_id' => $request->id,
-                'user_id' => $request->user_id,
-                'type' => $type
-            ]);
         }
     }
 }

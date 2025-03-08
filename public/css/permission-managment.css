@@ -53,7 +53,6 @@
     border-color: #70c8e8;
 }
 
-/* Status badges with softer colors */
 .badge.bg-pending {
     background-color: #fff5e6 !important;
     color: #ffa040 !important;
@@ -69,17 +68,11 @@
     color: #e53935 !important;
 }
 
-/* Softer highlight colors for hover states */
-
-/* Header section with gradient */
 .page-header {
     background: linear-gradient(to right, #f8fbfd, #ffffff);
     border-bottom: 1px solid #edf2f7;
 }
 
-/* Duration and Remaining columns with soft background */
-
-/* Action buttons with softer colors */
 .btn-respond {
     background-color: #5b93a5;
     border-color: #5b93a5;
@@ -91,7 +84,6 @@
     border-color: #4a7d8c;
 }
 
-/* Permission Requests header */
 .permission-header {
     background: linear-gradient(to right, #5b93a5, #6ba7b9);
     color: white;
@@ -107,7 +99,6 @@
     --border-color: #e5e7eb;
 }
 
-/* Container and Card Styling */
 .container {
     width: 100%;
     max-width: 100%;
@@ -133,17 +124,15 @@
 }
 
 .card-body {
-    padding: 0; /* Remove padding from card body */
+    padding: 0;
 }
 
-/* Table Container */
 .table-responsive {
     width: 100%;
     margin: 0;
     padding: 0;
 }
 
-/* Table Styling */
 .table {
     width: 100% !important;
     margin-bottom: 0;
@@ -172,22 +161,18 @@
     vertical-align: middle;
 }
 
-/* Make sure all table cells take appropriate space */
 .table th,
 .table td {
     min-width: max-content;
 }
 
-/* Column specific widths */
 .table th:nth-child(1),
 .table td:nth-child(1) {
-    /* Name column */
     min-width: 150px;
 }
 
 .table th:nth-child(2),
 .table td:nth-child(2) {
-    /* Date column */
     min-width: 120px;
 }
 
@@ -195,31 +180,26 @@
 .table td:nth-child(3),
 .table th:nth-child(4),
 .table td:nth-child(4) {
-    /* Time columns */
     min-width: 100px;
 }
 
 .table th:nth-child(5),
 .table td:nth-child(5) {
-    /* Reason column */
     min-width: 200px;
 }
 
 .table th:nth-child(6),
 .table td:nth-child(6) {
-    /* Status column */
     min-width: 100px;
 }
 
 .table th:nth-child(7),
 .table td:nth-child(7) {
-    /* Rejection Reason column */
     min-width: 200px;
 }
 
 .table th:nth-child(8),
 .table td:nth-child(8) {
-    /* Actions column */
     min-width: 150px;
     text-align: center;
 }
@@ -239,7 +219,7 @@
     }
 
     .table {
-        min-width: 1000px; /* Ensure minimum width for scrollable content */
+        min-width: 1000px;
     }
 
     .btn {
@@ -248,7 +228,6 @@
     }
 }
 
-/* Violation Buttons Group */
 .violation-buttons {
     display: flex;
     gap: 0.5rem;
@@ -303,20 +282,17 @@
     cursor: not-allowed;
 }
 
-/* Action Buttons Container */
 .action-buttons {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-/* Response Buttons Group */
 .response-buttons {
     display: flex;
     gap: 0.5rem;
 }
 
-/* Make buttons in groups equal width */
 .btn-group {
     display: flex;
     gap: 0.25rem;
@@ -326,7 +302,6 @@
     flex: 1;
 }
 
-/* Add divider between button groups */
 .button-divider {
     width: 100%;
     height: 1px;

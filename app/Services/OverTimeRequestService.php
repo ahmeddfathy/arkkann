@@ -27,7 +27,6 @@ class OverTimeRequestService
         $user = Auth::user();
         $query = OverTimeRequests::with('user');
 
-        // تطبيق الفلاتر
         if (!empty($filters['employee_name'])) {
             $query->whereHas('user', function ($q) use ($filters) {
                 $q->where('name', 'like', '%' . $filters['employee_name'] . '%');
@@ -38,9 +37,7 @@ class OverTimeRequestService
             $query->where('status', $filters['status']);
         }
 
-        // التحقق من صلاحيات المستخدم
         if ($user->hasRole('hr')) {
-            // جلب طلبات الموظفين الذين ليسوا في أي فريق
             return $query->whereHas('user', function ($q) {
                 $q->whereDoesntHave('teams');
             })->latest()->paginate(10);
@@ -52,7 +49,6 @@ class OverTimeRequestService
             }
         }
 
-        // للموظفين العاديين
         return $query->where('user_id', $user->id)
             ->latest()
             ->paginate(10);
@@ -154,8 +150,29 @@ class OverTimeRequestService
                 $data['end_time']
             );
 
-            // إذا كان المستخدم الحالي يقوم بإنشاء طلب لشخص آخر
-            $managerStatus = ($userId !== $currentUser->id) ? 'approved' : 'pending';
+            $managerStatus = 'pending';
+
+            if ($userId != $currentUser->id) {
+                $isTeamOwner = false;
+
+                if ($currentUser->currentTeam && $currentUser->currentTeam->user_id == $currentUser->id) {
+                    $isTeamOwner = true;
+                }
+
+                $requestUser = User::find($userId);
+                $isTeamMember = false;
+
+                if ($requestUser && $currentUser->currentTeam) {
+                    $isTeamMember = DB::table('team_user')
+                        ->where('team_id', $currentUser->currentTeam->id)
+                        ->where('user_id', $userId)
+                        ->exists();
+                }
+
+                if ($isTeamOwner && $isTeamMember) {
+                    $managerStatus = 'approved';
+                }
+            }
 
             $request = OverTimeRequests::create([
                 'user_id' => $userId,
@@ -165,10 +182,9 @@ class OverTimeRequestService
                 'reason' => $data['reason'],
                 'manager_status' => $managerStatus,
                 'hr_status' => 'pending',
-                'status' => ($managerStatus === 'approved') ? 'pending' : 'pending'
+                'status' => 'pending'
             ]);
 
-            // إرسال الإشعارات
             $this->notificationService->createOvertimeRequestNotification($request);
 
             return $request;
@@ -204,8 +220,19 @@ class OverTimeRequestService
     public function deleteRequest(OverTimeRequests $request): bool
     {
         return DB::transaction(function () use ($request) {
+            try {
             $this->notificationService->notifyOvertimeDeleted($request);
-            return $request->delete();
+                $deleted = $request->delete();
+
+                if (!$deleted) {
+                    throw new \Exception('Failed to delete overtime request.');
+                }
+
+                return true;
+            } catch (\Exception $e) {
+                \Log::error('Error deleting overtime request: ' . $e->getMessage());
+                throw $e;
+            }
         });
     }
 
@@ -363,7 +390,6 @@ class OverTimeRequestService
     {
         $user = $user ?? Auth::user();
 
-        // التحقق من صلاحيات المديرين
         if (
             $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_overtime_request')
@@ -371,7 +397,6 @@ class OverTimeRequestService
             return true;
         }
 
-        // التحقق من صلاحيات HR
         if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_overtime_request')) {
             return true;
         }
@@ -381,20 +406,16 @@ class OverTimeRequestService
 
     public function getAllowedUsers($user)
     {
-        // إذا كان المستخدم HR، يمكنه رؤية جميع المستخدمين ما عدا HR و company_manager
         if ($user->hasRole('hr')) {
             return User::whereDoesntHave('roles', function ($q) {
                 $q->whereIn('name', ['hr', 'company_manager']);
             })->get();
         }
 
-        // للمدراء، نتحقق من وجود فريق
         if (!$user->currentTeam) {
-            \Log::info('User has no current team', ['user_id' => $user->id]);
             return collect();
         }
 
-        // تحديد الأدوار المسموح بها حسب دور المستخدم
         $allowedRoles = [];
         if ($user->hasRole('team_leader')) {
             $allowedRoles = ['employee'];
@@ -403,12 +424,6 @@ class OverTimeRequestService
         } elseif ($user->hasRole('company_manager')) {
             $allowedRoles = ['employee', 'team_leader', 'department_manager'];
         }
-
-        \Log::info('Fetching users for team', [
-            'user_id' => $user->id,
-            'team_id' => $user->currentTeam->id,
-            'allowed_roles' => $allowedRoles
-        ]);
 
         $users = $user->currentTeam->users()
             ->select('users.*')
@@ -423,13 +438,6 @@ class OverTimeRequestService
                     });
             })
             ->get();
-
-        \Log::info('Found users', [
-            'user_id' => $user->id,
-            'team_id' => $user->currentTeam->id,
-            'users_count' => $users->count(),
-            'users' => $users->pluck('name', 'id')
-        ]);
 
         return $users;
     }

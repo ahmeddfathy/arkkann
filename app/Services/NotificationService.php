@@ -28,17 +28,12 @@ class NotificationService
         try {
             $message = "{$request->user->name} قام بتقديم طلب غياب";
 
-            // إرسال إشعار لمالك الفريق أولاً
             if ($request->user && $request->user->currentTeam && $request->user->currentTeam->owner) {
                 $this->managerNotificationService->notifyManagers($request, 'new_leave_request', $message, false);
-                Log::info('Notification sent to team owner for request: ' . $request->id);
             }
 
-            // ثم إرسال إشعار لل HR
             $this->managerNotificationService->notifyManagers($request, 'new_leave_request', $message, true);
-            Log::info('Notification sent to HR for request: ' . $request->id);
         } catch (\Exception $e) {
-            Log::error('Error in createLeaveRequestNotification: ' . $e->getMessage());
         }
     }
 
@@ -51,7 +46,6 @@ class NotificationService
                 ->where('team_user.user_id', $request->user_id)
                 ->exists();
 
-            // إشعار للموظف صاحب الطلب فقط
             $statusMessage = $this->getStatusMessage($request, $currentUserRole);
 
             Notification::create([
@@ -72,7 +66,6 @@ class NotificationService
                 'related_id' => $request->id
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in createStatusUpdateNotification: ' . $e->getMessage());
         }
     }
 
@@ -95,11 +88,9 @@ class NotificationService
 
     private function sendAdditionalNotifications(AbsenceRequest $request, ?string $currentUserRole, bool $hasTeam): void
     {
-        // إذا كان المحدث HR، نرسل إشعار للمدير
         if ($hasTeam && $currentUserRole === 'hr') {
             $this->notifyTeamOwners($request);
         }
-        // إذا كان المحدث مدير، نرسل إشعار لل HR
         elseif (in_array($currentUserRole, ['team_leader', 'department_manager', 'company_manager'])) {
             $this->notifyHR($request);
         }
@@ -111,7 +102,6 @@ class NotificationService
             ->where('team_user.user_id', $request->user_id)
             ->exists();
 
-        // إشعار للموظف
         Notification::create([
             'user_id' => $request->user_id,
             'type' => 'leave_request_status_reset',
@@ -124,7 +114,6 @@ class NotificationService
             'related_id' => $request->id
         ]);
 
-        // إشعار للطرف الآخر
         $currentUserId = auth()->guard()->id();
 
         if ($responseType === 'manager' && $hasTeam) {
@@ -174,17 +163,12 @@ class NotificationService
         try {
             $message = "{$request->user->name} قام بتعديل طلب الغياب";
 
-            // إرسال إشعار لمالك الفريق
             if ($request->user && $request->user->currentTeam && $request->user->currentTeam->owner) {
                 $this->managerNotificationService->notifyManagers($request, 'leave_request_modified', $message, false);
-                Log::info('Modification notification sent to team owner for request: ' . $request->id);
             }
 
-            // إرسال إشعار لل HR
             $this->managerNotificationService->notifyManagers($request, 'leave_request_modified', $message, true);
-            Log::info('Modification notification sent to HR for request: ' . $request->id);
         } catch (\Exception $e) {
-            Log::error('Error in notifyRequestModified: ' . $e->getMessage());
         }
     }
 
@@ -193,17 +177,12 @@ class NotificationService
         try {
             $message = "{$request->user->name} قام بحذف طلب الغياب";
 
-            // إرسال إشعار لمالك الفريق
             if ($request->user && $request->user->currentTeam && $request->user->currentTeam->owner) {
                 $this->managerNotificationService->notifyManagers($request, 'leave_request_deleted', $message, false);
-                Log::info('Deletion notification sent to team owner for request: ' . $request->id);
             }
 
-            // إرسال إشعار لل HR
             $this->managerNotificationService->notifyManagers($request, 'leave_request_deleted', $message, true);
-            Log::info('Deletion notification sent to HR for request: ' . $request->id);
         } catch (\Exception $e) {
-            Log::error('Error in notifyRequestDeleted: ' . $e->getMessage());
         }
     }
 
@@ -229,12 +208,11 @@ class NotificationService
     private function notifyTeamOwners(AbsenceRequest $request): void
     {
         try {
-            // جلب مدراء الفريق - تحديد الجدول للعمود user_id
             $teamOwners = DB::table('team_user')
                 ->join('teams', 'teams.id', '=', 'team_user.team_id')
                 ->where('team_user.user_id', $request->user_id)
                 ->where('team_user.role', 'owner')
-                ->pluck('team_user.user_id'); // تحديد الجدول بوضوح
+                ->pluck('team_user.user_id');
 
             foreach ($teamOwners as $ownerId) {
                 Notification::create([
@@ -252,7 +230,6 @@ class NotificationService
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error in notifyTeamOwners: ' . $e->getMessage());
         }
     }
 
@@ -276,14 +253,12 @@ class NotificationService
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error in notifyHR: ' . $e->getMessage());
         }
     }
 
     public function createResponseModificationNotification(AbsenceRequest $request, string $responseType): void
     {
         try {
-            // إشعار للموظف صاحب الطلب
             Notification::create([
                 'user_id' => $request->user_id,
                 'type' => 'leave_request_response_modified',
@@ -299,15 +274,13 @@ class NotificationService
                 'related_id' => $request->id
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in createResponseModificationNotification: ' . $e->getMessage());
-            throw $e; // إعادة رمي الخطأ للتعامل معه في المستوى الأعلى
+            throw $e;
         }
     }
 
     public function createStatusResetNotification(AbsenceRequest $request, string $responseType): void
     {
         try {
-            // إشعار للموظف صاحب الطلب
             Notification::create([
                 'user_id' => $request->user_id,
                 'type' => 'leave_request_status_reset',
@@ -321,8 +294,7 @@ class NotificationService
                 'related_id' => $request->id
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in createStatusResetNotification: ' . $e->getMessage());
-            throw $e; // إعادة رمي الخطأ للتعامل معه في المستوى الأعلى
+            throw $e;
         }
     }
 }

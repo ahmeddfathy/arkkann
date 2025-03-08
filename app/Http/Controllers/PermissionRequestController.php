@@ -31,7 +31,6 @@ class PermissionRequestController extends Controller
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
-        // تحديد بداية ونهاية الشهر (26 من الشهر السابق إلى 25 من الشهر الحالي)
         $now = now();
         $currentMonthStart = $now->day >= 26
             ? $now->copy()->startOfDay()->setDay(26)
@@ -41,11 +40,9 @@ class PermissionRequestController extends Controller
             ? $now->copy()->addMonth()->startOfDay()->setDay(25)->endOfDay()
             : $now->copy()->startOfDay()->setDay(25)->endOfDay();
 
-        // تحديد بداية ونهاية الفترة
         $dateStart = $fromDate ? Carbon::parse($fromDate)->startOfDay() : $currentMonthStart;
         $dateEnd = $toDate ? Carbon::parse($toDate)->endOfDay() : $currentMonthEnd;
 
-        // جلب طلبات المستخدم الحالي مع تطبيق الفلترة
         $myRequestsQuery = PermissionRequest::with('user')
             ->where('user_id', $user->id);
 
@@ -59,13 +56,11 @@ class PermissionRequestController extends Controller
 
         $myRequests = $myRequestsQuery->latest()->paginate(10);
 
-        // حساب الدقائق المستخدمة في الفترة المحددة
         $totalUsedMinutes = PermissionRequest::where('user_id', $user->id)
             ->where('status', 'approved')
             ->whereBetween('departure_time', [$dateStart, $dateEnd])
             ->sum('minutes_used');
 
-        // حساب الدقائق المستخدمة لكل عضو في الفريق
         $teamMembersMinutes = [];
         if ($user->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) {
             $teamMembers = $user->currentTeam ? $user->currentTeam->users->pluck('id') : collect();
@@ -78,13 +73,11 @@ class PermissionRequestController extends Controller
             }
         }
 
-        // جلب طلبات الفريق للمدراء و HR
-        $teamRequests = PermissionRequest::where('id', 0)->paginate(10); // قيمة افتراضية فارغة
-        $noTeamRequests = PermissionRequest::where('id', 0)->paginate(10); // قيمة افتراضية فارغة
+        $teamRequests = PermissionRequest::where('id', 0)->paginate(10);
+        $noTeamRequests = PermissionRequest::where('id', 0)->paginate(10);
         $remainingMinutes = [];
 
         if ($user->hasRole('hr')) {
-            // جلب طلبات الموظفين الذين ليس لديهم فريق
             $teamQuery = PermissionRequest::with(['user', 'violations'])
                 ->whereHas('user', function ($q) {
                     $q->whereHas('teams');
@@ -106,7 +99,6 @@ class PermissionRequestController extends Controller
 
             $teamRequests = $teamQuery->latest()->paginate(10);
 
-            // جلب طلبات الموظفين الذين ليس لديهم فريق في جدول منفصل
             $noTeamQuery = PermissionRequest::with(['user', 'violations'])
                 ->whereHas('user', function ($q) {
                     $q->whereDoesntHave('teams');
@@ -129,23 +121,20 @@ class PermissionRequestController extends Controller
 
             $noTeamRequests = $noTeamQuery->latest()->paginate(10);
 
-            // حساب الدقائق المتبقية للموظفين في الفرق
             $teamUserIds = $teamRequests->pluck('user_id')->unique();
             foreach ($teamUserIds as $userId) {
                 $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
             }
         } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
-            // جلب طلبات الفريق للمدراء
             $team = $user->currentTeam;
             if ($team) {
-                // تحديد الأدوار التي يمكن للمستخدم الحالي رؤية طلباتها
                 $allowedRoles = [];
                 if ($user->hasRole('team_leader')) {
-                    $allowedRoles = ['employee']; // Team Leader يرى طلبات الموظفين فقط
+                    $allowedRoles = ['employee'];
                 } elseif ($user->hasRole('department_manager')) {
-                    $allowedRoles = ['employee', 'team_leader']; // Department Manager يرى طلبات الموظفين و Team Leaders
+                    $allowedRoles = ['employee', 'team_leader'];
                 } elseif ($user->hasRole('company_manager')) {
-                    $allowedRoles = ['employee', 'team_leader', 'department_manager']; // Company Manager يرى الجميع عدا HR
+                    $allowedRoles = ['employee', 'team_leader', 'department_manager'];
                 }
 
                 $teamMembers = $this->permissionRequestService->getAllowedUsers($user)
@@ -171,19 +160,16 @@ class PermissionRequestController extends Controller
 
                 $teamRequests = $query->latest()->paginate(10);
 
-                // حساب الدقائق المتبقية لأعضاء الفريق
                 foreach ($teamMembers as $userId) {
                     $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
                 }
             }
         }
 
-        // جلب قائمة المستخدمين للبحث
         if (Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) {
             $users = $this->permissionRequestService->getAllowedUsers(Auth::user());
         } else {
             $users = User::when($user->hasRole('hr'), function ($query) {
-                // HR يرى فقط المستخدمين الذين ليس لديهم فريق
                 return $query->whereDoesntHave('teams');
             }, function ($query) use ($user) {
                 if ($user->currentTeam) {
@@ -236,7 +222,6 @@ class PermissionRequestController extends Controller
             return redirect()->back()->with('error', $result['message']);
         }
 
-        // إضافة معلومات الدقائق المستخدمة للرسالة
         $message = 'Permission request submitted successfully.';
         if (isset($result['used_minutes'])) {
             $message .= " Total minutes used this month: {$result['used_minutes']} minutes.";
@@ -304,7 +289,6 @@ class PermissionRequestController extends Controller
             return redirect()->back()->with('error', $result['message']);
         }
 
-        // إضافة معلومات الدقائق المستخدمة للرسالة
         $message = 'Permission request updated successfully.';
         if (isset($result['used_minutes'])) {
             $message .= " Total minutes used this month: {$result['used_minutes']} minutes.";
@@ -335,7 +319,6 @@ class PermissionRequestController extends Controller
     {
         $user = Auth::user();
 
-        // التحقق من الصلاحيات
         if ($user->hasRole('team_leader') && !$user->hasPermissionTo('manager_respond_permission_request')) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان');
         }
@@ -350,7 +333,6 @@ class PermissionRequestController extends Controller
             'response_type' => 'required|in:manager,hr'
         ]);
 
-        // التحقق من نوع الرد وتحديث الحالة
         if ($validated['response_type'] === 'manager' && $user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
             $permissionRequest->manager_status = $validated['status'];
             $permissionRequest->manager_rejection_reason = $validated['status'] === 'rejected' ? $validated['rejection_reason'] : null;
@@ -361,7 +343,6 @@ class PermissionRequestController extends Controller
             return redirect()->back()->with('error', 'نوع الرد غير صحيح');
         }
 
-        // تحديث الحالة النهائية
         $permissionRequest->updateFinalStatus();
         $permissionRequest->save();
 
@@ -372,7 +353,6 @@ class PermissionRequestController extends Controller
     {
         $user = Auth::user();
 
-        // التحقق من الصلاحيات
         if (
             !$user->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']) &&
             $user->id !== $permissionRequest->user_id
@@ -391,11 +371,11 @@ class PermissionRequestController extends Controller
             $now = Carbon::now()->setTimezone('Africa/Cairo');
             $returnTime = Carbon::parse($permissionRequest->return_time);
             $maxReturnTime = $returnTime->copy()->addMinutes(10);
-            $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0); // 4:00 PM
+            $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
-            // إذا كان وقت العودة 4 عصراً أو بعدها، نسجل العودة تلقائياً
             if ($returnTime->gte($endOfWorkDay)) {
-                $permissionRequest->returned_on_time = 1; // تسجيل كـ "رجع"
+                $permissionRequest->returned_on_time = 1;
+                $permissionRequest->updateActualMinutesUsed();
                 $permissionRequest->save();
 
                 return response()->json([
@@ -404,7 +384,6 @@ class PermissionRequestController extends Controller
                 ]);
             }
 
-            // التحقق من الوقت فقط إذا كان الإجراء هو تسجيل العودة (1)
             if ($validated['return_status'] == 1) {
                 if ($now->gt($maxReturnTime)) {
                     return response()->json([
@@ -414,19 +393,18 @@ class PermissionRequestController extends Controller
                 }
             }
 
-            // تحديث حالة العودة
+            $oldStatus = $permissionRequest->returned_on_time;
             $permissionRequest->returned_on_time = (int)$validated['return_status'];
+            $permissionRequest->updateActualMinutesUsed();
 
-            // إذا تجاوز وقت العودة المسموح به ولم يسجل عودته (فقط للطلبات التي تنتهي قبل 4 عصراً)
             if ($returnTime->lt($endOfWorkDay) && $now->gt($maxReturnTime) && $permissionRequest->returned_on_time === null) {
-                $permissionRequest->returned_on_time = 2; // تسجيل كـ "لم يرجع"
+                $permissionRequest->returned_on_time = 2;
+                $permissionRequest->updateActualMinutesUsed();
             }
 
             $permissionRequest->save();
 
-            // إدارة المخالفات
             if ($permissionRequest->returned_on_time == 2) {
-                // إضافة مخالفة إذا تم تحديد أن الموظف لم يرجع
                 Violation::create([
                     'user_id' => $permissionRequest->user_id,
                     'permission_requests_id' => $permissionRequest->id,
@@ -434,7 +412,6 @@ class PermissionRequestController extends Controller
                     'manager_mistake' => false
                 ]);
             } else {
-                // حذف المخالفة إذا كانت موجودة
                 Violation::where('permission_requests_id', $permissionRequest->id)
                         ->where('reason', 'عدم العودة من الاستئذان في الوقت المحدد')
                         ->delete();
@@ -442,10 +419,10 @@ class PermissionRequestController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث حالة العودة بنجاح'
+                'message' => 'تم تحديث حالة العودة بنجاح',
+                'actual_minutes_used' => $permissionRequest->minutes_used
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error in updateReturnStatus: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء تحديث حالة العودة'
@@ -464,23 +441,19 @@ class PermissionRequestController extends Controller
             $permissionRequest = PermissionRequest::findOrFail($id);
             $user = Auth::user();
 
-            // التحقق من الصلاحيات
             if (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_permission_request')) {
                 return back()->with('error', 'Unauthorized action.');
             }
 
-            // تحديث حالة الطلب
             $permissionRequest->updateHrStatus(
                 $request->status,
                 $request->status === 'rejected' ? $request->rejection_reason : null
             );
 
-            // إضافة إشعار تحديث حالة HR
             $this->notificationService->notifyHRStatusUpdate($permissionRequest);
 
             return back()->with('success', 'تم تحديث الرد بنجاح');
         } catch (\Exception $e) {
-            \Log::error('Error in updateHrStatus: ' . $e->getMessage());
             return back()->with('error', 'An error occurred while updating the status.');
         }
     }
@@ -503,7 +476,6 @@ class PermissionRequestController extends Controller
         $permissionRequest->updateFinalStatus();
         $permissionRequest->save();
 
-        // إضافة إشعار تعديل رد HR
         $this->notificationService->notifyHRStatusUpdate($permissionRequest);
 
         return redirect()->back()->with('success', 'تم تعديل الرد بنجاح');
@@ -523,12 +495,10 @@ class PermissionRequestController extends Controller
             $permissionRequest->updateFinalStatus();
             $permissionRequest->save();
 
-            // استخدام دالة إشعار الريست بدلاً من الإشعار العادي
             $this->notificationService->notifyStatusReset($permissionRequest, 'hr');
 
             return redirect()->back()->with('success', 'تم إعادة تعيين الرد بنجاح');
         } catch (\Exception $e) {
-            \Log::error('Error in resetHrStatus: ' . $e->getMessage());
             return redirect()->back()->with('error', 'حدث خطأ أثناء إعادة تعيين الرد');
         }
     }
@@ -544,7 +514,6 @@ class PermissionRequestController extends Controller
             $permissionRequest = PermissionRequest::findOrFail($id);
             $user = Auth::user();
 
-            // التحقق من الصلاحيات
             if (
                 !$user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
                 !$user->hasPermissionTo('manager_respond_permission_request')
@@ -552,18 +521,15 @@ class PermissionRequestController extends Controller
                 return back()->with('error', 'Unauthorized action.');
             }
 
-            // تحديث حالة الطلب
             $permissionRequest->updateManagerStatus(
                 $request->status,
                 $request->status === 'rejected' ? $request->rejection_reason : null
             );
 
-            // إضافة إشعار تحديث حالة المدير
             $this->notificationService->notifyManagerStatusUpdate($permissionRequest);
 
             return back()->with('success', 'تم تحديث الرد بنجاح');
         } catch (\Exception $e) {
-            \Log::error('Error in updateManagerStatus: ' . $e->getMessage());
             return back()->with('error', 'An error occurred while updating the status.');
         }
     }
@@ -588,7 +554,6 @@ class PermissionRequestController extends Controller
             $permissionRequest->updateFinalStatus();
             $permissionRequest->save();
 
-            // استخدام دالة إشعار الريست بدلاً من الإشعار العادي
             $this->notificationService->notifyStatusReset($permissionRequest, 'manager');
 
             return response()->json([
@@ -596,7 +561,6 @@ class PermissionRequestController extends Controller
                 'message' => 'تم إعادة تعيين رد المدير بنجاح'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error in resetManagerStatus: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إعادة تعيين الرد'
@@ -626,12 +590,10 @@ class PermissionRequestController extends Controller
             $permissionRequest->updateFinalStatus();
             $permissionRequest->save();
 
-            // إضافة إشعار تعديل رد المدير
             $this->notificationService->notifyManagerStatusUpdate($permissionRequest);
 
             return back()->with('success', 'تم تعديل الرد بنجاح');
         } catch (\Exception $e) {
-            \Log::error('Error in modifyManagerStatus: ' . $e->getMessage());
             return back()->with('error', 'حدث خطأ أثناء تعديل الرد');
         }
     }
@@ -672,7 +634,6 @@ class PermissionRequestController extends Controller
             'monthly_trend' => [],
         ];
 
-        // إحصائيات الطلبات الشخصية
         $personalStats = PermissionRequest::where('user_id', $user->id)
             ->whereBetween('departure_time', [$dateStart, $dateEnd])
             ->selectRaw('
@@ -696,7 +657,6 @@ class PermissionRequestController extends Controller
             'late_returns' => $personalStats->late ?? 0,
         ];
 
-        // إحصائيات الفريق (للمدراء و HR المالكين أو الأدمن في فرق)
         if (
             $user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
             ($user->hasRole('hr') && ($user->ownedTeams->count() > 0 || $user->teams()->wherePivot('role', 'admin')->exists()))
@@ -705,17 +665,14 @@ class PermissionRequestController extends Controller
             $teams = collect();
 
             if ($user->hasRole('hr')) {
-                // جمع الفرق التي يملكها HR أو أدمن فيها
                 $teams = $user->ownedTeams->merge(
                     $user->teams()->wherePivot('role', 'admin')->get()
                 );
             } else {
-                // للمدراء الآخرين، استخدم الفريق الحالي
                 $teams = $user->currentTeam ? collect([$user->currentTeam]) : collect();
             }
 
             foreach ($teams as $team) {
-                // تحديد الأعضاء المسموح برؤية طلباتهم
                 $allowedRoles = $this->getAllowedRoles($user);
                 $teamMembers = $this->getTeamMembers($team, $allowedRoles);
 
@@ -730,7 +687,6 @@ class PermissionRequestController extends Controller
                     ')
                     ->first();
 
-                // الموظفين الذين تجاوزوا الحد
                 $exceededLimit = DB::table(function ($query) use ($teamMembers, $dateStart, $dateEnd) {
                     $query->from('permission_requests')
                         ->select('user_id', DB::raw('SUM(minutes_used) as total_minutes'))
@@ -742,7 +698,6 @@ class PermissionRequestController extends Controller
                     ->where('total_minutes', '>', 180)
                     ->count();
 
-                // الموظف الأكثر طلباً للاستئذان
                 $mostRequested = DB::table(function ($query) use ($teamMembers, $dateStart, $dateEnd) {
                     $query->from('permission_requests')
                         ->select('user_id', DB::raw('COUNT(*) as request_count'))
@@ -755,7 +710,6 @@ class PermissionRequestController extends Controller
                     ->orderByDesc('request_count')
                     ->first();
 
-                // الموظف الأكثر استخداماً للدقائق
                 $highestMinutes = DB::table(function ($query) use ($teamMembers, $dateStart, $dateEnd) {
                     $query->from('permission_requests')
                         ->select('user_id', DB::raw('SUM(minutes_used) as total_minutes'))

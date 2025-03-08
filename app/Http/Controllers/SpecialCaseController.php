@@ -9,12 +9,10 @@ use App\Imports\CheckOutImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 class SpecialCaseController extends Controller
 {
-    // تعريف أوقات العمل كثوابت في المتحكم
     private const WORK_START_TIME = '08:00:00';
     private const WORK_END_TIME = '16:00:00';
 
@@ -40,12 +38,6 @@ class SpecialCaseController extends Controller
         try {
             DB::beginTransaction();
 
-            Log::info('Starting import process', [
-                'check_in_file' => $request->file('check_in_file')->getClientOriginalName(),
-                'check_out_file' => $request->file('check_out_file')->getClientOriginalName(),
-            ]);
-
-            // قراءة محتوى الملفات للتحقق
             $checkInArray = Excel::toArray(new CheckInImport, $request->file('check_in_file'));
             $checkOutArray = Excel::toArray(new CheckOutImport, $request->file('check_out_file'));
 
@@ -53,18 +45,9 @@ class SpecialCaseController extends Controller
                 throw new \Exception('الملفات فارغة');
             }
 
-            Log::info('File contents', [
-                'check_in_rows' => count($checkInArray[0]),
-                'check_out_rows' => count($checkOutArray[0]),
-                'check_in_sample' => array_slice($checkInArray[0], 0, 3),
-                'check_out_sample' => array_slice($checkOutArray[0], 0, 3),
-            ]);
-
-            // معالجة ملف الحضور
             $checkInImport = new CheckInImport();
             Excel::import($checkInImport, $request->file('check_in_file'));
 
-            // التحقق من إضافة سجلات الحضور
             $checkInRecords = SpecialCase::whereDate('date', now())
                 ->whereNotNull('check_in')
                 ->count();
@@ -73,26 +56,13 @@ class SpecialCaseController extends Controller
                 throw new \Exception('لم يتم إضافة أي سجلات حضور');
             }
 
-            // معالجة ملف الانصراف
             $checkOutImport = new CheckOutImport();
             Excel::import($checkOutImport, $request->file('check_out_file'));
-
-            // التحقق النهائي
-            $finalRecords = SpecialCase::whereDate('date', now())->get();
-
-            Log::info('Import completed', [
-                'total_records' => $finalRecords->count(),
-                'records' => $finalRecords->toArray()
-            ]);
 
             DB::commit();
             return redirect()->back()->with('success', 'تم استيراد البيانات بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Import failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
     }
@@ -107,15 +77,10 @@ class SpecialCaseController extends Controller
             'reason' => 'required|string'
         ]);
 
-        // حساب دقائق التأخير والانصراف المبكر
-        $workStartTime = Carbon::createFromTimeString(self::WORK_START_TIME);
-        $workEndTime = Carbon::createFromTimeString(self::WORK_END_TIME);
-
         if ($request->check_in) {
             $checkIn = Carbon::createFromTimeString($request->check_in);
             $workStart = Carbon::createFromTimeString(self::WORK_START_TIME);
 
-            // إذا جاء بعد موعد العمل
             if ($checkIn->gt($workStart)) {
                 $lateMinutes = abs($checkIn->diffInMinutes($workStart));
             } else {
@@ -127,7 +92,6 @@ class SpecialCaseController extends Controller
             $checkOut = Carbon::createFromTimeString($request->check_out);
             $workEnd = Carbon::createFromTimeString(self::WORK_END_TIME);
 
-            // إذا خرج قبل نهاية الدوام
             if ($checkOut->lt($workEnd)) {
                 $earlyLeaveMinutes = abs($workEnd->diffInMinutes($checkOut));
             } else {
@@ -165,15 +129,10 @@ class SpecialCaseController extends Controller
             'reason' => 'required|string'
         ]);
 
-        // حساب دقائق التأخير والانصراف المبكر
-        $workStartTime = Carbon::createFromTimeString(self::WORK_START_TIME);
-        $workEndTime = Carbon::createFromTimeString(self::WORK_END_TIME);
-
         if ($request->check_in) {
             $checkIn = Carbon::createFromTimeString($request->check_in);
             $workStart = Carbon::createFromTimeString(self::WORK_START_TIME);
 
-            // إذا جاء بعد موعد العمل
             if ($checkIn->gt($workStart)) {
                 $lateMinutes = abs($checkIn->diffInMinutes($workStart));
             } else {
@@ -185,7 +144,6 @@ class SpecialCaseController extends Controller
             $checkOut = Carbon::createFromTimeString($request->check_out);
             $workEnd = Carbon::createFromTimeString(self::WORK_END_TIME);
 
-            // إذا خرج قبل نهاية الدوام
             if ($checkOut->lt($workEnd)) {
                 $earlyLeaveMinutes = abs($workEnd->diffInMinutes($checkOut));
             } else {

@@ -12,13 +12,11 @@ class RoleMiddleware
         if (Auth::check()) {
             $user = Auth::user();
 
-            // Check if the user's role matches any of the given roles
             if (in_array($user->role, $roles)) {
                 return $next($request);
             }
         }
 
-        // Redirect to a "home" or "no-access" page if the user doesn't have the correct role
         return redirect()->route('login')->with('error', 'You do not have the required access');
     }
 }

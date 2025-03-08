@@ -367,7 +367,13 @@
                                     <button type="button" class="btn btn-primary edit-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editOvertimeModal"
-                                        data-request="{{ json_encode($request) }}">
+                                        data-request="{{ json_encode([
+                                            'id' => $request->id,
+                                            'overtime_date' => $request->overtime_date,
+                                            'start_time' => \Carbon\Carbon::parse($request->start_time)->format('H:i'),
+                                            'end_time' => \Carbon\Carbon::parse($request->end_time)->format('H:i'),
+                                            'reason' => $request->reason
+                                        ]) }}">
                                         <i class="fas fa-edit"></i> تعديل
                                     </button>
                                     @endif
@@ -517,7 +523,13 @@
                                     <button type="button" class="btn btn-primary edit-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editOvertimeModal"
-                                        data-request="{{ json_encode($request) }}">
+                                        data-request="{{ json_encode([
+                                            'id' => $request->id,
+                                            'overtime_date' => $request->overtime_date,
+                                            'start_time' => \Carbon\Carbon::parse($request->start_time)->format('H:i'),
+                                            'end_time' => \Carbon\Carbon::parse($request->end_time)->format('H:i'),
+                                            'reason' => $request->reason
+                                        ]) }}">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     @endif
@@ -728,32 +740,40 @@
                 @method('PUT')
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="edit_overtime_date" class="form-label">Overtime Date</label>
+                        <label for="edit_overtime_date" class="form-label">تاريخ العمل الإضافي</label>
                         <input type="date" class="form-control" id="edit_overtime_date" name="overtime_date" required>
-                        <div class="invalid-feedback">Please select a valid date.</div>
+                        <div class="invalid-feedback">الرجاء اختيار تاريخ صحيح.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_start_time" class="form-label">وقت البداية</label>
+                                <input type="time" class="form-control" id="edit_start_time" name="start_time" required>
+                                <div class="invalid-feedback">الرجاء اختيار وقت البداية.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_end_time" class="form-label">وقت النهاية</label>
+                                <input type="time" class="form-control" id="edit_end_time" name="end_time" required>
+                                <div class="invalid-feedback">الرجاء اختيار وقت نهاية بعد وقت البداية.</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="edit_start_time" class="form-label">Start Time</label>
-                        <input type="time" class="form-control" id="edit_start_time" name="start_time" required>
-                        <div class="invalid-feedback">Please select a start time.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="edit_end_time" class="form-label">End Time</label>
-                        <input type="time" class="form-control" id="edit_end_time" name="end_time" required>
-                        <div class="invalid-feedback">Please select an end time that is after the start time.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="edit_reason" class="form-label">Reason</label>
-                        <textarea class="form-control" id="edit_reason" name="reason" rows="3" required></textarea>
-                        <div class="invalid-feedback">Please provide a reason.</div>
+                        <label for="edit_reason" class="form-label">السبب</label>
+                        <textarea class="form-control" id="edit_reason" name="reason" rows="3" required maxlength="255"></textarea>
+                        <div class="invalid-feedback">الرجاء كتابة سبب العمل الإضافي.</div>
+                        <div class="form-text">
+                            <span id="reasonCharCount">0</span>/255 حرف
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Update Request</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
                 </div>
             </form>
         </div>
@@ -937,10 +957,27 @@
                 const form = document.getElementById('editOvertimeForm');
                 form.action = `/overtime-requests/${request.id}`;
 
-                document.getElementById('edit_overtime_date').value = request.overtime_date;
-                document.getElementById('edit_start_time').value = request.start_time;
-                document.getElementById('edit_end_time').value = request.end_time;
+                // Format the date to YYYY-MM-DD
+                const overtimeDate = new Date(request.overtime_date);
+                const formattedDate = overtimeDate.toISOString().split('T')[0];
+                document.getElementById('edit_overtime_date').value = formattedDate;
+
+                // Get the original time values (assuming they are in HH:mm format)
+                const startTime = request.start_time;
+                const endTime = request.end_time;
+
+                document.getElementById('edit_start_time').value = startTime;
+                document.getElementById('edit_end_time').value = endTime;
                 document.getElementById('edit_reason').value = request.reason;
+
+                // Update character count for reason
+                const reasonCharCount = document.getElementById('reasonCharCount');
+                if (reasonCharCount) {
+                    reasonCharCount.textContent = request.reason.length;
+                }
+
+                // Add validation for end time being after start time
+                document.getElementById('edit_end_time').min = startTime;
             });
         });
 
@@ -983,24 +1020,36 @@
                 e.preventDefault();
                 if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
                     fetch(this.action, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                window.location.reload();
-                            } else {
-                                alert('حدث خطأ أثناء حذف الطلب');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('حدث خطأ أثناء حذف الطلب');
-                        });
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw response;
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'حدث خطأ أثناء حذف الطلب');
+                        }
+                    })
+                    .catch(async error => {
+                        let errorMessage = 'حدث خطأ أثناء حذف الطلب';
+                        if (error instanceof Response) {
+                            try {
+                                const errorData = await error.json();
+                                errorMessage = errorData.message || errorMessage;
+                            } catch (e) {}
+                        }
+                        alert(errorMessage);
+                    });
                 }
             });
         });
@@ -1077,6 +1126,31 @@
                     </tr>
                 `;
             });
+        });
+
+        // Character count for reason textarea
+        document.getElementById('edit_reason').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('reasonCharCount').textContent = charCount;
+        });
+
+        // Form validation
+        document.getElementById('editOvertimeForm').addEventListener('submit', function(event) {
+            const startTime = document.getElementById('edit_start_time').value;
+            const endTime = document.getElementById('edit_end_time').value;
+
+            if (endTime <= startTime) {
+                event.preventDefault();
+                document.getElementById('edit_end_time').setCustomValidity('يجب أن يكون وقت النهاية بعد وقت البداية');
+                document.getElementById('edit_end_time').reportValidity();
+            } else {
+                document.getElementById('edit_end_time').setCustomValidity('');
+            }
+        });
+
+        // Reset validation on input
+        document.getElementById('edit_end_time').addEventListener('input', function() {
+            this.setCustomValidity('');
         });
     });
 

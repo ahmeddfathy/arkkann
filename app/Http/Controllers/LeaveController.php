@@ -3,7 +3,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Leave;
 use App\Models\User;
-use App\Http\Controllers\MacAddressController; // Include the MacAddressController
+use App\Http\Controllers\MacAddressController;
 use Carbon\Carbon;
 
 class LeaveController extends Controller
@@ -22,12 +22,9 @@ class LeaveController extends Controller
 
     public function store(Request $request)
     {
-        // Get the authenticated user
         $user = auth()->user();
 
-
         if ($user->role == 'manager') {
-
             $leave = new Leave();
             $leave->user_id = $request->user_id;
             $leave->check_out_time = now();
@@ -36,7 +33,6 @@ class LeaveController extends Controller
 
             return redirect()->route('leaves.index')->with('success', 'CheckOut created successfully!');
         }
-
 
         $macController = new MacAddressController();
         $macData = $macController->getMacAddresses()->getData();
@@ -48,11 +44,9 @@ class LeaveController extends Controller
             ]);
         }
 
-
         $validatedData = $request->validate([
             'user_id' => 'required|exists:users,id',
         ]);
-
 
         $today = Carbon::today();
         $existingLeave = Leave::where('user_id', $request->user_id)
@@ -60,13 +54,11 @@ class LeaveController extends Controller
                               ->first();
 
         if ($existingLeave) {
-
             return view('errors.custom', [
                 'errorTitle' => 'Duplicate Entry',
                 'errorMessage' => 'You have already registered your Check Out for today.'
             ]);
         }
-
 
         $leave = new Leave();
         $leave->user_id = $request->user_id;
@@ -77,19 +69,15 @@ class LeaveController extends Controller
         return redirect()->route('dashboard')->with('success', 'Leave marked created successfully!');
     }
 
-
     public function show($id)
     {
-
         $leave = Leave::with('user')->findOrFail($id);
         return view('leaves.show', compact('leave'));
     }
 
     public function destroy($id)
     {
-
         $leave = Leave::findOrFail($id);
-
 
         $leave->delete();
 

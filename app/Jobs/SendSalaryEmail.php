@@ -32,14 +32,12 @@ class SendSalaryEmail implements ShouldQueue
     public function handle()
     {
         if ($this->htmlContent) {
-            // إرسال محتوى HTML
             Mail::send([], [], function ($message) {
                 $message->to($this->email)
                     ->subject($this->subject ?? 'Salary Details')
                     ->html($this->htmlContent);
             });
         } else {
-            // إرسال ملف PDF
             Mail::send([], [], function ($message) {
                 $message->to($this->email)
                     ->subject('Salary Sheet')

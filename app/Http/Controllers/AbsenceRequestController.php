@@ -27,7 +27,6 @@ class AbsenceRequestController extends Controller
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
-        // تحديد بداية ونهاية الشهر (26 من الشهر السابق إلى 25 من الشهر الحالي)
         $now = now();
         $currentMonthStart = $now->day >= 26
             ? $now->copy()->startOfDay()->setDay(26)
@@ -37,24 +36,19 @@ class AbsenceRequestController extends Controller
             ? $now->copy()->addMonth()->startOfDay()->setDay(25)->endOfDay()
             : $now->copy()->startOfDay()->setDay(25)->endOfDay();
 
-        // تحديد بداية ونهاية الفترة
         $dateStart = $fromDate ? Carbon::parse($fromDate)->startOfDay() : $currentMonthStart;
         $dateEnd = $toDate ? Carbon::parse($toDate)->endOfDay() : $currentMonthEnd;
 
-        // التحقق من الصلاحيات
         $canCreateAbsence = $user->hasPermissionTo('create_absence');
         $canUpdateAbsence = $user->hasPermissionTo('update_absence');
         $canDeleteAbsence = $user->hasPermissionTo('delete_absence');
         $canRespondAsManager = $user->hasPermissionTo('manager_respond_absence_request');
         $canRespondAsHR = $user->hasPermissionTo('hr_respond_absence_request');
 
-        // جلب الإحصائيات
         $statistics = $this->getStatistics($user, $dateStart, $dateEnd);
 
-        // جلب قائمة المستخدمين المناسبة حسب دور المستخدم
         $users = collect();
         if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
-            // جمع المستخدمين من جميع الفرق التي يديرها المستخدم
             $managedTeams = $user->ownedTeams;
             foreach ($managedTeams as $team) {
                 $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
@@ -71,7 +65,6 @@ class AbsenceRequestController extends Controller
             $users = collect([$user]);
         }
 
-        // إنشاء query builder أساسي
         $baseQuery = AbsenceRequest::with('user')
             ->whereBetween('absence_date', [$dateStart, $dateEnd])
             ->when($status, function ($q) use ($status) {
@@ -83,18 +76,15 @@ class AbsenceRequestController extends Controller
                 });
             });
 
-        // طلبات المستخدم الحالي
         $myRequests = (clone $baseQuery)
             ->where('user_id', $user->id)
             ->latest()
             ->paginate(10, ['*'], 'my_page');
 
-        // متغيرات لطلبات الفريق و HR
         $teamRequests = collect();
         $noTeamRequests = collect();
         $hrRequests = collect();
 
-        // طلبات الفريق للمدراء
         if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
             $managedTeamMembers = collect();
             foreach ($user->ownedTeams as $team) {
@@ -110,7 +100,6 @@ class AbsenceRequestController extends Controller
             }
         }
 
-        // طلبات HR
         if ($user->hasRole('hr')) {
             $hrRequests = (clone $baseQuery)
                 ->where(function ($query) use ($user) {
@@ -126,7 +115,6 @@ class AbsenceRequestController extends Controller
                 ->latest()
                 ->paginate(10, ['*'], 'hr_page');
 
-            // طلبات الموظفين بدون فريق
             $noTeamRequests = (clone $baseQuery)
                 ->whereHas('user', function ($q) use ($user) {
                     $q->whereDoesntHave('teams')
@@ -138,7 +126,6 @@ class AbsenceRequestController extends Controller
                 ->paginate(10, ['*'], 'no_team_page');
         }
 
-        // حساب أيام الغياب
         $myAbsenceDays = AbsenceRequest::where('user_id', $user->id)
             ->where('status', 'approved')
             ->whereBetween('absence_date', [$dateStart, $dateEnd])
@@ -148,7 +135,6 @@ class AbsenceRequestController extends Controller
         $noTeamAbsenceDaysCount = [];
         $hrAbsenceDaysCount = [];
 
-        // حساب أيام الغياب للفريق
         if ($teamRequests instanceof \Illuminate\Pagination\LengthAwarePaginator) {
             foreach ($teamRequests->items() as $request) {
                 if (!isset($absenceDaysCount[$request->user_id])) {
@@ -160,7 +146,6 @@ class AbsenceRequestController extends Controller
             }
         }
 
-        // حساب أيام الغياب للموظفين بدون فريق
         if ($noTeamRequests instanceof \Illuminate\Pagination\LengthAwarePaginator) {
             foreach ($noTeamRequests->items() as $request) {
                 if (!isset($noTeamAbsenceDaysCount[$request->user_id])) {
@@ -172,7 +157,6 @@ class AbsenceRequestController extends Controller
             }
         }
 
-        // حساب أيام الغياب لطلبات HR
         if ($hrRequests instanceof \Illuminate\Pagination\LengthAwarePaginator) {
             foreach ($hrRequests->items() as $request) {
                 if (!isset($hrAbsenceDaysCount[$request->user_id])) {
@@ -216,7 +200,6 @@ class AbsenceRequestController extends Controller
         $user = Auth::user();
         $targetUserId = $request->input('user_id', $user->id);
 
-        // تحقق من صحة البيانات المدخلة
         $validated = $request->validate([
             'absence_date' => 'required|date',
             'reason' => 'required|string|max:255',
@@ -224,7 +207,6 @@ class AbsenceRequestController extends Controller
         ]);
 
         try {
-            // إذا كان الطلب لشخص آخر
             if ($targetUserId !== $user->id) {
                 $this->absenceRequestService->createRequestForUser($targetUserId, $validated);
             } else {
@@ -275,7 +257,6 @@ class AbsenceRequestController extends Controller
     {
         $user = Auth::user();
 
-        // التحقق من الصلاحيات أولاً
         if ($user->hasRole('team_leader') && !$user->hasPermissionTo('manager_respond_absence_request')) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الغياب');
         }
@@ -290,7 +271,6 @@ class AbsenceRequestController extends Controller
             'response_type' => 'required|in:manager,hr'
         ]);
 
-        // استخدام خدمة AbsenceRequestService لتحديث الحالة
         $this->absenceRequestService->updateStatus($absenceRequest, $validated);
 
         return redirect()->back()->with('success', 'تم تحديث حالة الطلب بنجاح');
@@ -301,7 +281,6 @@ class AbsenceRequestController extends Controller
         $user = Auth::user();
         $absenceRequest = AbsenceRequest::findOrFail($id);
 
-        // التحقق من الصلاحيات
         if (!$absenceRequest->canModifyResponse($user)) {
             return redirect()->back()->with('error', 'غير مصرح لك بتعديل الرد');
         }
@@ -312,7 +291,6 @@ class AbsenceRequestController extends Controller
             'response_type' => 'required|in:manager,hr'
         ]);
 
-        // استخدام خدمة AbsenceRequestService لتعديل الرد
         $this->absenceRequestService->modifyResponse($absenceRequest, $validated);
 
         return redirect()->back()->with('success', 'تم تعديل الرد بنجاح');
@@ -323,30 +301,73 @@ class AbsenceRequestController extends Controller
         $user = Auth::user();
         $responseType = request('response_type');
 
-        // التحقق من الصلاحيات
+        $debugInfo = [
+            'manager_id' => $user->id,
+            'request_user_id' => $absenceRequest->user_id,
+        ];
+
+        $userOwnedTeams = [];
+        foreach ($user->ownedTeams as $team) {
+            $isTeamMember = DB::table('team_user')
+                ->where('user_id', $absenceRequest->user_id)
+                ->where('team_id', $team->id)
+                ->exists();
+
+            $userOwnedTeams[] = [
+                'team_id' => $team->id,
+                'team_name' => $team->name,
+                'request_user_is_member' => $isTeamMember
+            ];
+        }
+
+        $userManagedTeams = [];
+        $managedTeamIds = DB::table('team_user')
+            ->where('user_id', $user->id)
+            ->whereIn('role', ['owner', 'admin'])
+            ->pluck('team_id');
+
+        if ($managedTeamIds->isNotEmpty()) {
+            $managedTeams = DB::table('teams')
+                ->whereIn('id', $managedTeamIds)
+                ->get();
+
+            foreach ($managedTeams as $team) {
+                $isTeamMember = DB::table('team_user')
+                    ->where('user_id', $absenceRequest->user_id)
+                    ->where('team_id', $team->id)
+                    ->exists();
+
+                $userManagedTeams[] = [
+                    'team_id' => $team->id,
+                    'team_name' => $team->name,
+                    'manager_role' => DB::table('team_user')
+                        ->where('user_id', $user->id)
+                        ->where('team_id', $team->id)
+                        ->value('role'),
+                    'request_user_is_member' => $isTeamMember
+                ];
+            }
+        }
+
+        $debugInfo['user_owned_teams'] = $userOwnedTeams;
+        $debugInfo['user_managed_teams'] = $userManagedTeams;
+
+        if ($absenceRequest->user) {
+            $debugInfo['request_user_name'] = $absenceRequest->user->name;
+        }
+
         if (!$absenceRequest->canModifyResponse($user)) {
             $errorMessage = 'غير مصرح لك بإعادة تعيين الحالة. ';
-            if (!$user->hasPermissionTo('manager_respond_absence_request')) {
-                $errorMessage .= 'أنت لا تملك صلاحية الرد على طلبات الغياب. ';
-            }
-            if (!$user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])) {
-                $errorMessage .= 'أنت لست في دور إداري. ';
-            }
-            if ($absenceRequest->user && $absenceRequest->user->currentTeam) {
-                $isTeamOwnerOrAdmin = DB::table('team_user')
-                    ->where('team_user.user_id', $user->id)
-                    ->where('team_user.team_id', $absenceRequest->user->currentTeam->id)
-                    ->whereIn('team_user.role', ['owner', 'admin'])
-                    ->exists();
-                if (!$isTeamOwnerOrAdmin) {
-                    $errorMessage .= 'أنت لست مالك أو مدير في الفريق المعني. ';
-                }
+
+            $errorMessage .= 'يمكنك فقط إعادة تعيين الحالة للموظفين في الفرق التي تملكها أو تديرها. ';
+
+            if ($absenceRequest->user) {
+                $errorMessage .= 'المستخدم "' . $absenceRequest->user->name . '" ليس عضواً في أي من الفرق التي تملكها أو تديرها.';
             }
 
             return redirect()->back()->with('error', $errorMessage);
         }
 
-        // استخدام خدمة AbsenceRequestService لإعادة تعيين الحالة
         $this->absenceRequestService->resetStatus($absenceRequest, $responseType);
 
         return redirect()->back()->with('success', 'تم إعادة تعيين الحالة بنجاح');
@@ -389,7 +410,6 @@ class AbsenceRequestController extends Controller
         ];
 
         try {
-            // إحصائيات الطلبات الشخصية
             $personalStats = AbsenceRequest::where('user_id', $user->id)
                 ->whereBetween('absence_date', [$dateStart, $dateEnd])
                 ->selectRaw('
@@ -401,7 +421,6 @@ class AbsenceRequestController extends Controller
                 ')
                 ->first();
 
-            // السبب الأكثر شيوعاً
             $mostCommonReason = AbsenceRequest::where('user_id', $user->id)
                 ->whereBetween('absence_date', [$dateStart, $dateEnd])
                 ->groupBy('reason')
@@ -421,7 +440,6 @@ class AbsenceRequestController extends Controller
                 ] : null,
             ];
 
-            // إحصائيات الفريق (للمدراء)
             if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
                 $hasTeamWithMultipleMembers = $user->ownedTeams()
                     ->withCount('users')
@@ -448,7 +466,6 @@ class AbsenceRequestController extends Controller
                             ')
                             ->first();
 
-                        // الموظفين الذين تجاوزوا الحد (21 يوم)
                         $exceededEmployees = DB::table(function ($query) use ($teamMembers, $dateStart, $dateEnd) {
                             $query->from('absence_requests')
                                 ->select('user_id', DB::raw('COUNT(*) as total_days'))
@@ -465,7 +482,6 @@ class AbsenceRequestController extends Controller
                                 return $employee->total_days > $maxDays;
                             });
 
-                        // الموظف الأكثر غياباً
                         $mostAbsent = DB::table('absence_requests')
                             ->join('users', 'users.id', '=', 'absence_requests.user_id')
                             ->whereIn('user_id', $teamMembers)
@@ -492,7 +508,6 @@ class AbsenceRequestController extends Controller
                 }
             }
 
-            // إحصائيات HR
             if ($user->hasRole('hr')) {
                 $allEmployees = User::whereDoesntHave('roles', function ($q) {
                     $q->whereIn('name', ['company_manager', 'hr']);
@@ -509,7 +524,6 @@ class AbsenceRequestController extends Controller
                     ')
                     ->first();
 
-                // الموظفين الذين تجاوزوا الحد
                 $exceededEmployees = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                     $query->from('absence_requests')
                         ->select('user_id', DB::raw('COUNT(*) as total_days'))
@@ -526,7 +540,6 @@ class AbsenceRequestController extends Controller
                         return $employee->total_days > $maxDays;
                     });
 
-                // الموظف الأكثر غياباً
                 $mostAbsent = DB::table('absence_requests')
                     ->join('users', 'users.id', '=', 'absence_requests.user_id')
                     ->whereIn('user_id', $allEmployees)
@@ -553,7 +566,6 @@ class AbsenceRequestController extends Controller
 
             return $statistics;
         } catch (\Exception $e) {
-            \Log::error('Error in getStatistics: ' . $e->getMessage());
             return $statistics;
         }
     }

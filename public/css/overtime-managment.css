@@ -12,7 +12,6 @@
     --rejected-color: #e53935;
 }
 
-/* Container and Card Styling */
 .container {
     width: 100%;
     max-width: 100% !important;
@@ -51,7 +50,6 @@
     width: 100%;
 }
 
-/* Table Styling */
 .table-responsive {
     width: 100% !important;
     margin: 0;
@@ -87,40 +85,38 @@
     vertical-align: middle;
 }
 
-/* Column specific widths */
 .table th:nth-child(1),
 .table td:nth-child(1) {
-    min-width: 150px; /* Name */
+    min-width: 150px;
 }
 
 .table th:nth-child(2),
 .table td:nth-child(2) {
-    min-width: 100px; /* Date */
+    min-width: 100px;
 }
 
 .table th:nth-child(3),
 .table td:nth-child(3),
 .table th:nth-child(4),
 .table td:nth-child(4) {
-    min-width: 80px; /* Time */
+    min-width: 80px;
 }
 
 .table th:nth-child(5),
 .table td:nth-child(5) {
-    min-width: 200px; /* Reason */
+    min-width: 200px;
 }
 
 .table th:nth-child(6),
 .table td:nth-child(6) {
-    width: 10%; /* Status */
+    width: 10%;
 }
 
 .table th:nth-child(7),
 .table td:nth-child(7) {
-    width: 20%; /* Actions */
+    width: 20%;
 }
 
-/* Badge Styling */
 .badge {
     padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
@@ -142,7 +138,6 @@
     color: var(--rejected-color) !important;
 }
 
-/* Button Styling */
 .btn {
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
@@ -171,7 +166,6 @@
     color: white;
 }
 
-/* Form Controls */
 .form-control,
 .form-select {
     border-radius: 0.5rem;
@@ -191,7 +185,6 @@
     font-weight: 500;
 }
 
-/* Modal Styling */
 .modal-content {
     border: none;
     border-radius: 1rem;
@@ -209,7 +202,6 @@
     font-weight: 500;
 }
 
-/* Pagination */
 .pagination {
     margin-top: 1.5rem;
 }
@@ -225,7 +217,6 @@
     border-color: var(--primary-blue);
 }
 
-/* Action Buttons */
 .action-buttons {
     display: flex;
     flex-direction: column;
@@ -237,7 +228,6 @@
     gap: 0.5rem;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .container {
         padding: 0.5rem;
@@ -269,7 +259,6 @@
     }
 }
 
-/* Custom Scrollbar */
 .table-responsive::-webkit-scrollbar {
     height: 6px;
 }
@@ -283,7 +272,6 @@
     border-radius: 3px;
 }
 
-/* إضافة تنسيق للنص الطويل */
 .table td.text-wrap {
     white-space: normal;
     min-width: 200px;

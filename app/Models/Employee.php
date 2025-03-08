@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Employee extends Model
 {
   protected $fillable = [
-    'name',
-    // Add other employee fields here
+    'name'
   ];
 
   public function specialCases()

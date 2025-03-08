@@ -23,7 +23,6 @@ class AbsenceRequestPolicy
             return true;
         }
 
-        // التحقق من أن المستخدم admin أو owner في الفريق
         return DB::table('team_user')
             ->where('user_id', $user->id)
             ->where(function ($query) {
@@ -56,12 +55,10 @@ class AbsenceRequestPolicy
 
     public function updateStatus(User $user, AbsenceRequest $absenceRequest)
     {
-        // HR يمكنه الرد على أي طلب
         if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
             return true;
         }
 
-        // المدير يمكنه الرد فقط إذا كان admin/owner في الفريق
         if ($user->hasPermissionTo('manager_respond_absence_request')) {
             return DB::table('team_user')
                 ->where('user_id', $user->id)
@@ -77,13 +74,11 @@ class AbsenceRequestPolicy
 
     public function modifyResponse(User $user, AbsenceRequest $absenceRequest)
     {
-        // نفس منطق updateStatus
         return $this->updateStatus($user, $absenceRequest);
     }
 
     public function resetStatus(User $user, AbsenceRequest $absenceRequest)
     {
-        // نفس منطق updateStatus
         return $this->updateStatus($user, $absenceRequest);
     }
 }

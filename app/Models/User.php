@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -19,8 +18,6 @@ use Spatie\Permission\Models\Permission;
 class User extends Authenticatable
 {
   use HasApiTokens;
-
-  /** @use HasFactory<\Database\Factories\UserFactory> */
   use HasFactory;
   use HasProfilePhoto;
   use HasTeams;
@@ -28,11 +25,6 @@ class User extends Authenticatable
   use Notifiable;
   use TwoFactorAuthenticatable;
 
-  /**
-   * The attributes that are mass assignable.
-   *
-   * @var array<int, string>
-   */
   protected $fillable = [
     'name',
     "employee_id",
@@ -56,11 +48,7 @@ class User extends Authenticatable
     'employee_status',
 
   ];
-  /**
-   * The attributes that should be hidden for serialization.
-   *
-   * @var array<int, string>
-   */
+
   protected $hidden = [
     'password',
     'remember_token',
@@ -68,20 +56,10 @@ class User extends Authenticatable
     'two_factor_secret',
   ];
 
-  /**
-   * The accessors to append to the model's array form.
-   *
-   * @var array<int, string>
-   */
   protected $appends = [
     'profile_photo_url',
   ];
 
-  /**
-   * Get the attributes that should be cast.
-   *
-   * @return array<string, string>
-   */
   protected $casts = [
     'email_verified_at' => 'datetime',
     'password' => 'hashed',
@@ -115,15 +93,10 @@ class User extends Authenticatable
       ->withTimestamps();
   }
 
-  /**
-   * Override hasPermissionTo from HasRoles trait
-   * Check if user has permission after verifying there are no direct permission bans
-   */
   public function hasPermissionTo($permission, $guardName = null): bool
   {
     $permissionName = $permission instanceof Permission ? $permission->name : $permission;
 
-    // Check if there is a direct permission ban
     $permissionModel = Permission::where('name', $permissionName)->first();
     if (!$permissionModel) {
       return false;
@@ -142,7 +115,6 @@ class User extends Authenticatable
       return false;
     }
 
-    // Check permissions directly
     return $this->permissions->contains('name', $permissionName) ||
       $this->roles->flatMap->permissions->contains('name', $permissionName);
   }
@@ -156,13 +128,6 @@ class User extends Authenticatable
   {
     if ($this->date_of_birth) {
         $age = abs(now()->diffInYears($this->date_of_birth));
-
-        \Log::info('User age calculation', [
-            'user_id' => $this->id,
-            'name' => $this->name,
-            'date_of_birth' => $this->date_of_birth,
-            'age' => $age
-        ]);
 
         if ($age >= 50) {
             return 45;

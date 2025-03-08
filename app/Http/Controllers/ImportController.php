@@ -13,13 +13,11 @@ class ImportController extends Controller
        }
     public function import(Request $request)
     {
-        // التحقق من صحة الملف المرفوع
         $request->validate([
-            'file' => 'required|mimes:xlsx,csv,ods',  // التأكد أن الملف هو Excel أو CSV
+            'file' => 'required|mimes:xlsx,csv,ods',
         ]);
 
         $file = $request->file('file');
-
 
         Excel::import(new UsersImport, $file);
 

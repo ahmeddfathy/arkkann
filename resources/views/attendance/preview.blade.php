@@ -79,7 +79,7 @@
                                             تصفية
                                         </button>
                                         @if(request()->hasAny(['month', 'year', 'status', 'start_date', 'end_date']))
-                                        <a href="{{ route('attendance.preview', ['employee_id' => $user->employee_id]) }}" class="btn btn-light">
+                                        <a href="{{ route('user.previewAttendance', ['employee_id' => $user->employee_id]) }}" class="btn btn-light">
                                             <i class="fas fa-times me-1"></i>
                                             مسح الفلتر
                                         </a>

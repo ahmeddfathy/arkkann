@@ -1,14 +1,12 @@
 :root {
-    --primary-color: #00a3e0; /* اللون الأزرق الفاتح من اللوجو */
-    --secondary-color: #333333; /* اللون الرمادي الداكن من اللوجو */
-    --light-blue: #e6f7ff; /* درجة فاتحة من الأزرق للخلفيات */
-    --border-radius: 15px; /* تدوير الزوايا مثل شكل اللوجو */
+    --primary-color: #00a3e0;
+    --secondary-color: #333333;
+    --light-blue: #e6f7ff;
+    --border-radius: 15px;
     --box-shadow: 0 4px 6px rgba(0, 163, 224, 0.1);
 }
 
-/* تنسيقات عامة للصفحة */
 body {
-
     text-align: right;
     font-family: "Cairo", sans-serif;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
@@ -21,7 +19,6 @@ body {
     padding: 0 30px;
 }
 
-/* تنسيقات الهيدر */
 .page-header {
     margin-bottom: 2rem;
     padding: 1rem;
@@ -37,7 +34,6 @@ body {
     margin: 0;
 }
 
-/* تحسينات البطاقات */
 .card {
     border: none;
     border-radius: var(--border-radius);
@@ -66,7 +62,6 @@ body {
     padding: 1.5rem;
 }
 
-/* تحسينات البطاقات الإحصائية */
 .stats-card {
     background: white;
     border-radius: var(--border-radius);
@@ -105,7 +100,6 @@ body {
     margin: 0;
 }
 
-/* تحسينات قائمة الإشعارات */
 .notification-card {
     border: none;
     border-radius: var(--border-radius);
@@ -130,7 +124,6 @@ body {
     line-height: 1.6;
 }
 
-/* تحسينات الأزرار */
 .btn {
     border-radius: 25px;
     padding: 0.6rem 1.5rem;
@@ -163,7 +156,6 @@ body {
     color: var(--secondary-color);
 }
 
-/* تحسينات النموذج */
 .form-control,
 .form-select {
     border-radius: 10px;
@@ -184,7 +176,6 @@ body {
     margin-bottom: 0.5rem;
 }
 
-/* تحسينات الجدول */
 .table {
     border-collapse: separate;
     border-spacing: 0 0.8rem;
@@ -213,7 +204,6 @@ body {
     background: #f8f9fa;
 }
 
-/* تحسينات الشارات */
 .badge {
     padding: 0.6rem 1rem;
     border-radius: 20px;
@@ -221,7 +211,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* تحسينات شريط التقدم */
 .progress {
     height: 10px;
     border-radius: 5px;
@@ -234,7 +223,6 @@ body {
     transition: width 0.5s ease;
 }
 
-/* تحسينات الرسائل التنبيهية */
 .alert {
     border-radius: var(--border-radius);
     border: none;
@@ -271,7 +259,6 @@ body {
     background-color: #ffc107;
 }
 
-/* تحسينات Modal */
 .modal-content {
     border-radius: var(--border-radius);
     border: none;
@@ -294,7 +281,6 @@ body {
     padding: 1.5rem;
 }
 
-/* تأثيرات حركية */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -310,7 +296,6 @@ body {
     animation: fadeIn 0.5s ease forwards;
 }
 
-/* تحسينات للشاشات الصغيرة */
 @media (max-width: 768px) {
     .container {
         padding: 0 15px;

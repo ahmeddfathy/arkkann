@@ -31,7 +31,6 @@ class OverTimeRequestsController extends Controller
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
-        // تحديد بداية ونهاية الشهر (26 من الشهر السابق إلى 25 من الشهر الحالي)
         $now = now();
         $currentMonthStart = $now->day >= 26
             ? $now->copy()->startOfDay()->setDay(26)
@@ -41,11 +40,9 @@ class OverTimeRequestsController extends Controller
             ? $now->copy()->addMonth()->startOfDay()->setDay(25)->endOfDay()
             : $now->copy()->startOfDay()->setDay(25)->endOfDay();
 
-        // تحديد بداية ونهاية الفترة
         $dateStart = $fromDate ? Carbon::parse($fromDate)->startOfDay() : $currentMonthStart;
         $dateEnd = $toDate ? Carbon::parse($toDate)->endOfDay() : $currentMonthEnd;
 
-        // تعريف متغير الفلاتر
         $filters = [
             'employeeName' => $employeeName,
             'status' => $status,
@@ -53,14 +50,12 @@ class OverTimeRequestsController extends Controller
             'endDate' => $dateEnd
         ];
 
-        // التحقق من الصلاحيات
         $canCreateOvertime = $user->hasPermissionTo('create_overtime');
         $canUpdateOvertime = $user->hasPermissionTo('update_overtime');
         $canDeleteOvertime = $user->hasPermissionTo('delete_overtime');
         $canRespondAsManager = $user->hasPermissionTo('manager_respond_overtime_request') && !$user->hasRole('hr');
         $canRespondAsHR = $user->hasPermissionTo('hr_respond_overtime_request');
 
-        // حلب طلبات المستخدم الحالي
         $myRequests = $this->overTimeRequestService->getUserRequests(
             $user->id,
             $dateStart,
@@ -68,15 +63,13 @@ class OverTimeRequestsController extends Controller
             $status
         );
 
-        // تهيئة المتغيرات
-        $teamRequests = collect([]); // تهيئة متغير فارغ
+        $teamRequests = collect([]);
         $noTeamRequests = collect([]);
         $users = collect([]);
         $pendingCount = 0;
         $overtimeHoursCount = [];
         $noTeamOvertimeHoursCount = [];
 
-        // متغير لطلبات فريق HR
         if ($user->hasRole('hr')) {
             $noTeamRequests = $this->overTimeRequestService->getNoTeamRequests(
                 $employeeName,
@@ -85,7 +78,6 @@ class OverTimeRequestsController extends Controller
                 $dateEnd
             );
 
-            // جلبات باقي الموظفين (الجدول الرئيسي)
             $teamRequests = OverTimeRequests::with('user')
                 ->whereHas('user', function ($query) {
                     $query->whereHas('teams')
@@ -109,17 +101,15 @@ class OverTimeRequestsController extends Controller
         } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
-                // تحديد الأدوار المسموح بها حسب دور المستخدم
                 $allowedRoles = [];
                 if ($user->hasRole('team_leader')) {
-                    $allowedRoles = ['employee']; // Team Leader يرى طلبات الموظفين فقط
+                    $allowedRoles = ['employee'];
                 } elseif ($user->hasRole('department_manager')) {
-                    $allowedRoles = ['employee', 'team_leader']; // Department Manager يرى طلبات الموظفين و Team Leaders
+                    $allowedRoles = ['employee', 'team_leader'];
                 } elseif ($user->hasRole('company_manager')) {
-                    $allowedRoles = ['employee', 'team_leader', 'department_manager']; // Company Manager يرى الجميع عدا HR
+                    $allowedRoles = ['employee', 'team_leader', 'department_manager'];
                 }
 
-                // استثناء الأدمن من القائمة
                 $teamMembers = $team->users()
                     ->whereHas('roles', function ($q) use ($allowedRoles) {
                         $q->whereIn('name', $allowedRoles);
@@ -159,7 +149,6 @@ class OverTimeRequestsController extends Controller
             }
         }
 
-        // حساب ساعات العمل الإضافي للمستخدم الحالي
         $myOvertimeHours = $this->overTimeRequestService->calculateOvertimeHours(
             $user->id,
             $dateStart,
@@ -167,13 +156,11 @@ class OverTimeRequestsController extends Controller
             $status
         );
 
-        // إضافة الإحصائيات
         $statistics = [];
         $personalStatistics = [];
         $teamStatistics = [];
         $hrStatistics = [];
 
-        // الإحصائيات الشخصية لكل المستخدمين
         $personalStatistics = [
             'total_requests' => OverTimeRequests::where('user_id', $user->id)
                 ->whereBetween('overtime_date', [$dateStart, $dateEnd])
@@ -198,7 +185,6 @@ class OverTimeRequestsController extends Controller
         ];
 
         if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
-            // إحصائيات الفريق
             $teamStatistics = [
                 'total_requests' => OverTimeRequests::whereIn('user_id', $users->pluck('id'))
                     ->whereBetween('overtime_date', [$dateStart, $dateEnd])
@@ -243,7 +229,6 @@ class OverTimeRequestsController extends Controller
         }
 
         if ($user->hasRole('hr')) {
-            // إحصائيات HR
             $hrStatistics = [
                 'total_company_requests' => OverTimeRequests::whereBetween('overtime_date', [$dateStart, $dateEnd])
                     ->when($status, function ($query) use ($status) {
@@ -357,8 +342,15 @@ class OverTimeRequestsController extends Controller
         try {
             $overtimeRequest = OverTimeRequests::findOrFail($id);
             $this->overTimeRequestService->deleteRequest($overtimeRequest);
+
+            if (request()->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Overtime request deleted successfully.']);
+            }
             return redirect()->route('overtime-requests.index')->with('success', 'Overtime request deleted successfully.');
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
             return back()->with('error', $e->getMessage());
         }
     }
@@ -433,18 +425,15 @@ class OverTimeRequestsController extends Controller
         try {
             $overtimeRequest = OverTimeRequests::findOrFail($id);
 
-            // التحقق من الصلاحيات
             if (!Auth::user()->hasPermissionTo('manager_respond_overtime_request')) {
                 return back()->with('error', 'Unauthorized action.');
             }
 
-            // تحديث الحالة
             $overtimeRequest->manager_status = $request->status;
             $overtimeRequest->manager_rejection_reason = $request->status === 'rejected' ? $request->rejection_reason : null;
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
 
-            // إرسال إشعار
             $this->notificationService->notifyStatusUpdate($overtimeRequest);
 
             return back()->with('success', 'Manager response updated successfully.');
@@ -463,18 +452,15 @@ class OverTimeRequestsController extends Controller
         try {
             $overtimeRequest = OverTimeRequests::findOrFail($id);
 
-            // التحقق من الصلاحيات
             if (!Auth::user()->hasPermissionTo('hr_respond_overtime_request')) {
                 return back()->with('error', 'Unauthorized action.');
             }
 
-            // تحديث الحالة
             $overtimeRequest->hr_status = $request->status;
             $overtimeRequest->hr_rejection_reason = $request->status === 'rejected' ? $request->rejection_reason : null;
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
 
-            // إرسال إشعار
             $this->notificationService->notifyStatusUpdate($overtimeRequest);
 
             return back()->with('success', 'HR response updated successfully.');
@@ -487,7 +473,6 @@ class OverTimeRequestsController extends Controller
     {
         $user = Auth::user();
 
-        // التحقق من الصلاحيات
         if ($user->hasRole('team_leader') && !$user->hasPermissionTo('manager_respond_overtime_request')) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي');
         }

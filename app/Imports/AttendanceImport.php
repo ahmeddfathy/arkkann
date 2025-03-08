@@ -25,25 +25,21 @@ class AttendanceImport implements ToModel, WithEvents
     $employeeNumber = $this->extractNumber($row[1]);
     $attendanceDate = $this->formatDate($row[2]);
 
-    // التحقق من وجود الموظف
     $employeeExists = User::where('employee_id', $employeeNumber)->exists();
 
-    // إذا لم يكن الموظف موجوداً، نضيفه لقائمة المتخطى
     if (!$employeeExists) {
       $this->skippedEmployees[] = [
         'employee_id' => $employeeNumber,
-        'name' => $row[1], // الاسم الكامل من الملف
+        'name' => $row[1],
         'date' => $attendanceDate->format('Y-m-d')
       ];
       return null;
     }
 
-    // التحقق من وجود السجل
     $existingRecord = AttendanceRecord::where('employee_id', $employeeNumber)
       ->whereDate('attendance_date', $attendanceDate)
       ->first();
 
-    // إذا كان السجل موجود، نضيفه لقائمة المتكررات
     if ($existingRecord) {
       $this->duplicates[] = [
         'employee_id' => $employeeNumber,
@@ -53,7 +49,6 @@ class AttendanceImport implements ToModel, WithEvents
       return null;
     }
 
-    // باقي الكود كما هو...
     $status = $this->formatStatus($row[4]);
     $entryTime = null;
     $exitTime = null;
@@ -87,7 +82,6 @@ class AttendanceImport implements ToModel, WithEvents
       AfterImport::class => function (AfterImport $event) {
         $message = '';
 
-        // إضافة معلومات عن السجلات المتكررة
         if (!empty($this->duplicates)) {
           $message .= "تم تخطي السجلات المتكررة التالية:\n";
           foreach ($this->duplicates as $duplicate) {
@@ -95,7 +89,6 @@ class AttendanceImport implements ToModel, WithEvents
           }
         }
 
-        // إضافة معلومات عن الموظفين غير الموجودين
         if (!empty($this->skippedEmployees)) {
           $message .= "\nتم تخطي السجلات التالية لعدم وجود الموظف في النظام:\n";
           foreach ($this->skippedEmployees as $skipped) {
@@ -123,7 +116,6 @@ class AttendanceImport implements ToModel, WithEvents
       return now();
     }
 
-    // If the input is already in d/m/y format
     if (is_string($excelDate) && preg_match('/^\d{2}\/\d{2}\/\d{2}$/', $excelDate)) {
       try {
         return Carbon::createFromFormat('d/m/y', $excelDate);
@@ -132,7 +124,6 @@ class AttendanceImport implements ToModel, WithEvents
       }
     }
 
-    // If the input is an Excel numeric date
     if (is_numeric($excelDate)) {
       try {
         return Carbon::instance(Date::excelToDateTimeObject($excelDate));
@@ -150,12 +141,10 @@ class AttendanceImport implements ToModel, WithEvents
       return null;
     }
 
-    // If it's a string in HH:mm:ss format
     if (is_string($timeString) && preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $timeString)) {
       return date('H:i:s', strtotime($timeString));
     }
 
-    // For Excel time values
     if (is_numeric($timeString)) {
       $totalSeconds = round($timeString * 86400);
       $hours = floor($totalSeconds / 3600);
@@ -175,10 +164,8 @@ class AttendanceImport implements ToModel, WithEvents
       return 'غيــاب';
     }
 
-    // تنظيف النص من المسافات الزائدة
     $status = trim($status);
 
-    // قائمة الحالات المقبولة مع معالجة الحالات المختلفة للعطلة الأسبوعية
     $statusMap = [
       'حضـور' => 'حضـور',
       'حضور' => 'حضـور',
@@ -196,19 +183,16 @@ class AttendanceImport implements ToModel, WithEvents
       'إذن' => 'اذن'
     ];
 
-    // البحث عن الحالة في القائمة
     foreach ($statusMap as $key => $value) {
       if (strcasecmp($status, $key) === 0) {
         return $value;
       }
     }
 
-    // التحقق من إذا كان النص يحتوي على "عطلة" أو "عطله"
     if (preg_match('/(عطلة|عطله)/i', $status)) {
       return 'عطلة اسبوعية';
     }
 
-    // إذا كانت الحالة غير معروفة
     return 'غيــاب';
   }
 }

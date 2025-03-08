@@ -10,6 +10,129 @@
 @endsection
 
 @section('notification-content')
+<style>
+/* Stats Cards */
+.stats-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.stats-card p {
+    color: #666;
+    margin: 0;
+}
+
+.stats-card.success h3 {
+    color: #28a745;
+}
+
+.stats-card.warning h3 {
+    color: #ffc107;
+}
+
+/* Filter Section */
+.filter-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+/* Notifications List */
+.notifications-list {
+    margin-top: 30px;
+}
+
+.notification-card {
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
+}
+
+.notification-card.administrative {
+    border-left: 4px solid #dc3545;
+}
+
+.notification-card .card-body {
+    padding: 20px;
+}
+
+.notification-card .card-title {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.notification-card .card-text {
+    color: #666;
+}
+
+.notification-card .badges {
+    margin-top: 15px;
+}
+
+.notification-card .badge {
+    margin-right: 10px;
+    padding: 8px 12px;
+}
+
+/* Progress Bar */
+.read-stats .progress {
+    height: 10px;
+    border-radius: 5px;
+    background: #e9ecef;
+}
+
+.read-stats .progress-bar {
+    background: #0d6efd;
+    border-radius: 5px;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.action-buttons .btn {
+    padding: 8px 12px;
+}
+
+/* Card Footer */
+.notification-card .card-footer {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .col-lg-3, .col-lg-6 {
+        margin-bottom: 15px;
+    }
+
+    .action-buttons {
+        justify-content: center;
+    }
+}
+</style>
+
 <!-- إحصائيات عامة -->
 <div class="row mb-4">
     <div class="col-md-4">
@@ -159,11 +282,14 @@
     </div>
     @endforeach
 </div>
-
+@endsection
 <div class="d-flex justify-content-center mt-4">
     {{ $notifications->links() }}
 </div>
-@endsection
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/admin/notifications.css') }}">
+@endpush
 
 @push('page-scripts')
 <script>

@@ -438,13 +438,8 @@ use Carbon\Carbon;
                                             $maxReturnTime = $returnTime->copy()->addMinutes(10);
                                             $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
-
                                             $isTimeToShow = $now->gte($departureTime) && $now->lte($maxReturnTime);
-
-
                                             $isSameDay = $now->isSameDay($returnTime);
-
-
                                             $isBeforeEndOfDay = $returnTime->lt($endOfWorkDay);
                                             @endphp
 
@@ -1199,38 +1194,26 @@ use Carbon\Carbon;
                     return;
                 }
 
-                // إضافة console.log للتحقق من القيم
-                console.log('Request ID:', requestId);
-                console.log('Status:', status);
-
                 fetch(`/permission-requests/${requestId}/return-status`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({
-                            return_status: status
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('Response:', data); // إضافة log للتحقق من الاستجابة
-                        if (data.success) {
-                            window.location.reload();
-                        } else {
-                            window.location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        window.location.reload();
-                    });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ return_status: status })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'حدث خطأ أثناء تحديث حالة العودة');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('حدث خطأ أثناء تحديث حالة العودة');
+                });
             });
         });
 
@@ -1238,178 +1221,6 @@ use Carbon\Carbon;
         window.addEventListener('beforeunload', () => {
             timers.forEach(timer => clearInterval(timer));
         });
-
-        // معالجة أحداث التعديل
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const requestId = this.dataset.id;
-                const departureTime = this.dataset.departure;
-                const returnTime = this.dataset.return;
-                const reason = this.dataset.reason;
-
-                const form = document.getElementById('editPermissionForm');
-                form.action = `{{ url('permission-requests') }}/${requestId}`;
-
-                document.getElementById('edit_departure_time').value = formatDateTime(departureTime);
-                document.getElementById('edit_return_time').value = formatDateTime(returnTime);
-                document.getElementById('edit_reason').value = reason;
-            });
-        });
-
-        // معالجة أحداث الرد
-        document.querySelectorAll('.respond-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const requestId = this.dataset.requestId;
-                const responseType = this.dataset.responseType;
-                const form = document.getElementById('respondForm');
-
-                // تحديث مسار النموذج حسب نوع الرد
-                const route = responseType === 'manager' ?
-                    `{{ url('permission-requests') }}/${requestId}/manager-status` :
-                    `{{ url('permission-requests') }}/${requestId}/hr-status`;
-
-                form.action = route;
-                document.getElementById('response_type').value = responseType;
-
-                // إعادة تعيين النموذج
-                form.reset();
-                document.getElementById('rejection_reason_container').style.display = 'none';
-                document.getElementById('rejection_reason').removeAttribute('required');
-            });
-        });
-
-        // معالجة أحداث تعديل الرد
-        document.querySelectorAll('.modify-response-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const requestId = this.dataset.requestId;
-                const responseType = this.dataset.responseType;
-                const status = this.dataset.status;
-                const reason = this.dataset.reason;
-                const form = document.getElementById('modifyResponseForm');
-
-                // تحديث مسار النموذج حسب نوع الرد
-                const route = responseType === 'manager' ?
-                    `{{ url('permission-requests') }}/${requestId}/modify-manager-status` :
-                    `{{ url('permission-requests') }}/${requestId}/modify-hr-status`;
-
-                form.action = route;
-                document.getElementById('modify_response_type').value = responseType;
-                document.getElementById('modify_status').value = status;
-                document.getElementById('modify_reason').value = reason || '';
-
-                toggleRejectionReason('modify_status', 'modify_reason_container', 'modify_reason');
-            });
-        });
-
-        // معالجة تغيير الحالة
-        ['response_status', 'modify_status'].forEach(id => {
-            document.getElementById(id).addEventListener('change', function() {
-                const containerId = id === 'response_status' ? 'rejection_reason_container' : 'modify_reason_container';
-                const textareaId = id === 'response_status' ? 'rejection_reason' : 'modify_reason';
-                toggleRejectionReason(id, containerId, textareaId);
-            });
-        });
-
-        // معالجة نوع التسجيل
-        if (document.getElementById('self_registration')) {
-            document.querySelectorAll('input[name="registration_type"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    const container = document.getElementById('employee_select_container');
-                    container.style.display = this.value === 'self' ? 'none' : 'block';
-                });
-            });
-        }
-
-        // دالة مساعدة لتنسيق التاريخ والوقت
-        function formatDateTime(dateTimeStr) {
-            const date = new Date(dateTimeStr);
-            return date.toISOString().slice(0, 16);
-        }
-
-        // دالة مساعدة لإظهار/إخفاء حقل سبب الرفض
-        function toggleRejectionReason(selectId, containerId, textareaId) {
-            const select = document.getElementById(selectId);
-            const container = document.getElementById(containerId);
-            const textarea = document.getElementById(textareaId);
-
-            if (select.value === 'rejected') {
-                container.style.display = 'block';
-                textarea.required = true;
-            } else {
-                container.style.display = 'none';
-                textarea.required = false;
-                textarea.value = '';
-            }
-        }
-
-        // إضافة معالج لأزرار حالة العودة
-        document.querySelectorAll('.return-status').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const requestId = this.dataset.requestId;
-                const status = this.value;
-
-                fetch(`/permission-requests/${requestId}/return-status`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({
-                            return_status: status
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            // تحديث الصفحة مباشرة بدون رسائل
-                            window.location.reload();
-                        } else {
-                            // إعادة تحميل الصفحة في حالة الخطأ بدون رسائل
-                            window.location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        // إعادة تحميل الصفحة في حالة الخطأ بدون رسائل
-                        window.location.reload();
-                    });
-            });
-        });
-
-        // إضافة دالة resetStatus
-        window.resetStatus = function(requestId, type) {
-            if (!confirm('هل أنت متأكد من إعادة تعيين الرد؟')) {
-                return;
-            }
-
-            const url = type === 'hr' ?
-                `/permission-requests/${requestId}/reset-hr-status` :
-                `/permission-requests/${requestId}/reset-manager-status`;
-
-            fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.reload();
-                    } else {
-                        alert('حدث خطأ أثناء إعادة تعيين الرد');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('حدث خطأ أثناء إعادة تعيين الرد');
-                });
-        };
     });
 </script>
 @endpush

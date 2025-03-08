@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('inspire')->hourly();
 
-// تسجيل المهام المجدولة
+
 Schedule::command('attendance:create-daily')
     ->everyMinute()
     ->name('attendance:create-daily');

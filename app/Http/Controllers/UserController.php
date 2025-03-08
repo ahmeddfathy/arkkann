@@ -17,30 +17,22 @@ class UserController extends Controller
     {
         $query = User::with(['roles', 'permissions']);
 
-        // Search by employee name
         if ($request->has('employee_name') && !empty($request->employee_name)) {
             $query->where('name', 'like', "%{$request->employee_name}%");
         }
 
-        // Search by department
         if ($request->has('department') && !empty($request->department)) {
             $query->where('department', $request->department);
         }
 
-        // Search by employee status
         if ($request->has('status') && !empty($request->status)) {
             $query->where('employee_status', $request->status);
         }
 
         $users = $query->latest()->paginate(10);
 
-        // تحضير الصلاحيات الفعلية لكل مستخدم
         foreach ($users as $user) {
-            // نحصل على كل الصلاحيات المتاحة
             $allPermissions = Permission::all();
-
-            // نحضر مصفوفة للصلاحيات الفعلية
-
         }
 
         $employees = User::select('name')->distinct()->get();
@@ -66,7 +58,6 @@ class UserController extends Controller
             ->with('success', 'User deleted successfully');
     }
 
-    // دالة مساعدة للحصول على صلاحيات الرول
     public function getRolePermissions($roleName)
     {
         try {
@@ -75,12 +66,10 @@ class UserController extends Controller
                 return response()->json([]);
             }
 
-            // نحصل على صلاحيات الرول
             $permissions = $role->permissions->pluck('name')->toArray();
 
             return response()->json($permissions);
         } catch (\Exception $e) {
-            \Log::error('Error in getRolePermissions: ' . $e->getMessage());
             return response()->json([], 500);
         }
     }
@@ -92,7 +81,6 @@ class UserController extends Controller
 
             DB::beginTransaction();
 
-            // تحديث الأدوار
             if ($request->has('roles') && !empty($request->roles)) {
                 $roleName = $request->roles[0];
                 $role = Role::findByName($roleName);
@@ -101,16 +89,10 @@ class UserController extends Controller
                     throw new \Exception("الرول '{$roleName}' غير موجود");
                 }
 
-                // نحصل على صلاحيات الرول
                 $rolePermissions = $role->permissions->pluck('name')->toArray();
-
-                // نحصل على الصلاحيات المحددة في المودال
                 $requestedPermissions = $request->permissions ?? [];
-
-                // نحدد الصلاحيات التي تم إلغاء تحديدها (يجب حظرها)
                 $permissionsToBlock = array_diff($rolePermissions, $requestedPermissions);
 
-                // نحظر الصلاحيات المطلوب حظرها
                 foreach ($permissionsToBlock as $permission) {
                     $permissionId = Permission::where('name', $permission)->first()->id;
                     DB::table('model_has_permissions')
@@ -124,7 +106,6 @@ class UserController extends Controller
                         );
                 }
 
-                // نزيل الحظر عن الصلاحيات المحددة
                 DB::table('model_has_permissions')
                     ->where([
                         'model_type' => get_class($user),
@@ -134,7 +115,6 @@ class UserController extends Controller
                     ->whereIn('permission_id', Permission::whereIn('name', $requestedPermissions)->pluck('id'))
                     ->delete();
 
-                // نقوم بتحديث الرول
                 $user->syncRoles([$role]);
             }
 
@@ -146,7 +126,6 @@ class UserController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollback();
-            \Log::error('خطأ في تحديث الأدوار والصلاحيات: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء تحديث الأدوار والصلاحيات: ' . $e->getMessage()
@@ -159,7 +138,6 @@ class UserController extends Controller
     {
         Excel::import(new UsersImport, $request->file('file'));
 
-        // إضافة دور الموظف تلقائياً للمستخدمين الجدد
         $employeeRole = Role::findByName('employee');
         User::whereDoesntHave('roles')->each(function ($user) use ($employeeRole) {
             $user->assignRole($employeeRole);
@@ -176,11 +154,9 @@ class UserController extends Controller
 
             DB::beginTransaction();
 
-            // إزالة جميع الأدوار والصلاحيات
             $user->syncRoles([]);
             $user->syncPermissions([]);
 
-            // تأكد من إزالة جميع الصلاحيات المباشرة
             DB::table('model_has_permissions')
                 ->where('model_type', User::class)
                 ->where('model_id', $user->id)
@@ -208,14 +184,11 @@ class UserController extends Controller
 
             DB::beginTransaction();
 
-            // حذف جميع الأدوار والصلاحيات القديمة
             $user->syncRoles([]);
             $user->syncPermissions([]);
 
-            // تعيين رول الموظف
             $user->assignRole('employee');
 
-            // تعيين الصلاحيات الأساسية للموظف
             $employeePermissions = [
                 'view_absence',
                 'create_absence',
@@ -275,7 +248,6 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // نحصل على الصلاحيات المحظورة
         $forbiddenPermissions = DB::table('model_has_permissions')
             ->where([
                 'model_type' => get_class($user),

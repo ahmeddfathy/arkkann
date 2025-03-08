@@ -41,15 +41,12 @@ class AbsenceRequest extends Model
     return $this->belongsTo(User::class);
   }
 
-  // Check if user can respond to request
   public function canRespond(User $user): bool
   {
-    // HR can respond to any request
     if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
       return true;
     }
 
-    // Check manager permissions
     if (
       $user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])
       && $user->hasPermissionTo('manager_respond_absence_request')
@@ -60,13 +57,11 @@ class AbsenceRequest extends Model
     return false;
   }
 
-  // Check if user can create request
   public function canCreate(User $user): bool
   {
     return $user->hasPermissionTo('create_absence');
   }
 
-  // Check if user can update request
   public function canUpdate(User $user): bool
   {
     if (!$user->hasPermissionTo('update_absence')) {
@@ -75,7 +70,6 @@ class AbsenceRequest extends Model
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
-  // Check if user can delete request
   public function canDelete(User $user): bool
   {
     if (!$user->hasPermissionTo('delete_absence')) {
@@ -84,45 +78,57 @@ class AbsenceRequest extends Model
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
-  // Check if user can modify response
   public function canModifyResponse(User $user): bool
   {
     try {
-      // HR can modify any response
       if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
         return true;
       }
 
-      // Check manager permissions
       if (
         $user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])
         && $user->hasPermissionTo('manager_respond_absence_request')
       ) {
-        if ($this->user && $this->user->currentTeam) {
-          if ($this->user->currentTeam->user_id === $user->id) {
-            return true;
+        if ($this->user_id === $user->id) {
+          return true;
+        }
+
+        if ($this->user) {
+          foreach ($user->ownedTeams as $team) {
+            $isTeamMember = DB::table('team_user')
+              ->where('user_id', $this->user_id)
+              ->where('team_id', $team->id)
+              ->exists();
+
+            if ($isTeamMember) {
+              return true;
+            }
           }
 
-          return DB::table('team_user')
-            ->where('team_user.user_id', $user->id)
-            ->where('team_user.team_id', $this->user->currentTeam->id)
-            ->whereIn('team_user.role', ['owner', 'admin'])
-            ->exists();
+          $managedTeams = DB::table('team_user')
+            ->where('user_id', $user->id)
+            ->whereIn('role', ['owner', 'admin'])
+            ->pluck('team_id');
+
+          if ($managedTeams->isNotEmpty()) {
+            $isInManagedTeam = DB::table('team_user')
+              ->where('user_id', $this->user_id)
+              ->whereIn('team_id', $managedTeams)
+              ->exists();
+
+            if ($isInManagedTeam) {
+              return true;
+            }
+          }
         }
       }
 
       return false;
     } catch (\Exception $e) {
-      \Log::error('Error in canModifyResponse: ' . $e->getMessage(), [
-        'user_id' => $user->id,
-        'request_id' => $this->id,
-        'team_id' => $this->user->currentTeam->id ?? null
-      ]);
       return false;
     }
   }
 
-  // Update manager status and final status
   public function updateManagerStatus(string $status, ?string $rejectionReason = null): void
   {
     $this->manager_status = $status;
@@ -131,7 +137,6 @@ class AbsenceRequest extends Model
     $this->save();
   }
 
-  // Update HR status and final status
   public function updateHrStatus(string $status, ?string $rejectionReason = null): void
   {
     $this->hr_status = $status;
@@ -140,7 +145,6 @@ class AbsenceRequest extends Model
     $this->save();
   }
 
-  // Update final status based on manager and HR responses
   public function updateFinalStatus(): void
   {
     if ($this->manager_status === 'rejected' || $this->hr_status === 'rejected') {

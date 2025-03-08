@@ -19,24 +19,15 @@ class NotificationPermissionService
         $this->employeeNotificationService = $employeeNotificationService;
     }
 
-    // إشعارات إنشاء وتعديل الطلبات
     public function createPermissionRequestNotification(PermissionRequest $request): void
     {
         $message = "قام {$request->user->name} بتقديم طلب استئذان جديد";
 
-        // إشعار مالك الفريق
         if ($request->user && $request->user->currentTeam && $request->user->currentTeam->owner) {
-            $this->managerNotificationService->notifyEmployee($request, 'new_permission_request', $message, false);
+            $this->managerNotificationService->notifyManagers($request, 'new_permission_request', $message, false);
         }
 
-        // إشعار HR
-        $this->managerNotificationService->notifyEmployee($request, 'new_permission_request', $message, true);
-
-        // إذف إشعارات أعضاء الفريق - لا نريد إرسال إشعارات لهم
-        // $teamMessage = "قام زميلكم {$request->user->name} بتقديم طلب استئذان";
-        // $this->employeeNotificationService->notifyTeamMembers($request, 'team_member_permission_request', [
-        //     'message' => $teamMessage
-        // ]);
+        $this->managerNotificationService->notifyManagers($request, 'new_permission_request', $message, true);
     }
 
     public function notifyPermissionModified(PermissionRequest $request): void
@@ -44,11 +35,10 @@ class NotificationPermissionService
         $this->employeeNotificationService->deleteExistingNotifications($request, 'permission_request_modified');
 
         $message = "قام {$request->user->name} بتعديل طلب الاستئذان";
-        $this->managerNotificationService->notifyEmployee($request, 'permission_request_modified', $message, false);
-        $this->managerNotificationService->notifyEmployee($request, 'permission_request_modified', $message, true);
+        $this->managerNotificationService->notifyManagers($request, 'permission_request_modified', $message, false);
+        $this->managerNotificationService->notifyManagers($request, 'permission_request_modified', $message, true);
     }
 
-    // إشعارات الردود والموافقات
     public function createPermissionStatusUpdateNotification(PermissionRequest $request): void
     {
         $this->employeeNotificationService->deleteExistingNotifications($request, 'permission_request_status_update');
@@ -59,8 +49,9 @@ class NotificationPermissionService
             'pending' => 'في انتظار الرد على'
         ][$request->status];
 
+        $message = "{$statusArabic} طلب الاستئذان الخاص بك";
         $data = [
-            'message' => "{$statusArabic} طلب الاستئذان الخاص بك",
+            'message' => $message,
             'status' => $request->status,
             'manager_status' => $request->manager_status,
             'hr_status' => $request->hr_status,
@@ -71,7 +62,6 @@ class NotificationPermissionService
         $this->employeeNotificationService->notifyEmployee($request, 'permission_request_status_update', $data);
     }
 
-    // إشعارات حالة العودة
     public function notifyReturnStatus(PermissionRequest $request): void
     {
         $returnStatus = [
@@ -80,8 +70,9 @@ class NotificationPermissionService
             2 => 'تأخر عن موعد العودة'
         ][$request->returned_on_time];
 
+        $message = "تم تحديث حالة العودة: {$returnStatus}";
         $data = [
-            'message' => "تم تحديث حالة العودة: {$returnStatus}",
+            'message' => $message,
             'return_status' => $request->returned_on_time
         ];
 
@@ -92,28 +83,18 @@ class NotificationPermissionService
     {
         $message = "قام {$request->user->name} بحذف طلب الاستئذان";
 
-        // إشعار مالك الفريق
         if ($request->user && $request->user->currentTeam && $request->user->currentTeam->owner) {
-            $this->managerNotificationService->notifyEmployee($request, 'permission_request_deleted', $message, false);
+            $this->managerNotificationService->notifyManagers($request, 'permission_request_deleted', $message, false);
         }
 
-        // إشعار HR
-        $this->managerNotificationService->notifyEmployee($request, 'permission_request_deleted', $message, true);
+        $this->managerNotificationService->notifyManagers($request, 'permission_request_deleted', $message, true);
 
-        // إذف إشعارات أعضاء الفريق - لا نريد إرسال إشعارات لهم
-        // $teamMessage = "قام زميلكم {$request->user->name} بحذف طلب الاستئذان";
-        // $this->employeeNotificationService->notifyTeamMembers($request, 'team_member_permission_deleted', [
-        //     'message' => $teamMessage
-        // ]);
-
-        // حذف الإشعارات السابقة المتعلقة بهذا الطلب
         $this->employeeNotificationService->deleteExistingNotifications($request, 'permission_request_status_update');
         $this->employeeNotificationService->deleteExistingNotifications($request, 'permission_request_modified');
     }
 
     public function notifyManagerStatusUpdate(PermissionRequest $request): void
     {
-        // حذف الإشعارات القديمة المتعلقة برد المدير
         $this->employeeNotificationService->deleteExistingNotifications($request, 'manager_response_update');
 
         $statusArabic = [
@@ -124,7 +105,6 @@ class NotificationPermissionService
 
         $message = "{$statusArabic} طلب الاستئذان من قبل المدير";
 
-        // إشعار للموظف فقط
         $data = [
             'message' => $message,
             'status' => $request->manager_status,
@@ -137,7 +117,6 @@ class NotificationPermissionService
 
     public function notifyHRStatusUpdate(PermissionRequest $request): void
     {
-        // حذف الإشعارات القديمة المتعلقة برد HR
         $this->employeeNotificationService->deleteExistingNotifications($request, 'hr_response_update');
 
         $statusArabic = [
@@ -148,7 +127,6 @@ class NotificationPermissionService
 
         $message = "{$statusArabic} طلب الاستئذان من قبل HR";
 
-        // إشعار للموظف فقط
         $data = [
             'message' => $message,
             'status' => $request->hr_status,
@@ -161,7 +139,6 @@ class NotificationPermissionService
 
     public function notifyStatusReset(PermissionRequest $request, string $type): void
     {
-        // حذف كل الإشعارات السابقة المتعلقة بالرد
         if ($type === 'manager') {
             $this->employeeNotificationService->deleteExistingNotifications($request, 'manager_response_update');
             $this->employeeNotificationService->deleteExistingNotifications($request, 'manager_status_reset');
@@ -173,7 +150,6 @@ class NotificationPermissionService
         $roleType = $type === 'manager' ? 'المدير' : 'HR';
         $message = "تم إعادة تعيين رد {$roleType} على طلب الاستئذان";
 
-        // إشعار للموظف فقط
         $data = [
             'message' => $message,
             'status' => 'pending',

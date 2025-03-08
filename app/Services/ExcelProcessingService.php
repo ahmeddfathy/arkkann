@@ -23,7 +23,6 @@ class ExcelProcessingService
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = $worksheet->toArray();
 
-            // تخطي الصف الأول (العناوين)
             array_shift($rows);
 
             $results = [
@@ -32,7 +31,7 @@ class ExcelProcessingService
             ];
 
             foreach ($rows as $row) {
-                if (empty($row[0])) continue; // تخطي الصفوف الفارغة
+                if (empty($row[0])) continue;
 
                 try {
                     $employeeId = trim($row[0]);
@@ -42,10 +41,8 @@ class ExcelProcessingService
                         throw new \Exception("Employee not found: {$employeeId}");
                     }
 
-                    // تحويل صف البيانات إلى HTML
                     $htmlContent = $this->convertRowToHtml($row);
 
-                    // إرسال البريد الإلكتروني
                     $this->emailService->sendFormattedEmail(
                         $employee->email,
                         $htmlContent,
@@ -62,19 +59,12 @@ class ExcelProcessingService
                         'employee_id' => $employeeId ?? 'Unknown',
                         'error' => $e->getMessage()
                     ];
-                    Log::error("Failed to process row for employee", [
-                        'employee_id' => $employeeId ?? 'Unknown',
-                        'error' => $e->getMessage()
-                    ]);
                 }
             }
 
             return $results;
 
         } catch (\Exception $e) {
-            Log::error("Failed to process Excel file", [
-                'error' => $e->getMessage()
-            ]);
             throw $e;
         }
     }
@@ -84,7 +74,7 @@ class ExcelProcessingService
         $html = '<table style="border-collapse: collapse; width: 100%; max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">';
         $html .= '<thead style="background-color: #f8f9fa;">';
         $html .= '<tr>';
-        $headers = ['Employee ID', 'Basic Salary', 'Allowances', 'Deductions', 'Net Salary']; // قم بتعديل العناوين حسب أعمدة ملف Excel الخاص بك
+        $headers = ['Employee ID', 'Basic Salary', 'Allowances', 'Deductions', 'Net Salary'];
         foreach ($headers as $header) {
             $html .= "<th style='padding: 12px; border: 1px solid #dee2e6; text-align: left;'>{$header}</th>";
         }

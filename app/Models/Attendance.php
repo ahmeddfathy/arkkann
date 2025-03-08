@@ -15,9 +15,6 @@ class Attendance extends Model
     'check_in_time',
   ];
 
-  /**
-   * Relationship with User model.
-   */
   public function user()
   {
     return $this->belongsTo(User::class);

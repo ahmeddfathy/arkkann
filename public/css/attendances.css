@@ -1,4 +1,3 @@
-/* Variables */
 :root {
     --primary: #38BDF8;
     --primary-dark: #0284C7;
@@ -22,14 +21,12 @@
     --gray-900: #0F172A;
 }
 
-/* Reset */
 *, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Base Styles */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: var(--primary-bg);
@@ -37,21 +34,18 @@ body {
     line-height: 1.5;
 }
 
-/* Layout */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
 }
 
-/* Typography */
 h1, h2, h3, h4, h5, h6 {
     color: var(--gray-900);
     font-weight: 600;
     line-height: 1.25;
 }
 
-/* Card Styles */
 .card {
     background: var(--white);
     border-radius: 12px;
@@ -70,7 +64,6 @@ h1, h2, h3, h4, h5, h6 {
     padding: 1.25rem;
 }
 
-/* Button Styles */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -113,7 +106,6 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--gray-600);
 }
 
-/* Form Styles */
 .form-group {
     margin-bottom: 1rem;
 }
@@ -140,7 +132,6 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-/* Table Styles */
 .table-container {
     overflow-x: auto;
 }
@@ -170,7 +161,6 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--gray-50);
 }
 
-/* Alert Styles */
 .alert {
     padding: 1rem;
     border-radius: 6px;
@@ -189,7 +179,6 @@ h1, h2, h3, h4, h5, h6 {
     color: #991B1B;
 }
 
-/* Avatar */
 .avatar {
     width: 2rem;
     height: 2rem;
@@ -203,7 +192,6 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.875rem;
 }
 
-/* Utilities */
 .d-flex {
     display: flex;
 }
@@ -232,7 +220,6 @@ h1, h2, h3, h4, h5, h6 {
     text-align: right;
 }
 
-/* Status Badges */
 .badge {
     padding: 0.25rem 0.5rem;
     border-radius: 9999px;
@@ -250,7 +237,6 @@ h1, h2, h3, h4, h5, h6 {
     color: #92400E;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .container {
         padding: 0 0.5rem;
@@ -279,7 +265,6 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-/* Additional Components */
 .page-header {
     margin-bottom: 2rem;
     padding: 1.5rem 0;
@@ -317,7 +302,6 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-/* Print Styles */
 @media print {
     .no-print {
         display: none;

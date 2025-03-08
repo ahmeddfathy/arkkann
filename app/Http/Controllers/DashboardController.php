@@ -21,7 +21,6 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // تهيئة المتغير بقيم افتراضية
         $attendanceStats = [
             'present_days' => 0,
             'absent_days' => 0,
@@ -32,18 +31,15 @@ class DashboardController extends Controller
             'max_delay_minutes' => 0
         ];
 
-        // تحديد بداية ونهاية الشهر (من 26 للشهر السابق إلى 25 للشهر الحالي)
         $now = now();
         $startDate = $now->copy()->subMonth()->setDay(26)->startOfDay();
         $endDate = $now->copy()->setDay(25)->endOfDay();
 
-        // Add period information
         $attendanceStats['period'] = [
             'month' => $now->translatedFormat('F'),
             'year' => $now->year
         ];
 
-        // Get salary files for the user
         $salaryFiles = SalarySheet::where('employee_id', $user->employee_id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -51,7 +47,6 @@ class DashboardController extends Controller
         $statsQuery = AttendanceRecord::where('employee_id', $user->employee_id)
             ->whereBetween('attendance_date', [$startDate, $endDate]);
 
-        // حساب أجمالي أيام العمل (فقط أيام الحضور والغياب)
         $totalWorkDays = (clone $statsQuery)
             ->where(function ($query) {
                 $query->where('status', 'حضـور')
@@ -59,26 +54,21 @@ class DashboardController extends Controller
             })
             ->count();
 
-        // حساب أيام الحضور
         $attendanceStats['present_days'] = (clone $statsQuery)
             ->where('status', 'حضـور')
             ->whereNotNull('entry_time')
             ->count();
 
-        // إضافة إجمالي أيام العمل للإحصائيات
         $attendanceStats['total_work_days'] = $totalWorkDays;
 
-        // حساب أيام الغياب
         $attendanceStats['absent_days'] = (clone $statsQuery)
             ->where('status', 'غيــاب')
             ->count();
 
-        // حساب المخالفات
         $attendanceStats['violation_days'] = (clone $statsQuery)
             ->where('penalty', '>', 0)
             ->count();
 
-        // حساب التأخير
         $lateRecords = (clone $statsQuery)
             ->where('delay_minutes', '>', 0)
             ->whereNotNull('entry_time')
@@ -92,7 +82,6 @@ class DashboardController extends Controller
         $attendanceStats['max_delay_minutes'] = $lateRecords->max('delay_minutes') ?? 0;
 
         if ($user->role === 'manager') {
-            // إحصائيات اليوم للمدير
             $todayStats = [
                 'totalEmployees' => User::where('role', 'employee')->count(),
                 'presentToday' => AttendanceRecord::whereDate('attendance_date', Carbon::today())
@@ -106,7 +95,6 @@ class DashboardController extends Controller
                     ->count()
             ];
 
-            // طلبات اليوم
             $todayRequests = [
                 'absenceRequests' => AbsenceRequest::whereDate('absence_date', Carbon::today())->count(),
                 'permissionRequests' => PermissionRequest::whereDate('created_at', Carbon::today())->count(),
@@ -117,19 +105,16 @@ class DashboardController extends Controller
             return view('dashboard', compact('todayStats', 'todayRequests', 'attendanceStats'));
         }
 
-        // في حالة الموظف العادي
         return view('profile.dashboard-user', compact('attendanceStats', 'salaryFiles', 'startDate', 'endDate'));
     }
 
     public function previewAttendance($employee_id, AttendanceReportService $reportService)
     {
-        // التحقق من وجود employee_id وصلاحية الوصول
         $user = Auth::user();
         if (!$employee_id || $user->employee_id != $employee_id) {
             abort(403, 'غير مصرح بالوصول');
         }
 
-        // تهيئة المتغير بقيم افتراضية
         $attendanceStats = [
             'present_days' => 0,
             'absent_days' => 0,
@@ -145,7 +130,6 @@ class DashboardController extends Controller
         $now = now();
         $recordsQuery = AttendanceRecord::where('employee_id', $employee_id);
 
-        // تحديد الفترة حسب الفلتر
         if (request('start_date') && request('end_date')) {
             $startDate = Carbon::parse(request('start_date'))->startOfDay();
             $endDate = Carbon::parse(request('end_date'))->endOfDay();
@@ -186,15 +170,12 @@ class DashboardController extends Controller
             ];
         }
 
-        // تطبيق فلتر الحالة
         if (request('status')) {
             $recordsQuery->where('status', request('status'));
         }
 
-        // جساب الإحصائيات
         $statsQuery = clone $recordsQuery;
 
-        // حساب أجمالي أيام العمل (فقط أيام الحضور والغياب)
         $totalWorkDays = (clone $statsQuery)
             ->where(function ($query) {
                 $query->where('status', 'حضـور')
@@ -202,26 +183,21 @@ class DashboardController extends Controller
             })
             ->count();
 
-        // حساب أيام الحضور
         $attendanceStats['present_days'] = (clone $statsQuery)
             ->where('status', 'حضـور')
             ->whereNotNull('entry_time')
             ->count();
 
-        // إضافة إجمالي أيام العمل للإحصائيات
         $attendanceStats['total_work_days'] = $totalWorkDays;
 
-        // حساب أيام الغياب
         $attendanceStats['absent_days'] = (clone $statsQuery)
             ->where('status', 'غيــاب')
             ->count();
 
-        // حساب المخالفات
         $attendanceStats['violation_days'] = (clone $statsQuery)
             ->where('penalty', '>', 0)
             ->count();
 
-        // حساب التأخير
         $lateRecords = (clone $statsQuery)
             ->where('delay_minutes', '>', 0)
             ->whereNotNull('entry_time')
@@ -234,7 +210,6 @@ class DashboardController extends Controller
             : 0;
         $attendanceStats['max_delay_minutes'] = $lateRecords->max('delay_minutes') ?? 0;
 
-        // إحصائيات آخر 3 شهور
         $threeMonthsStats = [];
         $currentDate = now();
 
@@ -250,7 +225,6 @@ class DashboardController extends Controller
                 $monthQuery->where('status', request('status'));
             }
 
-            // حساب أيام الحضور والغياب فقط
             $workingDaysQuery = clone $monthQuery;
             $totalWorkDays = $workingDaysQuery->where(function ($query) {
                 $query->where('status', 'حضـور')
@@ -260,13 +234,12 @@ class DashboardController extends Controller
             $threeMonthsStats[] = [
                 'month' => $monthDate->translatedFormat('F'),
                 'year' => $monthDate->year,
-                'total_days' => $totalWorkDays,  // تغيير هنا - فقط أيام الحضور والغياب
+                'total_days' => $totalWorkDays,
                 'present_days' => (clone $monthQuery)->where('status', 'حضـور')->count(),
                 'absent_days' => (clone $monthQuery)->where('status', 'غيــاب')->count()
             ];
         }
 
-        // جلب السجلات مع الترقيم وحفظ الفلاتر في الروابط
         $attendanceRecords = $recordsQuery->orderBy('attendance_date', 'desc')
             ->paginate(15)
             ->withQueryString();

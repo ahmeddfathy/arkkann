@@ -1,4 +1,3 @@
-// Toast configuration
 toastr.options = {
     closeButton: true,
     progressBar: true,
@@ -13,7 +12,6 @@ toastr.options = {
     hideMethod: "fadeOut",
 };
 
-// Duplicate request check
 function checkDuplicateRequest(formData, type) {
     const existingRequests = document.querySelectorAll(".request-row");
     let isDuplicate = false;
@@ -41,12 +39,10 @@ function checkDuplicateRequest(formData, type) {
     return isDuplicate;
 }
 
-// Form submission handling
 document.querySelectorAll("form").forEach((form) => {
     form.addEventListener("submit", function (event) {
         const formData = new FormData(this);
 
-        // Check for duplicates on create forms
         if (
             this.id === "createAbsenceForm" &&
             checkDuplicateRequest(formData, "absence")
@@ -67,13 +63,11 @@ document.querySelectorAll("form").forEach((form) => {
             return;
         }
 
-        // Show loading spinner
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<div class="loading-spinner"></div>';
         submitBtn.disabled = true;
 
-        // Reset button after submission
         setTimeout(() => {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
@@ -81,7 +75,6 @@ document.querySelectorAll("form").forEach((form) => {
     });
 });
 
-// GSAP animations for page load
 gsap.from(".card", {
     duration: 0.6,
     opacity: 0,

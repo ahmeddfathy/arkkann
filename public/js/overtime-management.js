@@ -1,4 +1,3 @@
-// Form Validation
 function setupFormValidation() {
     const forms = document.querySelectorAll(".needs-validation");
     Array.from(forms).forEach((form) => {
@@ -12,7 +11,6 @@ function setupFormValidation() {
     });
 }
 
-// Registration Type Handler
 function registrationTypeHandler() {
     const registrationType = document.querySelectorAll(
         'input[name="registration_type"]'
@@ -38,7 +36,6 @@ function registrationTypeHandler() {
     });
 }
 
-// Status Change Handler
 function setupStatusHandler(statusInputs, reasonContainer, reasonInput) {
     if (!statusInputs) return;
 
@@ -55,7 +52,6 @@ function setupStatusHandler(statusInputs, reasonContainer, reasonInput) {
     });
 }
 
-// Edit Modal Handler
 function setupEditModal() {
     const editButtons = document.querySelectorAll(".edit-btn");
     editButtons.forEach((button) => {
@@ -74,7 +70,6 @@ function setupEditModal() {
     });
 }
 
-// Response Modal Handler
 function setupResponseModal() {
     const responseButtons = document.querySelectorAll(".respond-btn");
     responseButtons.forEach((button) => {
@@ -89,14 +84,12 @@ function setupResponseModal() {
     });
 }
 
-// Initialize All
 document.addEventListener("DOMContentLoaded", function () {
     setupFormValidation();
     registrationTypeHandler();
     setupEditModal();
     setupResponseModal();
 
-    // Setup Status Handlers
     setupStatusHandler(
         document.querySelectorAll('input[name="status"]'),
         document.getElementById("rejection_reason_container"),

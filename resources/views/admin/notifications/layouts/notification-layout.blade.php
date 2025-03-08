@@ -3,6 +3,8 @@
 @section('styles')
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <link href="{{ asset('css/notifications.css') }}" rel="stylesheet">
+<link href="{{ asset('css/admin/notifications.css') }}" rel="stylesheet">
+<link href="{{ asset('css/admin/notification-index.css') }}" rel="stylesheet">
 @endsection
 
 @section('content')
