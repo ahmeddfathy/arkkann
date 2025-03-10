@@ -77,32 +77,37 @@ class PermissionRequestService
             $hrStatus = 'pending';
             $status = 'pending';
 
-            if ($currentUser) {
-                $roles = $currentUser->getRoleNames();
-
-                if ($roles->contains('team_leader') || $roles->contains('department_manager') || $roles->contains('company_manager')) {
-                    $managerStatus = 'approved';
-                }
-
-                if ($roles->contains('hr')) {
-                    $hrStatus = 'approved';
-                }
-            }
-
-            if ($managerStatus === 'approved' && $hrStatus === 'approved') {
-                $status = 'approved';
-            }
+            // عند إنشاء طلب للنفس، جميع الردود تكون معلقة بغض النظر عن دور المستخدم
 
             $returnTime = Carbon::parse($data['return_time']);
             $user = User::find($userId);
+
+            // تحديد الحالة النهائية بناءً على ما إذا كان المستخدم لديه فريق أم لا
+            // نحافظ على أن جميع الردود تكون معلقة في حالة طلب المستخدم لنفسه، ولكن نضع القاعدة هنا للاتساق
+            if ($user && (!$user->teams()->exists() || $user->teams()->where('name', 'HR')->exists())) {
+                // إذا كان المستخدم ليس لديه فريق أو كان من فريق HR، فيكفي موافقة HR فقط
+                if ($hrStatus === 'approved') {
+                    $status = 'approved';
+                } elseif ($hrStatus === 'rejected') {
+                    $status = 'rejected';
+                }
+            } else {
+                // إذا كان المستخدم لديه فريق، فيتطلب موافقة المدير وHR معًا
+                if ($managerStatus === 'approved' && $hrStatus === 'approved') {
+                    $status = 'approved';
+                } elseif ($managerStatus === 'rejected' || $hrStatus === 'rejected') {
+                    $status = 'rejected';
+                }
+            }
+
             $workShift = $user->workShift;
-            $returnedOnTime = null;
+            $returnedOnTime = false;
 
             if ($workShift) {
                 $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($returnTime);
 
                 if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
-                    $returnedOnTime = 1;
+                    $returnedOnTime = true;
                 }
             }
 
@@ -119,9 +124,8 @@ class PermissionRequestService
                 'returned_on_time' => $returnedOnTime,
             ]);
 
-            if ($status === 'approved') {
-                $this->notificationService->createPermissionRequestNotification($request);
-            }
+
+            $this->notificationService->createPermissionRequestNotification($request);
 
             return [
                 'success' => true,
@@ -167,20 +171,35 @@ class PermissionRequestService
                 }
             }
 
-            if ($managerStatus === 'approved' && $hrStatus === 'approved') {
-                $status = 'approved';
+            // المستخدم المستهدف
+            $targetUser = User::find($userId);
+
+            // تحديد الحالة النهائية بناءً على ما إذا كان المستخدم المستهدف لديه فريق أم لا
+            if ($targetUser && (!$targetUser->teams()->exists() || $targetUser->teams()->where('name', 'HR')->exists())) {
+                // إذا كان المستخدم المستهدف ليس لديه فريق أو كان من فريق HR، فيكفي موافقة HR فقط
+                if ($hrStatus === 'approved') {
+                    $status = 'approved';
+                } elseif ($hrStatus === 'rejected') {
+                    $status = 'rejected';
+                }
+            } else {
+                // إذا كان المستخدم المستهدف لديه فريق، فيتطلب موافقة المدير وHR معًا
+                if ($managerStatus === 'approved' && $hrStatus === 'approved') {
+                    $status = 'approved';
+                } elseif ($managerStatus === 'rejected' || $hrStatus === 'rejected') {
+                    $status = 'rejected';
+                }
             }
 
             $returnTime = Carbon::parse($data['return_time']);
-            $targetUser = User::find($userId);
             $workShift = $targetUser->workShift;
-            $returnedOnTime = null;
+            $returnedOnTime = false;
 
             if ($workShift) {
                 $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($returnTime);
 
                 if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
-                    $returnedOnTime = 1;
+                    $returnedOnTime = true;
                 }
             }
 
@@ -197,9 +216,8 @@ class PermissionRequestService
                 'returned_on_time' => $returnedOnTime,
             ]);
 
-            if ($status === 'approved') {
-                $this->notificationService->createPermissionRequestNotification($request);
-            }
+            // إرسال إشعار بغض النظر عن حالة الطلب
+            $this->notificationService->createPermissionRequestNotification($request);
 
             return [
                 'success' => true,
@@ -228,13 +246,13 @@ class PermissionRequestService
             $returnTime = Carbon::parse($data['return_time']);
             $user = User::find($request->user_id);
             $workShift = $user->workShift;
-            $returnedOnTime = null;
+            $returnedOnTime = false;
 
             if ($workShift) {
                 $shiftEndTime = Carbon::parse($workShift->check_out_time)->setDateFrom($returnTime);
 
                 if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
-                    $returnedOnTime = 1;
+                    $returnedOnTime = true;
                 }
             }
 
@@ -255,6 +273,9 @@ class PermissionRequestService
             }
 
             $request->update($updateData);
+
+            // إضافة إشعار عند تعديل الطلب
+            $this->notificationService->notifyPermissionModified($request);
 
             return ['success' => true];
         } catch (\Exception $e) {
@@ -332,21 +353,26 @@ class PermissionRequestService
             }
 
             if ($returnTime->format('H:i') === $workShiftEndTime->format('H:i')) {
-                $request->returned_on_time = 1;
+                $request->returned_on_time = true;
+            } else if ($returnStatus == 1) {
+                $request->returned_on_time = true;
+            } else if ($returnStatus == 0) {
+                $request->returned_on_time = false;
             } else {
-                $request->returned_on_time = $returnStatus;
+                // Handle returnStatus == 2 (didn't return on time) as false in database but track it separately
+                $request->returned_on_time = false;
             }
 
-            if ($request->returned_on_time == 1) {
+            if ($request->returned_on_time == true) {
                 $request->actual_return_time = now();
                 $request->updateActualMinutesUsed();
-            } elseif ($request->returned_on_time == 2) {
+            } elseif ($returnStatus == 2) { // Still use the original value for this check
                 $request->actual_return_time = now();
                 $request->updateActualMinutesUsed();
 
                 $this->violationService->handleReturnViolation(
                     $request,
-                    $request->returned_on_time
+                    $returnStatus // Pass the original value to the violation service
                 );
             }
 

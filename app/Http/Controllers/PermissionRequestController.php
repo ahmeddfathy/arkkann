@@ -410,7 +410,7 @@ class PermissionRequestController extends Controller
             $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
             if ($returnTime->gte($endOfWorkDay)) {
-                $permissionRequest->returned_on_time = 1;
+                $permissionRequest->returned_on_time = true;
                 $permissionRequest->updateActualMinutesUsed();
                 $permissionRequest->save();
 
@@ -424,7 +424,7 @@ class PermissionRequestController extends Controller
                 // السماح بتسجيل العودة حتى لو تجاوز الوقت المحدد
                 // لكن نسجل ما إذا كان الموظف عاد في الوقت المحدد أم متأخراً
                 $isOnTime = $now->lte($maxReturnTime);
-                $permissionRequest->returned_on_time = 1;
+                $permissionRequest->returned_on_time = true;
 
                 // تحديث الدقائق المستخدمة الفعلية
                 $permissionRequest->updateActualMinutesUsed();
@@ -450,7 +450,7 @@ class PermissionRequestController extends Controller
                     'message' => $isOnTime ? 'تم تسجيل العودة بنجاح' : 'تم تسجيل العودة، لكن بعد انتهاء الوقت المحدد'
                 ]);
             } elseif ($validated['return_status'] == 2) {
-                $permissionRequest->returned_on_time = 2;
+                $permissionRequest->returned_on_time = false;
                 $permissionRequest->updateActualMinutesUsed();
                 $permissionRequest->save();
 

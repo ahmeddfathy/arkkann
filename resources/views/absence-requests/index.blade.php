@@ -186,7 +186,7 @@
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-calendar-alt"></i> طلبات الغياب
+                        <i class="fas fa-calendar-alt"></i> طلبات غياب التيم
                     </h5>
                 </div>
 

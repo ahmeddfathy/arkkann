@@ -4,11 +4,12 @@ namespace App\Services\Notifications;
 
 use App\Models\Notification;
 use App\Models\AbsenceRequest;
-
-use Illuminate\Support\Facades\Log;
+use App\Services\Notifications\Traits\HasFirebaseNotification;
 
 class EmployeeNotificationService
 {
+    use HasFirebaseNotification;
+
     public function notifyEmployee(AbsenceRequest $request, string $type, array $data): void
     {
         try {
@@ -26,8 +27,14 @@ class EmployeeNotificationService
                 'data' => $notificationData,
                 'related_id' => $request->id
             ]);
+
+            if ($request->user) {
+                $this->sendAdditionalFirebaseNotification(
+                    $request->user,
+                    $data['message'] ?? 'إشعار جديد'
+                );
+            }
         } catch (\Exception $e) {
-            Log::error('Error in notifyEmployee: ' . $e->getMessage());
         }
     }
 
@@ -46,10 +53,14 @@ class EmployeeNotificationService
                         'data' => $data,
                         'related_id' => $request->id
                     ]);
+
+                    $this->sendAdditionalFirebaseNotification(
+                        $member,
+                        $data['message'] ?? 'إشعار جديد'
+                    );
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error in notifyTeamMembers: ' . $e->getMessage());
         }
     }
 
@@ -60,7 +71,6 @@ class EmployeeNotificationService
                 ->where('type', $type)
                 ->delete();
         } catch (\Exception $e) {
-            Log::error('Error in deleteExistingNotifications: ' . $e->getMessage());
         }
     }
 }

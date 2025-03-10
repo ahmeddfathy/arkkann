@@ -47,6 +47,7 @@ class User extends Authenticatable
     'number_of_children',
     'employee_status',
     'work_shift_id',
+    'fcm_token',
   ];
 
   protected $hidden = [

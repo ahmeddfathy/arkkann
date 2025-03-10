@@ -221,7 +221,7 @@ class OverTimeRequestService
     {
         return DB::transaction(function () use ($request) {
             try {
-            $this->notificationService->notifyOvertimeDeleted($request);
+                $this->notificationService->notifyOvertimeDeleted($request);
                 $deleted = $request->delete();
 
                 if (!$deleted) {
@@ -230,7 +230,7 @@ class OverTimeRequestService
 
                 return true;
             } catch (\Exception $e) {
-                \Log::error('Error deleting overtime request: ' . $e->getMessage());
+                Log::error('Error deleting overtime request: ' . $e->getMessage());
                 throw $e;
             }
         });
@@ -324,7 +324,7 @@ class OverTimeRequestService
             $request->updateFinalStatus();
             $request->save();
 
-            $this->notificationService->notifyStatusUpdate($request);
+            $this->notificationService->notifyManagerStatusUpdate($request);
             return true;
         });
     }
@@ -337,7 +337,7 @@ class OverTimeRequestService
             $request->updateFinalStatus();
             $request->save();
 
-            $this->notificationService->notifyStatusUpdate($request);
+            $this->notificationService->notifyHRStatusUpdate($request);
             return true;
         });
     }

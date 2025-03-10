@@ -64,11 +64,13 @@ class NotificationPermissionService
 
     public function notifyReturnStatus(PermissionRequest $request): void
     {
-        $returnStatus = [
-            0 => 'لم يتم تحديد حالة العودة',
-            1 => 'عاد في الوقت المحدد',
-            2 => 'تأخر عن موعد العودة'
-        ][$request->returned_on_time];
+        $returnStatus = 'لم يتم تحديد حالة العودة';
+
+        if ($request->returned_on_time === true) {
+            $returnStatus = 'عاد في الوقت المحدد';
+        } elseif ($request->returned_on_time === 2) {
+            $returnStatus = 'تأخر عن موعد العودة';
+        }
 
         $message = "تم تحديث حالة العودة: {$returnStatus}";
         $data = [

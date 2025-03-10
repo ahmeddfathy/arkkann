@@ -425,8 +425,8 @@
                                         data-response-type="hr">
                                         <i class="fas fa-reply"></i> رد HR
                                     </button>
-                                    @else
-                                    <button type="button" class="btn btn-warning modify-response-btn"
+                                    @elseif($canRespondAsHR && $request->hr_status !== 'pending')
+                                    <button type="button" class="btn btn-sm btn-warning modify-response-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#modifyResponseModal"
                                         data-request-id="{{ $request->id }}"
@@ -435,7 +435,7 @@
                                         data-current-reason="{{ $request->hr_rejection_reason }}">
                                         <i class="fas fa-edit"></i> تعديل الرد
                                     </button>
-                                    <button type="button" class="btn btn-secondary reset-btn"
+                                    <button type="button" class="btn btn-sm btn-secondary reset-btn"
                                         onclick="resetStatus('{{ $request->id }}', 'hr')">
                                         <i class="fas fa-undo"></i> إعادة تعيين
                                     </button>
@@ -614,11 +614,25 @@
                             <td>
                                 @if($canRespondAsHR && $request->hr_status === 'pending')
                                 <button class="btn btn-sm btn-primary respond-btn"
-                                    data-toggle="modal"
-                                    data-target="#respondModal"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#respondOvertimeModal"
                                     data-request-id="{{ $request->id }}"
                                     data-response-type="hr">
                                     <i class="fas fa-reply"></i> رد HR
+                                </button>
+                                @elseif($canRespondAsHR && $request->hr_status !== 'pending')
+                                <button type="button" class="btn btn-sm btn-warning modify-response-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modifyResponseModal"
+                                    data-request-id="{{ $request->id }}"
+                                    data-response-type="hr"
+                                    data-current-status="{{ $request->hr_status }}"
+                                    data-current-reason="{{ $request->hr_rejection_reason }}">
+                                    <i class="fas fa-edit"></i> تعديل الرد
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary reset-btn"
+                                    onclick="resetStatus('{{ $request->id }}', 'hr')">
+                                    <i class="fas fa-undo"></i> إعادة تعيين
                                 </button>
                                 @endif
                             </td>
@@ -697,7 +711,7 @@
                                         data-bs-target="#respondOvertimeModal"
                                         data-request-id="{{ $request->id }}"
                                         data-response-type="hr">
-                                        <i class="fas fa-reply"></i>
+                                        <i class="fas fa-reply"></i> رد HR
                                     </button>
                                     @else
                                     <button type="button" class="btn btn-warning modify-response-btn"
@@ -707,11 +721,11 @@
                                         data-response-type="hr"
                                         data-current-status="{{ $request->hr_status }}"
                                         data-current-reason="{{ $request->hr_rejection_reason }}">
-                                        <i class="fas fa-edit"></i>
+                                        <i class="fas fa-edit"></i> تعديل الرد
                                     </button>
                                     <button type="button" class="btn btn-secondary reset-btn"
                                         onclick="resetStatus('{{ $request->id }}', 'hr')">
-                                        <i class="fas fa-undo"></i>
+                                        <i class="fas fa-undo"></i> إعادة تعيين
                                     </button>
                                     @endif
                                     @endif
@@ -944,16 +958,17 @@
 
 <!-- إضافة المودل للـ HR -->
 @if(Auth::user()->hasRole('hr'))
-<div class="modal fade" id="departmentDetailsModal" tabindex="-1">
+<div id="departmentDetailsModal" class="modal fade" tabindex="-1" aria-labelledby="departmentDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">تفاصيل موظفي القسم: <span id="departmentName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="departmentDetailsModalLabel">تفاصيل القسم: <span id="departmentName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <input type="hidden" id="departmentData" data-employees='@json($hrStatistics['department_employees'])'>
+                    <table class="table table-bordered">
                         <thead>
                             <tr>
                                 <th>الموظف</th>
@@ -981,6 +996,12 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // تأكد من أن Bootstrap Modal متاح
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded!');
+            return;
+        }
+
         // Form Validation
         const forms = document.querySelectorAll('.needs-validation');
         Array.from(forms).forEach(form => {
@@ -1175,7 +1196,7 @@
         }
 
         // تحميل بيانات القسم
-        const departmentEmployees = @json($hrStatistics['department_employees'] ?? []);
+        const departmentEmployees = JSON.parse(document.getElementById('departmentData').getAttribute('data-employees'));
         const modal = document.getElementById('departmentDetailsModal');
 
         modal.addEventListener('show.bs.modal', function(event) {
@@ -1225,6 +1246,19 @@
         // Reset validation on input
         document.getElementById('edit_end_time').addEventListener('input', function() {
             this.setCustomValidity('');
+        });
+
+        // معالج خاص لأزرار رد HR للتأكد من فتح المودال
+        document.querySelectorAll('.respond-btn[data-response-type="hr"]').forEach(button => {
+            button.addEventListener('click', function() {
+                const requestId = this.dataset.requestId;
+                const responseType = this.dataset.responseType;
+                const form = document.getElementById('respondOvertimeForm');
+
+                // تعيين مسار النموذج
+                form.action = `/overtime-requests/${requestId}/hr-status`;
+                document.getElementById('response_type').value = responseType;
+            });
         });
     });
 

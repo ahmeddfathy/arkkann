@@ -184,7 +184,7 @@ class PermissionRequest extends Model
 
     // استعمال == بدل === لمعالجة الحالات المختلفة (0, null, false)
     return match (true) {
-      $this->returned_on_time == 1 => 'عاد في الوقت المحدد',
+      $this->returned_on_time == true => 'عاد في الوقت المحدد',
       $this->returned_on_time == 2 => 'لم يعد في الوقت المحدد',
       default => 'غير محدد'
     };
@@ -250,7 +250,7 @@ class PermissionRequest extends Model
 
     $minutesUsed = 0;
 
-    if ($this->returned_on_time === 1) {
+    if ($this->returned_on_time === true) {
       if ($now->lte($scheduledReturn)) {
         $minutesUsed = $departure->diffInMinutes($now);
         Log::info('Returned on time - using current time', [
@@ -336,7 +336,7 @@ class PermissionRequest extends Model
       return false;
     }
 
-    if ($this->returned_on_time === 1 || $this->returned_on_time === 2) {
+    if ($this->returned_on_time === true || $this->returned_on_time === 2) {
       return false;
     }
 
@@ -344,13 +344,12 @@ class PermissionRequest extends Model
     $departureTime = \Carbon\Carbon::parse($this->departure_time);
     $returnTime = \Carbon\Carbon::parse($this->return_time);
 
-    // استخدام وقت نهاية الوردية بدلاً من الوقت الثابت
+
     $shiftEndTime = $this->getShiftEndTime();
 
     $isSameDay = $now->isSameDay($returnTime);
     $isBeforeEndOfShift = $now->lt($shiftEndTime);
 
-    // يمكن وضع علامة العودة إذا كان الوقت الحالي بعد وقت المغادرة وقبل نهاية الوردية
     $isTimeToShow = $now->gte($departureTime) && $isBeforeEndOfShift;
 
     Log::info('canMarkAsReturned check', [
@@ -377,7 +376,7 @@ class PermissionRequest extends Model
       return false;
     }
 
-    if ($this->returned_on_time === null) {
+    if ($this->returned_on_time === false) {
       return false;
     }
 
@@ -396,7 +395,7 @@ class PermissionRequest extends Model
     // استخدام وقت العودة المحدد في الطلب أو وقت نهاية الوردية أيهما أقل
     $maxReturnTime = min($returnTime, $this->getShiftEndTime());
 
-    // إذا كان وقت العودة هو نفس وقت نهاية الوردية، فاعتبر وقت العودة قد مر
+
     if ($returnTime->format('H:i') === $this->getShiftEndTime()->format('H:i')) {
       Log::info('Return time is end of shift', [
         'request_id' => $this->id,
@@ -405,8 +404,8 @@ class PermissionRequest extends Model
       ]);
 
       // إذا لم يكن هناك حالة محددة بالفعل، فقم بتعيين حالة العودة تلقائيًا
-      if ($this->returned_on_time === null) {
-        $this->returned_on_time = 1; // عاد في الوقت المحدد
+      if ($this->returned_on_time === false) {
+        $this->returned_on_time = true; // عاد في الوقت المحدد
         $this->save();
       }
 
@@ -429,8 +428,8 @@ class PermissionRequest extends Model
       'shift_end_time' => $this->getShiftEndTime()->format('Y-m-d H:i:s')
     ]);
 
-    if ($this->returned_on_time == 1 || $this->returned_on_time == 2) {
-      Log::info('shouldShowCountdown returning false due to returned_on_time being 1 or 2', [
+    if ($this->returned_on_time == true || $this->returned_on_time == 2) {
+      Log::info('shouldShowCountdown returning false due to returned_on_time being true or 2', [
         'request_id' => $this->id,
         'returned_on_time' => $this->returned_on_time
       ]);

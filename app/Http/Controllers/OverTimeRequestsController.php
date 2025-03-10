@@ -418,6 +418,10 @@ class OverTimeRequestsController extends Controller
             $overtimeRequest->manager_rejection_reason = null;
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
+
+            // إرسال إشعار دائماً بعد إعادة تعيين الحالة
+            $this->notificationService->notifyStatusReset($overtimeRequest, 'manager');
+
             return back()->with('success', 'Status reset successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -432,6 +436,10 @@ class OverTimeRequestsController extends Controller
             $overtimeRequest->hr_rejection_reason = null;
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
+
+            // إرسال إشعار دائماً بعد إعادة تعيين الحالة
+            $this->notificationService->notifyStatusReset($overtimeRequest, 'hr');
+
             return back()->with('success', 'Status reset successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -457,7 +465,7 @@ class OverTimeRequestsController extends Controller
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
 
-            $this->notificationService->notifyStatusUpdate($overtimeRequest);
+            $this->notificationService->notifyResponseModified($overtimeRequest, 'manager');
 
             return back()->with('success', 'Manager response updated successfully.');
         } catch (\Exception $e) {
@@ -484,7 +492,7 @@ class OverTimeRequestsController extends Controller
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
 
-            $this->notificationService->notifyStatusUpdate($overtimeRequest);
+            $this->notificationService->notifyResponseModified($overtimeRequest, 'hr');
 
             return back()->with('success', 'HR response updated successfully.');
         } catch (\Exception $e) {

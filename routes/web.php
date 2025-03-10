@@ -22,6 +22,7 @@ use App\Http\Controllers\EmployeeStatisticsController;
 use App\Http\Controllers\SpecialCaseController;
 use App\Http\Controllers\WorkShiftController;
 
+
 Route::get('/send-mail', function () {
     $data = [
         'name' => 'Recipient Name',
@@ -248,3 +249,18 @@ Route::middleware(['auth'])->group(function () {
 
 Route::resource('special-cases', SpecialCaseController::class);
 Route::post('special-cases/import', [SpecialCaseController::class, 'import'])->name('special-cases.import');
+
+Route::post('/fcm-token', [App\Http\Controllers\FcmTokenController::class, 'update'])
+    ->middleware('auth')
+    ->name('fcm.token.update');
+
+Route::get('/firebase/config', function () {
+    return response()->json([
+        'apiKey' => config('services.firebase.api_key'),
+        'authDomain' => config('services.firebase.auth_domain'),
+        'projectId' => config('services.firebase.project_id'),
+        'storageBucket' => config('services.firebase.storage_bucket'),
+        'messagingSenderId' => config('services.firebase.messaging_sender_id'),
+        'appId' => config('services.firebase.app_id'),
+    ]);
+});

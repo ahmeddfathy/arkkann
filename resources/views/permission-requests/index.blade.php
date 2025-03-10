@@ -475,7 +475,7 @@ use Carbon\Carbon;
                                                     class="btn btn-danger btn-sm return-btn me-2"
                                                     data-request-id="{{ $request->id }}"
                                                     data-status="2"
-                                                    {{ $request->returned_on_time === 1 || $request->returned_on_time === 2 ? 'disabled' : '' }}>
+                                                    {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
                                                     <i class="fas fa-times me-1"></i>لم يرجع
                                                 </button>
                                                 @endif
@@ -702,7 +702,7 @@ use Carbon\Carbon;
                                                     class="btn btn-success btn-sm return-btn me-2"
                                                     data-request-id="{{ $request->id }}"
                                                     data-status="1"
-                                                    {{ $request->returned_on_time === 1 || $request->returned_on_time === 2 ? 'disabled' : '' }}>
+                                                    {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
                                                     <i class="fas fa-check me-1"></i>رجع
                                                 </button>
 
@@ -712,7 +712,7 @@ use Carbon\Carbon;
                                                     class="btn btn-danger btn-sm return-btn me-2"
                                                     data-request-id="{{ $request->id }}"
                                                     data-status="2"
-                                                    {{ $request->returned_on_time === 1 || $request->returned_on_time === 2 ? 'disabled' : '' }}>
+                                                    {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
                                                     <i class="fas fa-times me-1"></i>لم يرجع
                                                 </button>
                                                 @endif
@@ -721,7 +721,7 @@ use Carbon\Carbon;
                                                     class="btn btn-secondary btn-sm reset-btn"
                                                     data-request-id="{{ $request->id }}"
                                                     data-status="0"
-                                                    {{ $request->returned_on_time === null ? 'disabled' : '' }}>
+                                                    {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                                     <i class="fas fa-undo me-1"></i>إعادة تعيين
                                                 </button>
                                             </div>
@@ -993,7 +993,7 @@ use Carbon\Carbon;
                                             class="btn btn-success btn-sm return-btn me-2"
                                             data-request-id="{{ $request->id }}"
                                             data-status="1"
-                                            {{ $request->returned_on_time === 1 || $request->returned_on_time === 2 ? 'disabled' : '' }}>
+                                            {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
                                             <i class="fas fa-check me-1"></i>رجع
                                         </button>
 
@@ -1003,7 +1003,7 @@ use Carbon\Carbon;
                                             class="btn btn-danger btn-sm return-btn me-2"
                                             data-request-id="{{ $request->id }}"
                                             data-status="2"
-                                            {{ $request->returned_on_time === 1 || $request->returned_on_time === 2 ? 'disabled' : '' }}>
+                                            {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
                                             <i class="fas fa-times me-1"></i>لم يرجع
                                         </button>
                                         @endif
@@ -1012,7 +1012,7 @@ use Carbon\Carbon;
                                             class="btn btn-secondary btn-sm reset-btn"
                                             data-request-id="{{ $request->id }}"
                                             data-status="0"
-                                            {{ $request->returned_on_time === null ? 'disabled' : '' }}>
+                                            {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                             <i class="fas fa-undo me-1"></i>إعادة تعيين
                                         </button>
                                     </div>

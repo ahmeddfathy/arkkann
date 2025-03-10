@@ -4,14 +4,21 @@ namespace App\Services\Notifications;
 
 use App\Models\Notification;
 use App\Models\PermissionRequest;
-use App\Models\User;
-use Illuminate\Support\Facades\Log;
+
+use App\Services\Notifications\Traits\HasFirebaseNotification;
 
 class EmployeePermissionNotificationService
 {
-    public function notifyEmployee(PermissionRequest $request, string $type, array $data): void
+    use HasFirebaseNotification;
+
+    public function notifyEmployee(PermissionRequest $request, string $type, $data): void
     {
         try {
+            if (is_string($data)) {
+                $message = $data;
+                $data = ['message' => $message];
+            }
+
             $existingNotification = Notification::where([
                 'user_id' => $request->user_id,
                 'type' => $type,
@@ -36,8 +43,14 @@ class EmployeePermissionNotificationService
                     'related_id' => $request->id
                 ]);
             }
+
+            if ($request->user) {
+                $this->sendAdditionalFirebaseNotification(
+                    $request->user,
+                    $data['message'] ?? 'إشعار جديد'
+                );
+            }
         } catch (\Exception $e) {
-            Log::error('Error sending employee permission notification: ' . $e->getMessage());
         }
     }
 
@@ -61,8 +74,11 @@ class EmployeePermissionNotificationService
 
     public function deleteExistingNotifications(PermissionRequest $request, string $type): void
     {
-        Notification::where('related_id', $request->id)
-            ->where('type', $type)
-            ->delete();
+        try {
+            Notification::where('related_id', $request->id)
+                ->where('type', $type)
+                ->delete();
+        } catch (\Exception $e) {
+        }
     }
 }

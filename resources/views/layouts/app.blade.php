@@ -140,6 +140,7 @@
     @stack('modals')
 
     @livewireScripts
+    <x-firebase-messaging />
 </body>
 
 </html>

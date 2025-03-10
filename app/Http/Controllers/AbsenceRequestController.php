@@ -85,22 +85,8 @@ class AbsenceRequestController extends Controller
         $noTeamRequests = collect();
         $hrRequests = collect();
 
-        if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
-            $managedTeamMembers = collect();
-            foreach ($user->ownedTeams as $team) {
-                $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
-                $managedTeamMembers = $managedTeamMembers->concat($teamMembers);
-            }
-
-            if ($managedTeamMembers->isNotEmpty()) {
-                $teamRequests = (clone $baseQuery)
-                    ->whereIn('user_id', $managedTeamMembers->unique())
-                    ->latest()
-                    ->paginate(10, ['*'], 'team_page');
-            }
-        }
-
         if ($user->hasRole('hr')) {
+            // طلبات موظفي الشركه - لموظفي HR فقط
             $hrRequests = (clone $baseQuery)
                 ->where(function ($query) use ($user) {
                     $query->whereHas('user', function ($q) use ($user) {
@@ -124,6 +110,39 @@ class AbsenceRequestController extends Controller
                 })
                 ->latest()
                 ->paginate(10, ['*'], 'no_team_page');
+
+            // طلبات الفريق - للفريق الذي يديره المستخدم (إذا كان لديه فريق)
+            if ($user->currentTeam) {
+                $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
+
+                $teamRequests = (clone $baseQuery)
+                    ->whereIn('user_id', $teamMembers)
+                    ->latest()
+                    ->paginate(10, ['*'], 'team_page');
+            }
+        } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+            $team = $user->currentTeam;
+            if ($team) {
+                $allowedRoles = $this->getAllowedRoles($user);
+
+                $teamMembers = $team->users()
+                    ->whereDoesntHave('teams', function ($q) use ($team) {
+                        $q->where('teams.id', $team->id)
+                            ->where(function ($q) {
+                                $q->where('team_user.role', 'owner')
+                                    ->orWhere('team_user.role', 'admin');
+                            });
+                    })
+                    ->pluck('users.id')
+                    ->toArray();
+
+                if (!empty($teamMembers)) {
+                    $teamRequests = (clone $baseQuery)
+                        ->whereIn('user_id', $teamMembers)
+                        ->latest()
+                        ->paginate(10, ['*'], 'team_page');
+                }
+            }
         }
 
         $myAbsenceDays = AbsenceRequest::where('user_id', $user->id)
