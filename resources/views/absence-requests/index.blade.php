@@ -2,6 +2,8 @@
 
 @section('content')
 <link href="{{ asset('css/absence-management.css') }}" rel="stylesheet">
+<!-- Add Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="container">
 
 
@@ -775,6 +777,111 @@
         </div>
     </div>
 
+    <!-- قسم الرسوم البيانية -->
+    @if(isset($statistics))
+    <div class="row mb-4">
+        <!-- الرسوم البيانية الشخصية -->
+        <div class="col-md-6">
+            <div class="card shadow-sm chart-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> رسوم بيانية لطلباتي</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="personalStatusChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="personalTrendChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الرسوم البيانية للفريق -->
+        @if(
+        (
+        Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
+        Auth::user()->hasRole('hr')
+        ) &&
+        (
+        Auth::user()->ownedTeams()
+        ->withCount('users')
+        ->having('users_count', '>', 1)
+        ->exists() ||
+        Auth::user()->teams()
+        ->wherePivot('role', 'admin')
+        ->withCount('users')
+        ->having('users_count', '>', 1)
+        ->exists()
+        ) &&
+        isset($statistics['team'])
+        )
+        <div class="col-md-6">
+            <div class="card shadow-sm chart-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> رسوم بيانية للفريق
+                        @if(isset($statistics['team']['team_name']))
+                        <small>({{ $statistics['team']['team_name'] }})</small>
+                        @endif
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="teamStatusChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="teamMembersChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <!-- الرسوم البيانية لـ HR -->
+        @if(Auth::user()->hasRole('hr') && isset($statistics['hr']))
+        <div class="col-md-12 mt-4">
+            <div class="card shadow-sm chart-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> رسوم بيانية للشركة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="hrStatusChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="hrDepartmentsChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="hrMonthlyTrendChart" width="100%" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
     <!-- قسم الإحصائيات -->
     @if(isset($statistics))
     <div class="row mb-4">
@@ -1011,8 +1118,6 @@
 
         <!-- جدول طلبات HR -->
         @if(Auth::user()->hasRole('hr'))
-
-
         <!-- Modal للموظفين المتجاوزين (HR) -->
         <div class="modal fade" id="hrExceededLimitModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
@@ -1165,7 +1270,6 @@
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-
         document.getElementById('response_status').addEventListener('change', function() {
             const rejectionContainer = document.getElementById('response_reason_container');
             const rejectionTextarea = document.getElementById('response_reason');
@@ -1178,7 +1282,6 @@
                 rejectionTextarea.required = false;
             }
         });
-
 
         document.getElementById('modify_status').addEventListener('change', function() {
             const rejectionContainer = document.getElementById('modify_reason_container');
@@ -1193,7 +1296,6 @@
             }
         });
 
-
         if (document.getElementById('response_status').value === 'rejected') {
             document.getElementById('response_reason_container').style.display = 'block';
         }
@@ -1201,6 +1303,401 @@
         if (document.getElementById('modify_status').value === 'rejected') {
             document.getElementById('modify_reason_container').style.display = 'block';
         }
+
+        // رسم المخططات البيانية
+        @if(isset($statistics))
+        // تحضير بيانات الإحصائيات
+        const statisticsData = {
+            personal: {
+                approved: {{ $statistics['personal']['approved_requests'] }},
+                rejected: {{ $statistics['personal']['rejected_requests'] }},
+                pending: {{ $statistics['personal']['pending_requests'] }},
+                total: {{ $statistics['personal']['total_requests'] }},
+                days: {{ $statistics['personal']['total_days'] }}
+            }
+            @if(isset($statistics['team']))
+            ,
+            team: {
+                approved: {{ $statistics['team']['approved_requests'] }},
+                rejected: {{ $statistics['team']['rejected_requests'] }},
+                pending: {{ $statistics['team']['pending_requests'] }},
+                total: {{ $statistics['team']['total_requests'] }},
+                days: {{ $statistics['team']['total_days'] }},
+                exceeded: {{ $statistics['team']['employees_exceeded_limit'] }}
+            }
+            @endif
+            @if(isset($statistics['hr']))
+            ,
+            hr: {
+                approved: {{ $statistics['hr']['approved_requests'] }},
+                rejected: {{ $statistics['hr']['rejected_requests'] }},
+                pending: {{ $statistics['hr']['pending_requests'] }},
+                total: {{ $statistics['hr']['total_requests'] }},
+                days: {{ $statistics['hr']['total_days'] }},
+                exceeded: {{ $statistics['hr']['employees_exceeded_limit'] }}
+            }
+            @endif
+        };
+
+        // مخطط حالة الطلبات الشخصية
+        if (document.getElementById('personalStatusChart')) {
+            const personalStatusCtx = document.getElementById('personalStatusChart').getContext('2d');
+            new Chart(personalStatusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['موافق عليه', 'مرفوض', 'معلق'],
+                    datasets: [{
+                        data: [
+                            statisticsData.personal.approved,
+                            statisticsData.personal.rejected,
+                            statisticsData.personal.pending
+                        ],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(255, 193, 7, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true,
+                            labels: {
+                                font: {
+                                    family: 'Cairo, sans-serif'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'حالة طلباتي',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // مخطط اتجاه الطلبات الشخصية
+        if (document.getElementById('personalTrendChart')) {
+            const personalTrendCtx = document.getElementById('personalTrendChart').getContext('2d');
+            new Chart(personalTrendCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['إجمالي الطلبات', 'أيام الغياب'],
+                    datasets: [{
+                        label: 'عدد الطلبات/الأيام',
+                        data: [
+                            statisticsData.personal.total,
+                            statisticsData.personal.days
+                        ],
+                        backgroundColor: [
+                            'rgba(13, 110, 253, 0.7)',
+                            'rgba(108, 117, 125, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(13, 110, 253, 1)',
+                            'rgba(108, 117, 125, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'إحصائيات الطلبات',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // مخططات الفريق
+        @if(isset($statistics['team']))
+        // مخطط حالة طلبات الفريق
+        if (document.getElementById('teamStatusChart')) {
+            const teamStatusCtx = document.getElementById('teamStatusChart').getContext('2d');
+            new Chart(teamStatusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['موافق عليه', 'مرفوض', 'معلق'],
+                    datasets: [{
+                        data: [
+                            statisticsData.team.approved,
+                            statisticsData.team.rejected,
+                            statisticsData.team.pending
+                        ],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(255, 193, 7, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true,
+                            labels: {
+                                font: {
+                                    family: 'Cairo, sans-serif'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'حالة طلبات الفريق',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // مخطط إحصائيات الفريق
+        if (document.getElementById('teamMembersChart')) {
+            const teamMembersCtx = document.getElementById('teamMembersChart').getContext('2d');
+            new Chart(teamMembersCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['إجمالي الطلبات', 'أيام الغياب', 'تجاوزوا الحد'],
+                    datasets: [{
+                        label: 'عدد الطلبات/الأيام/الموظفين',
+                        data: [
+                            statisticsData.team.total,
+                            statisticsData.team.days,
+                            statisticsData.team.exceeded
+                        ],
+                        backgroundColor: [
+                            'rgba(13, 110, 253, 0.7)',
+                            'rgba(108, 117, 125, 0.7)',
+                            'rgba(220, 53, 69, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(13, 110, 253, 1)',
+                            'rgba(108, 117, 125, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'إحصائيات الفريق',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        @endif
+
+        // مخططات HR
+        @if(isset($statistics['hr']))
+        // مخطط حالة طلبات الشركة
+        if (document.getElementById('hrStatusChart')) {
+            const hrStatusCtx = document.getElementById('hrStatusChart').getContext('2d');
+            new Chart(hrStatusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['موافق عليه', 'مرفوض', 'معلق'],
+                    datasets: [{
+                        data: [
+                            statisticsData.hr.approved,
+                            statisticsData.hr.rejected,
+                            statisticsData.hr.pending
+                        ],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(255, 193, 7, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true,
+                            labels: {
+                                font: {
+                                    family: 'Cairo, sans-serif'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'حالة طلبات الشركة',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // مخطط إحصائيات الشركة
+        if (document.getElementById('hrDepartmentsChart')) {
+            const hrDepartmentsCtx = document.getElementById('hrDepartmentsChart').getContext('2d');
+            new Chart(hrDepartmentsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['إجمالي الطلبات', 'أيام الغياب', 'تجاوزوا الحد'],
+                    datasets: [{
+                        label: 'عدد الطلبات/الأيام/الموظفين',
+                        data: [
+                            statisticsData.hr.total,
+                            statisticsData.hr.days,
+                            statisticsData.hr.exceeded
+                        ],
+                        backgroundColor: [
+                            'rgba(13, 110, 253, 0.7)',
+                            'rgba(108, 117, 125, 0.7)',
+                            'rgba(220, 53, 69, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(13, 110, 253, 1)',
+                            'rgba(108, 117, 125, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'إحصائيات الشركة',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // مخطط الاتجاه الشهري
+        if (document.getElementById('hrMonthlyTrendChart')) {
+            const hrMonthlyTrendCtx = document.getElementById('hrMonthlyTrendChart').getContext('2d');
+            new Chart(hrMonthlyTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['الشهر الحالي'],
+                    datasets: [{
+                        label: 'طلبات الغياب',
+                        data: [statisticsData.hr.total],
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'اتجاه الطلبات',
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        @endif
+        @endif
     });
 </script>
 

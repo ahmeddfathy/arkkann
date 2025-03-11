@@ -5,7 +5,7 @@ use App\Models\PermissionRequest;
 use Carbon\Carbon;
 @endphp
 
-@section('content')
+@push('styles')
 <link href="{{ asset('css/permission-managment.css') }}" rel="stylesheet">
 <style>
     .countdown-timer {
@@ -49,6 +49,359 @@ use Carbon\Carbon;
         font-family: monospace;
     }
 </style>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js Configuration
+    Chart.defaults.font.family = 'Cairo, sans-serif';
+    Chart.defaults.color = '#4a5568';
+    Chart.defaults.plugins.tooltip.rtl = true;
+    Chart.defaults.plugins.tooltip.titleAlign = 'right';
+    Chart.defaults.plugins.tooltip.bodyAlign = 'right';
+
+    // Common Colors
+    const colors = {
+        approved: {
+            bg: 'rgba(40, 167, 69, 0.7)',
+            border: 'rgba(40, 167, 69, 1)'
+        },
+        pending: {
+            bg: 'rgba(255, 193, 7, 0.7)',
+            border: 'rgba(255, 193, 7, 1)'
+        },
+        rejected: {
+            bg: 'rgba(220, 53, 69, 0.7)',
+            border: 'rgba(220, 53, 69, 1)'
+        },
+        onTime: {
+            bg: 'rgba(13, 110, 253, 0.7)',
+            border: 'rgba(13, 110, 253, 1)'
+        },
+        late: {
+            bg: 'rgba(111, 66, 193, 0.7)',
+            border: 'rgba(111, 66, 193, 1)'
+        }
+    };
+
+    // Common Chart Options
+    const commonPieOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                rtl: true,
+                labels: {
+                    font: {
+                        family: 'Cairo, sans-serif'
+                    },
+                    padding: 20
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = total > 0 ? ((value * 100) / total).toFixed(1) : 0;
+                        return `${label}: ${value} (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    const commonBarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    font: {
+                        family: 'Cairo, sans-serif'
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    font: {
+                        family: 'Cairo, sans-serif'
+                    }
+                }
+            }
+        }
+    };
+
+    // Personal Statistics Charts
+    @if(isset($statistics) && isset($statistics['personal']))
+    const personalRequestsCtx = document.getElementById('personalRequestsChart')?.getContext('2d');
+    if (personalRequestsCtx) {
+        const approvedRequests = {{ $statistics['personal']['approved_requests'] }};
+        const pendingRequests = {{ $statistics['personal']['pending_requests'] }};
+        const rejectedRequests = {{ $statistics['personal']['rejected_requests'] }};
+
+        new Chart(personalRequestsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['تمت الموافقة', 'معلقة', 'مرفوضة'],
+                datasets: [{
+                    data: [approvedRequests, pendingRequests, rejectedRequests],
+                    backgroundColor: [colors.approved.bg, colors.pending.bg, colors.rejected.bg],
+                    borderColor: [colors.approved.border, colors.pending.border, colors.rejected.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    const personalMinutesCtx = document.getElementById('personalMinutesChart')?.getContext('2d');
+    if (personalMinutesCtx) {
+        const onTimeReturns = {{ $statistics['personal']['on_time_returns'] }};
+        const lateReturns = {{ $statistics['personal']['late_returns'] }};
+        const totalMinutes = {{ $statistics['personal']['total_minutes'] }};
+
+        new Chart(personalMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['الدقائق المستخدمة', 'عودة في الوقت', 'عودة متأخرة'],
+                datasets: [{
+                    label: 'العدد',
+                    data: [totalMinutes, onTimeReturns, lateReturns],
+                    backgroundColor: [colors.approved.bg, colors.onTime.bg, colors.late.bg],
+                    borderColor: [colors.approved.border, colors.onTime.border, colors.late.border],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...commonBarOptions,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                if (index === 0) {
+                                    return `الدقائق المستخدمة: ${context.parsed.y} دقيقة`;
+                                } else {
+                                    return `العدد: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    @endif
+
+    // Team Statistics Charts
+    @if(isset($statistics) && isset($statistics['team']))
+    const teamRequestsCtx = document.getElementById('teamRequestsChart')?.getContext('2d');
+    if (teamRequestsCtx) {
+        const totalRequests = {{ $statistics['team']['total_requests'] }};
+        const exceededLimit = {{ $statistics['team']['employees_exceeded_limit'] }};
+        const withinLimit = totalRequests - exceededLimit;
+
+        new Chart(teamRequestsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['ضمن الحد المسموح', 'تجاوزوا الحد'],
+                datasets: [{
+                    data: [withinLimit, exceededLimit],
+                    backgroundColor: [colors.approved.bg, colors.rejected.bg],
+                    borderColor: [colors.approved.border, colors.rejected.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    const teamMinutesCtx = document.getElementById('teamMinutesChart')?.getContext('2d');
+    if (teamMinutesCtx) {
+        // Get top 5 employees by minutes if available
+        @if(isset($statistics['team']['team_employees']) && count($statistics['team']['team_employees']) > 0)
+        const teamEmployees = @json($statistics['team']['team_employees']);
+        const sortedEmployees = teamEmployees.sort((a, b) => b.minutes - a.minutes).slice(0, 5);
+        const labels = sortedEmployees.map(emp => emp.name);
+        const minutes = sortedEmployees.map(emp => emp.minutes);
+
+        new Chart(teamMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'الدقائق المستخدمة',
+                    data: minutes,
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...commonBarOptions,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y} دقيقة`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(teamMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['إجمالي دقائق الفريق'],
+                datasets: [{
+                    label: 'الدقائق',
+                    data: [{{ $statistics['team']['total_minutes'] }}],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+    @endif
+
+    // HR Statistics Charts
+    @if(isset($statistics) && isset($statistics['hr']))
+    const hrRequestsCtx = document.getElementById('hrRequestsChart')?.getContext('2d');
+    if (hrRequestsCtx) {
+        const totalRequests = {{ $statistics['hr']['total_requests'] }};
+        const pendingRequests = {{ $statistics['hr']['pending_requests'] }};
+        const exceededLimit = {{ $statistics['hr']['employees_exceeded_limit'] }};
+        const normalRequests = totalRequests - pendingRequests - exceededLimit;
+
+        new Chart(hrRequestsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['طلبات عادية', 'طلبات معلقة', 'تجاوزوا الحد'],
+                datasets: [{
+                    data: [normalRequests, pendingRequests, exceededLimit],
+                    backgroundColor: [colors.approved.bg, colors.pending.bg, colors.rejected.bg],
+                    borderColor: [colors.approved.border, colors.pending.border, colors.rejected.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    const hrDepartmentMinutesCtx = document.getElementById('hrDepartmentMinutesChart')?.getContext('2d');
+    if (hrDepartmentMinutesCtx) {
+        // Get department statistics if available
+        @if(isset($statistics['hr']['departments']) && count($statistics['hr']['departments']) > 0)
+        const departments = @json($statistics['hr']['departments']);
+        const labels = departments.map(dept => dept.name);
+        const minutes = departments.map(dept => dept.total_minutes);
+        const avgMinutes = departments.map(dept => dept.avg_minutes);
+
+        new Chart(hrDepartmentMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'إجمالي الدقائق',
+                        data: minutes,
+                        backgroundColor: colors.approved.bg,
+                        borderColor: colors.approved.border,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'متوسط الدقائق للموظف',
+                        data: avgMinutes,
+                        backgroundColor: colors.onTime.bg,
+                        borderColor: colors.onTime.border,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                ...commonBarOptions,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        rtl: true
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const datasetIndex = context.datasetIndex;
+                                if (datasetIndex === 0) {
+                                    return `إجمالي الدقائق: ${context.parsed.y} دقيقة`;
+                                } else {
+                                    return `متوسط الدقائق للموظف: ${context.parsed.y} دقيقة`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(hrDepartmentMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['إجمالي دقائق الشركة'],
+                datasets: [{
+                    label: 'الدقائق',
+                    data: [{{ $statistics['hr']['total_minutes'] }}],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+    @endif
+});
+</script>
+@endpush
+
+@section('content')
 <div class="container">
     @if($errors->any())
     <div class="alert alert-danger">
@@ -171,6 +524,34 @@ use Carbon\Carbon;
                             </div>
                         </div>
                     </div>
+
+                    <!-- Charts for Personal Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع حالات الطلبات</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="personalRequestsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع الدقائق</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="personalMinutesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -231,6 +612,34 @@ use Carbon\Carbon;
                             </div>
                         </div>
                         @endif
+                    </div>
+
+                    <!-- Charts for Team Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع طلبات الفريق</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="teamRequestsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع دقائق الفريق</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="teamMinutesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -295,6 +704,34 @@ use Carbon\Carbon;
                             </div>
                         </div>
                         @endif
+                    </div>
+
+                    <!-- Charts for HR Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع حالات الطلبات</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="hrRequestsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع الدقائق حسب الأقسام</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="hrDepartmentMinutesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

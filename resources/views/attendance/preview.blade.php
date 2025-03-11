@@ -1,15 +1,264 @@
 @extends('layouts.app')
 
-<head>
+@push('styles')
+<link href="{{ asset('css/attendance-preview.css') }}" rel="stylesheet">
     <style>
         .card {
             opacity: 1 !important;
         }
     </style>
+@endpush
 
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js Configuration
+    Chart.defaults.font.family = 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif';
+    Chart.defaults.color = '#475569';
+    Chart.defaults.plugins.tooltip.rtl = true;
+    Chart.defaults.plugins.tooltip.titleAlign = 'right';
+    Chart.defaults.plugins.tooltip.bodyAlign = 'right';
 
+    // Common Colors
+    const colors = {
+        present: {
+            bg: 'rgba(34, 197, 94, 0.7)',
+            border: 'rgba(34, 197, 94, 1)'
+        },
+        absent: {
+            bg: 'rgba(239, 68, 68, 0.7)',
+            border: 'rgba(239, 68, 68, 1)'
+        },
+        late: {
+            bg: 'rgba(245, 158, 11, 0.7)',
+            border: 'rgba(245, 158, 11, 1)'
+        },
+        primary: {
+            bg: 'rgba(59, 130, 246, 0.7)',
+            border: 'rgba(59, 130, 246, 1)'
+        },
+        weekend: {
+            bg: 'rgba(139, 92, 246, 0.7)',
+            border: 'rgba(139, 92, 246, 1)'
+        }
+    };
 
-</head>
+    // Common Chart Options
+    const commonPieOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                rtl: true,
+                labels: {
+                    font: {
+                        family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+                    },
+                    padding: 20
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = total > 0 ? ((value * 100) / total).toFixed(1) : 0;
+                        return `${label}: ${value} (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    const commonBarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom',
+                rtl: true,
+                labels: {
+                    font: {
+                        family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    font: {
+                        family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    font: {
+                        family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+                    }
+                }
+            }
+        }
+    };
+
+    // Attendance Pie Chart
+    const attendanceCtx = document.getElementById('attendanceChart')?.getContext('2d');
+    if (attendanceCtx) {
+        const presentDays = {{ $attendanceStats['present_days'] }};
+        const absentDays = {{ $attendanceStats['absent_days'] }};
+        const weekendDays = {{ $attendanceStats['weekend_days'] ?? 0 }};
+
+        new Chart(attendanceCtx, {
+            type: 'pie',
+            data: {
+                labels: ['أيام الحضور', 'أيام الغياب', 'عطلة أسبوعية'],
+                datasets: [{
+                    data: [presentDays, absentDays, weekendDays],
+                    backgroundColor: [colors.present.bg, colors.absent.bg, colors.weekend.bg],
+                    borderColor: [colors.present.border, colors.absent.border, colors.weekend.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    // Late Details Chart
+    const lateCtx = document.getElementById('lateChart')?.getContext('2d');
+    if (lateCtx) {
+        const lateDays = {{ $attendanceStats['late_days'] }};
+        const totalDelayMinutes = {{ $attendanceStats['total_delay_minutes'] }};
+        const earlyExitMinutes = {{ $attendanceStats['early_exit_minutes'] ?? 0 }};
+
+        new Chart(lateCtx, {
+            type: 'bar',
+            data: {
+                labels: ['مرات التأخير', 'دقائق التأخير', 'دقائق الخروج المبكر'],
+                datasets: [{
+                    label: 'التفاصيل',
+                    data: [lateDays, totalDelayMinutes, earlyExitMinutes],
+                    backgroundColor: [colors.late.bg, colors.primary.bg, colors.absent.bg],
+                    borderColor: [colors.late.border, colors.primary.border, colors.absent.border],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...commonBarOptions,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                if (index === 0) {
+                                    return `مرات التأخير: ${context.parsed.y}`;
+                                } else if (index === 1) {
+                                    return `دقائق التأخير: ${context.parsed.y} (${(context.parsed.y / 60).toFixed(1)} ساعة)`;
+                                } else {
+                                    return `دقائق الخروج المبكر: ${context.parsed.y} (${(context.parsed.y / 60).toFixed(1)} ساعة)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Monthly Comparison Chart
+    const monthlyComparisonCtx = document.getElementById('monthlyComparisonChart')?.getContext('2d');
+    if (monthlyComparisonCtx) {
+        const months = [
+            @foreach($threeMonthsStats as $monthStat)
+            '{{ $monthStat['month'] }} {{ $monthStat['year'] }}',
+            @endforeach
+        ];
+
+        const presentDays = [
+            @foreach($threeMonthsStats as $monthStat)
+            {{ $monthStat['present_days'] }},
+            @endforeach
+        ];
+
+        const absentDays = [
+            @foreach($threeMonthsStats as $monthStat)
+            {{ $monthStat['absent_days'] }},
+            @endforeach
+        ];
+
+        const attendancePercentages = [
+            @foreach($threeMonthsStats as $monthStat)
+            {{ round(($monthStat['present_days'] / ($monthStat['total_days'] ?: 1)) * 100) }},
+            @endforeach
+        ];
+
+        new Chart(monthlyComparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'أيام الحضور',
+                        data: presentDays,
+                        backgroundColor: colors.present.bg,
+                        borderColor: colors.present.border,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'أيام الغياب',
+                        data: absentDays,
+                        backgroundColor: colors.absent.bg,
+                        borderColor: colors.absent.border,
+                        borderWidth: 1
+                    },
+                    {
+                        type: 'line',
+                        label: 'نسبة الحضور %',
+                        data: attendancePercentages,
+                        backgroundColor: 'transparent',
+                        borderColor: colors.primary.border,
+                        borderWidth: 2,
+                        pointBackgroundColor: colors.primary.border,
+                        pointRadius: 4,
+                        yAxisID: 'percentage'
+                    }
+                ]
+            },
+            options: {
+                ...commonBarOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'عدد الأيام'
+                        }
+                    },
+                    percentage: {
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'النسبة المئوية %'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+@endpush
+
 @section('content')
 <div class="container-fluid px-4">
     <!-- Header Section with Enhanced Design -->
@@ -126,8 +375,6 @@
                 </div>
             </div>
 
-
-
             <!-- إحصائيات الفترة الحالية (26-25) -->
             <div class="row mb-4">
                 <div class="col-md-12">
@@ -162,6 +409,34 @@
                                     <h4 class="mb-0">{{ $attendanceStats['total_work_days'] > 0 ? round(($attendanceStats['present_days'] / $attendanceStats['total_work_days']) * 100, 1) : 0 }}%</h4>
                                     <small>نسبة الحضور</small>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- رسم بياني للحضور والغياب -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-pie me-2"></i>توزيع الحضور والغياب</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="attendanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-bar me-2"></i>تفاصيل التأخير</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="lateChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -230,6 +505,22 @@
                                     </div>
                                 </div>
                                 @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- رسم بياني لمقارنة الأشهر -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line me-2"></i>مقارنة الحضور والغياب خلال الأشهر الثلاثة الماضية</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="monthlyComparisonChart"></canvas>
                             </div>
                         </div>
                     </div>

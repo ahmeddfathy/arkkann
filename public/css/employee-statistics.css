@@ -248,3 +248,55 @@
 .fade-in {
     animation: fadeIn 0.5s ease forwards;
 }
+
+/* Chart Styles */
+.chart-container {
+    position: relative;
+    margin: 0 auto;
+    height: 250px;
+    width: 100%;
+}
+
+.chart-card {
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 10px 5px 0;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 5px;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 200px;
+    }
+}

@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Attendance;
-use App\Models\Leave;
+
 use App\Models\SalarySheet;
 use App\Models\AbsenceRequest;
 use App\Models\PermissionRequest;

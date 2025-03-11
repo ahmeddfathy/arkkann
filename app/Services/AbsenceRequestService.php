@@ -84,6 +84,14 @@ class AbsenceRequestService
             return $this->createRequest($data);
         }
 
+        // Check if the employee already has a request for the same absence date
+        $existingRequest = AbsenceRequest::where('user_id', $userId)
+            ->where('absence_date', $data['absence_date'])
+            ->first();
+        if ($existingRequest) {
+            return redirect()->back()->withErrors(['absence_date' => 'This employee already has a request for this day off.']);
+        }
+
         $request = AbsenceRequest::create([
             'user_id' => $userId,
             'absence_date' => $data['absence_date'],
@@ -205,36 +213,6 @@ class AbsenceRequestService
 
             return $request;
         });
-    }
-
-    public function calculateAbsenceDays($userId)
-    {
-        $startOfYear = Carbon::now()->startOfYear();
-        $endOfYear = Carbon::now()->endOfYear();
-
-        $count = AbsenceRequest::where('user_id', $userId)
-            ->where('status', 'approved')
-            ->whereBetween('absence_date', [$startOfYear, $endOfYear])
-            ->count();
-
-        return $count;
-    }
-
-    public function getFilteredRequests($employeeName = null, $status = null)
-    {
-        $query = AbsenceRequest::with('user')->latest();
-
-        if ($employeeName) {
-            $query->whereHas('user', function ($q) use ($employeeName) {
-                $q->where('name', 'like', "%{$employeeName}%");
-            });
-        }
-
-        if ($status) {
-            $query->where('status', $status);
-        }
-
-        return $query->paginate(10);
     }
 
     public function canRespond($user = null)

@@ -13,6 +13,12 @@
     --approved-color: #48bb78;
     --rejected-color: #f56565;
     --warning-text: #744210;
+    --chart-blue: rgba(13, 110, 253, 0.7);
+    --chart-green: rgba(40, 167, 69, 0.7);
+    --chart-red: rgba(220, 53, 69, 0.7);
+    --chart-yellow: rgba(255, 193, 7, 0.7);
+    --chart-cyan: rgba(23, 162, 184, 0.7);
+    --chart-purple: rgba(111, 66, 193, 0.7);
 }
 
 .container {
@@ -357,4 +363,99 @@
         padding: 4px 8px;
         font-size: 0.75rem;
     }
+}
+
+/* Chart Styles */
+.chart-container {
+    position: relative;
+    margin: 0 auto;
+    height: 250px;
+    width: 100%;
+}
+
+.chart-card {
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 10px 5px 0;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 5px;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 200px;
+    }
+}
+
+/* Animation for statistics cards */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* Statistics Card Styles */
+.statistics-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.statistics-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.statistics-card .card-body {
+    padding: 1.5rem;
+}
+
+.statistics-card .card-subtitle {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.statistics-card .card-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #333;
 }

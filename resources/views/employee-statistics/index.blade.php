@@ -6,6 +6,17 @@ use Carbon\Carbon;
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/employee-statistics.css') }}">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 @endpush
 
 @section('content')
@@ -86,6 +97,56 @@ use Carbon\Carbon;
                     <div class="alert alert-info mb-4">
                         <i class="fas fa-calendar-alt me-2"></i>
                         الفترة: {{ Carbon::parse($startDate)->format('Y-m-d') }} إلى {{ Carbon::parse($endDate)->format('Y-m-d') }}
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="card-title mb-0 text-center">
+                                        <i class="fas fa-chart-pie me-2"></i> نسب الحضور والغياب
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="attendanceChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="card-title mb-0 text-center">
+                                        <i class="fas fa-chart-bar me-2"></i> الإجازات والأذونات
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="leavesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="card-title mb-0 text-center">
+                                        <i class="fas fa-clock me-2"></i> إحصائيات التأخير والوقت الإضافي
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="timeChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -819,5 +880,131 @@ use Carbon\Carbon;
                 new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
             });
     }
+
+    // Charts initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        const employeesData = {!! json_encode($employees->items()) !!};
+
+        if (employeesData.length === 0) return;
+
+        // Attendance Chart
+        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(attendanceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['أيام الحضور', 'أيام الغياب'],
+                datasets: [{
+                    data: [
+                        employeesData.reduce((sum, emp) => sum + emp.actual_attendance_days, 0),
+                        employeesData.reduce((sum, emp) => sum + emp.absences, 0)
+                    ],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Leaves Chart
+        const leavesCtx = document.getElementById('leavesChart').getContext('2d');
+        new Chart(leavesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['الإجازات المأخوذة', 'الإجازات المتبقية', 'الأذونات'],
+                datasets: [{
+                    label: 'عدد الأيام',
+                    data: [
+                        employeesData.reduce((sum, emp) => sum + emp.taken_leaves, 0),
+                        employeesData.reduce((sum, emp) => sum + emp.remaining_leaves, 0),
+                        employeesData.reduce((sum, emp) => sum + emp.permissions, 0)
+                    ],
+                    backgroundColor: ['#17a2b8', '#28a745', '#ffc107'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Time Chart (Delays and Overtime)
+        const timeCtx = document.getElementById('timeChart').getContext('2d');
+        new Chart(timeCtx, {
+            type: 'bar',
+            data: {
+                labels: employeesData.map(emp => emp.name),
+                datasets: [
+                    {
+                        label: 'دقائق التأخير',
+                        data: employeesData.map(emp => emp.delays),
+                        backgroundColor: '#ffc107',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'ساعات العمل الإضافي',
+                        data: employeesData.map(emp => emp.overtimes),
+                        backgroundColor: '#007bff',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    });
 </script>
 @endpush

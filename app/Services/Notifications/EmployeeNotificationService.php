@@ -38,32 +38,6 @@ class EmployeeNotificationService
         }
     }
 
-    public function notifyTeamMembers(AbsenceRequest $request, string $type, array $data): void
-    {
-        try {
-            if ($request->user && $request->user->currentTeam) {
-                $teamMembers = $request->user->currentTeam->users()
-                    ->where('users.id', '!=', $request->user_id)
-                    ->get();
-
-                foreach ($teamMembers as $member) {
-                    Notification::create([
-                        'user_id' => $member->id,
-                        'type' => $type,
-                        'data' => $data,
-                        'related_id' => $request->id
-                    ]);
-
-                    $this->sendAdditionalFirebaseNotification(
-                        $member,
-                        $data['message'] ?? 'إشعار جديد'
-                    );
-                }
-            }
-        } catch (\Exception $e) {
-        }
-    }
-
     public function deleteExistingNotifications(AbsenceRequest $request, string $type): void
     {
         try {

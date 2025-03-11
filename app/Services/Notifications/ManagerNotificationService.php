@@ -64,6 +64,7 @@ class ManagerNotificationService
                 }
             }
         } catch (\Exception $e) {
+            error_log('Error in ManagerNotificationService::notifyManagers - ' . $e->getMessage());
         }
     }
 
@@ -74,6 +75,7 @@ class ManagerNotificationService
                 $this->createNotification($user, $request, $type, $message, $isHRNotification);
             }
         } catch (\Exception $e) {
+            error_log('Error in ManagerNotificationService::sendNotificationsToMultipleUsers - ' . $e->getMessage());
         }
     }
 
@@ -136,9 +138,10 @@ class ManagerNotificationService
 
                 $actionType = $this->determineFirebaseActionType($type);
                 $title = $this->determineNotificationTitle($type, $request);
-                $firebaseResult = $this->sendTypedFirebaseNotification($user, 'absence', $actionType, $message, $request->id);
+                $this->sendTypedFirebaseNotification($user, 'absence', $actionType, $message, $request->id);
             }
         } catch (\Exception $e) {
+            error_log('Error in ManagerNotificationService::createNotification - ' . $e->getMessage());
         }
     }
 

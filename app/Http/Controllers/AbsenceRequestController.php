@@ -459,7 +459,7 @@ class AbsenceRequestController extends Controller
                 ] : null,
             ];
 
-            if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+            if ($user->hasRole(['team_leader', 'department_manager', 'company_manager' ])) {
                 $hasTeamWithMultipleMembers = $user->ownedTeams()
                     ->withCount('users')
                     ->having('users_count', '>', 1)

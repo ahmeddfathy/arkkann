@@ -19,6 +19,16 @@
     --gray-700: #334155;
     --gray-800: #1e293b;
     --gray-900: #0f172a;
+    --chart-blue: rgba(59, 130, 246, 0.7);
+    --chart-green: rgba(34, 197, 94, 0.7);
+    --chart-red: rgba(239, 68, 68, 0.7);
+    --chart-yellow: rgba(245, 158, 11, 0.7);
+    --chart-purple: rgba(139, 92, 246, 0.7);
+    --chart-blue-border: rgba(59, 130, 246, 1);
+    --chart-green-border: rgba(34, 197, 94, 1);
+    --chart-red-border: rgba(239, 68, 68, 1);
+    --chart-yellow-border: rgba(245, 158, 11, 1);
+    --chart-purple-border: rgba(139, 92, 246, 1);
 }
 
 body {
@@ -299,4 +309,87 @@ body {
         transform: none !important;
         box-shadow: none !important;
     }
+}
+
+/* Chart Styles */
+.chart-container {
+    position: relative;
+    margin: 0 auto;
+    height: 250px;
+    width: 100%;
+}
+
+.chart-card {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.chart-card .card-header {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(to right, var(--primary-bg), var(--white));
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.chart-card .card-header h5 {
+    margin: 0;
+    color: var(--gray-800);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.chart-card .card-body {
+    padding: 1.5rem;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--gray-700);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 5px;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 200px;
+    }
+}
+
+/* Animation for charts */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
 }
