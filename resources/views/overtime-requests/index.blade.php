@@ -2,6 +2,8 @@
 
 <head>
     <link href="{{ asset('css/overtime-managment.css') }}" rel="stylesheet">
+    <!-- Add Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .statistics-card {
             transition: all 0.3s ease;
@@ -10,6 +12,12 @@
         .statistics-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -68,239 +76,6 @@
         </div>
     </div>
 
-    <!-- إحصائيات شخصية -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-user-clock"></i> إحصائياتي
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">إجمالي طلباتي</h6>
-                            <h2 class="card-title mb-0">{{ $personalStatistics['total_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعتمدة</h6>
-                            <h2 class="card-title mb-0">{{ $personalStatistics['approved_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعلقة</h6>
-                            <h2 class="card-title mb-0">{{ $personalStatistics['pending_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">إجمالي ساعات العمل الإضافي</h6>
-                            <h2 class="card-title mb-0">{{ number_format($personalStatistics['total_hours'], 1) }}</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- إحصائيات الفريق للمدراء -->
-    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-users"></i> إحصائيات الفريق
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">إجمالي طلبات الفريق</h6>
-                            <h2 class="card-title mb-0">{{ $teamStatistics['total_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعتمدة</h6>
-                            <h2 class="card-title mb-0">{{ $teamStatistics['approved_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعلقة</h6>
-                            <h2 class="card-title mb-0">{{ $teamStatistics['pending_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">إجمالي ساعات الفريق</h6>
-                            <h2 class="card-title mb-0">{{ number_format($teamStatistics['total_hours'], 1) }}</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @if($teamStatistics['most_active_employee'])
-            <div class="alert alert-info mt-3">
-                <h6 class="alert-heading">الموظف الأكثر نشاطاً</h6>
-                <p class="mb-0">
-                    {{ $teamStatistics['most_active_employee']->name }}
-                    ({{ $teamStatistics['most_active_employee']->overtime_requests_count }} طلب)
-                </p>
-            </div>
-            @endif
-
-            <!-- تفاصيل موظفي الفريق -->
-            <div class="mt-4">
-                <button type="button" class="btn btn-info mb-3"
-                    data-bs-toggle="modal"
-                    data-bs-target="#teamDetailsModal">
-                    <i class="fas fa-users"></i> عرض تفاصيل موظفي الفريق
-                </button>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    <!-- مودل تفاصيل الفريق -->
-    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
-    <div class="modal fade" id="teamDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">تفاصيل موظفي الفريق</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>الموظف</th>
-                                    <th>إجمالي الطلبات</th>
-                                    <th>الطلبات المعتمدة</th>
-                                    <th>الطلبات المرفوضة</th>
-                                    <th>الطلبات المعلقة</th>
-                                    <th>الساعات المطلوبة</th>
-                                    <th>الساعات المعتمدة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($teamStatistics['team_employees'] as $employee)
-                                <tr>
-                                    <td>{{ $employee->name }}</td>
-                                    <td>{{ $employee->total_requests }}</td>
-                                    <td>{{ $employee->approved_requests }}</td>
-                                    <td>{{ $employee->rejected_requests }}</td>
-                                    <td>{{ $employee->pending_requests }}</td>
-                                    <td>{{ number_format($employee->total_requested_hours, 1) }}</td>
-                                    <td>{{ number_format($employee->approved_hours, 1) }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    <!-- إحصائيات HR -->
-    @if(Auth::user()->hasRole('hr') && !empty($hrStatistics))
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-chart-pie"></i> إحصائيات الشركة
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">إجمالي طلبات الشركة</h6>
-                            <h2 class="card-title mb-0">{{ $hrStatistics['total_company_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">إجمالي الساعات المعتمدة</h6>
-                            <h2 class="card-title mb-0">{{ number_format($hrStatistics['total_approved_hours'], 1) }}</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card statistics-card">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعلقة</h6>
-                            <h2 class="card-title mb-0">{{ $hrStatistics['pending_requests'] }}</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- إحصائيات الأقسام -->
-            <div class="mt-4">
-                <h6>إحصائيات الأقسام</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>القسم</th>
-                                <th>عدد الموظفين</th>
-                                <th>عدد الطلبات</th>
-                                <th>إجمالي الساعات</th>
-                                <th>متوسط الساعات/موظف</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($hrStatistics['departments_stats'] as $dept)
-                            <tr>
-                                <td>{{ $dept->department }}</td>
-                                <td>{{ $dept->total_employees }}</td>
-                                <td>{{ $dept->total_requests }}</td>
-                                <td>{{ number_format($dept->total_hours, 1) }}</td>
-                                <td>{{ $dept->total_employees > 0 ? number_format($dept->total_hours / $dept->total_employees, 1) : 0 }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-info btn-sm"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#departmentDetailsModal"
-                                        data-department="{{ $dept->department }}">
-                                        <i class="fas fa-users"></i> تفاصيل الموظفين
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
 
     <!-- جدول طلبات الفريق -->
     @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']))
@@ -743,6 +518,404 @@
     </div>
     @endif
 </div>
+
+
+    <!-- إحصائيات شخصية -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-user-clock"></i> إحصائياتي
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">إجمالي طلباتي</h6>
+                            <h2 class="card-title mb-0">{{ $personalStatistics['total_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعتمدة</h6>
+                            <h2 class="card-title mb-0">{{ $personalStatistics['approved_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعلقة</h6>
+                            <h2 class="card-title mb-0">{{ $personalStatistics['pending_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">إجمالي ساعات العمل الإضافي</h6>
+                            <h2 class="card-title mb-0">{{ number_format($personalStatistics['total_hours'], 1) }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Add personal statistics chart -->
+            <div class="chart-section">
+                <h6 class="chart-section-title">رسم بياني للإحصائيات الشخصية</h6>
+                <div class="chart-container bar-chart-container chart-animate">
+                    <canvas id="personalStatsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات الفريق للمدراء -->
+    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-users"></i> إحصائيات الفريق
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">إجمالي طلبات الفريق</h6>
+                            <h2 class="card-title mb-0">{{ $teamStatistics['total_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعتمدة</h6>
+                            <h2 class="card-title mb-0">{{ $teamStatistics['approved_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعلقة</h6>
+                            <h2 class="card-title mb-0">{{ $teamStatistics['pending_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">إجمالي ساعات الفريق</h6>
+                            <h2 class="card-title mb-0">{{ number_format($teamStatistics['total_hours'], 1) }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add team statistics chart -->
+            <div class="chart-section">
+                <h6 class="chart-section-title">رسم بياني لتوزيع حالات طلبات الفريق</h6>
+                <div class="chart-container pie-chart-container chart-animate">
+                    <canvas id="teamStatsChart"></canvas>
+                </div>
+            </div>
+
+            @if($teamStatistics['most_active_employee'])
+            <div class="alert alert-info mt-3">
+                <h6 class="alert-heading">الموظف الأكثر نشاطاً</h6>
+                <p class="mb-0">
+                    {{ $teamStatistics['most_active_employee']->name }}
+                    ({{ $teamStatistics['most_active_employee']->overtime_requests_count }} طلب)
+                </p>
+            </div>
+            @endif
+
+            <!-- تفاصيل موظفي الفريق -->
+            <div class="mt-4">
+                <button type="button" class="btn btn-info mb-3"
+                    data-bs-toggle="modal"
+                    data-bs-target="#teamDetailsModal">
+                    <i class="fas fa-users"></i> عرض تفاصيل موظفي الفريق
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- مودل تفاصيل الفريق -->
+    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
+    <div class="modal fade" id="teamDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تفاصيل موظفي الفريق</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>الموظف</th>
+                                    <th>إجمالي الطلبات</th>
+                                    <th>الطلبات المعتمدة</th>
+                                    <th>الطلبات المرفوضة</th>
+                                    <th>الطلبات المعلقة</th>
+                                    <th>الساعات المطلوبة</th>
+                                    <th>الساعات المعتمدة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($teamStatistics['team_employees'] as $employee)
+                                <tr>
+                                    <td>{{ $employee->name }}</td>
+                                    <td>{{ $employee->total_requests }}</td>
+                                    <td>{{ $employee->approved_requests }}</td>
+                                    <td>{{ $employee->rejected_requests }}</td>
+                                    <td>{{ $employee->pending_requests }}</td>
+                                    <td>{{ number_format($employee->total_requested_hours, 1) }}</td>
+                                    <td>{{ number_format($employee->approved_hours, 1) }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- إحصائيات HR -->
+    @if(Auth::user()->hasRole('hr') && !empty($hrStatistics))
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-pie"></i> إحصائيات الشركة
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">إجمالي طلبات الشركة</h6>
+                            <h2 class="card-title mb-0">{{ $hrStatistics['total_company_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">إجمالي الساعات المعتمدة</h6>
+                            <h2 class="card-title mb-0">{{ number_format($hrStatistics['total_approved_hours'], 1) }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المعلقة</h6>
+                            <h2 class="card-title mb-0">{{ $hrStatistics['pending_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- إضافة عناصر جديدة للإحصائيات -->
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">معدل الموافقة</h6>
+                            <h2 class="card-title mb-0">{{ number_format($hrStatistics['approval_rate'], 1) }}%</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">الطلبات المرفوضة</h6>
+                            <h2 class="card-title mb-0">{{ $hrStatistics['rejected_requests'] }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">متوسط الساعات لكل طلب</h6>
+                            <h2 class="card-title mb-0">{{ number_format($hrStatistics['average_hours_per_request'], 1) }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card statistics-card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">مقارنة بالفترة السابقة</h6>
+                            @php
+                                $percentChange = $hrStatistics['comparative_analysis']['previous_period']['approved_hours'] > 0
+                                    ? (($hrStatistics['comparative_analysis']['current_period']['approved_hours'] - $hrStatistics['comparative_analysis']['previous_period']['approved_hours']) / $hrStatistics['comparative_analysis']['previous_period']['approved_hours']) * 100
+                                    : 100;
+                            @endphp
+                            <h2 class="card-title mb-0 d-flex align-items-center">
+                                {{ number_format($percentChange, 1) }}%
+                                @if($percentChange > 0)
+                                    <i class="fas fa-arrow-up text-success ms-2"></i>
+                                @elseif($percentChange < 0)
+                                    <i class="fas fa-arrow-down text-danger ms-2"></i>
+                                @else
+                                    <i class="fas fa-minus text-secondary ms-2"></i>
+                                @endif
+                            </h2>
+                        </div>
+                    </div>
+            </div>
+
+                <!-- قسم الرسوم البيانية -->
+                <div class="col-12 mt-4">
+                    <h4 class="mb-3 fw-bold">تحليلات الوقت الإضافي</h4>
+                </div>
+
+                <!-- رسم بياني لحالة الطلبات -->
+                <div class="col-md-6 mb-4">
+                    <div class="card chart-card">
+                        <div class="card-body">
+                            <h5 class="chart-title">توزيع حالات الطلبات</h5>
+                            <div class="chart-container">
+                    <canvas id="hrStatsChart"></canvas>
+                            </div>
+                        </div>
+                </div>
+            </div>
+
+                <!-- رسم بياني للاقسام -->
+                <div class="col-md-6 mb-4">
+                    <div class="card chart-card">
+                        <div class="card-body">
+                            <h5 class="chart-title">تحليل الأقسام</h5>
+                            <div class="chart-container">
+                    <canvas id="departmentsStatsChart"></canvas>
+                            </div>
+                        </div>
+                </div>
+            </div>
+
+                <!-- رسم بياني لتوزيع الطلبات على أيام الأسبوع -->
+                <div class="col-md-6 mb-4">
+                    <div class="card chart-card">
+                        <div class="card-body">
+                            <h5 class="chart-title">تحليل أيام الأسبوع</h5>
+                            <div class="chart-container">
+                                <canvas id="dayOfWeekChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- رسم بياني للاتجاهات الشهرية -->
+                <div class="col-md-6 mb-4">
+                    <div class="card chart-card">
+                        <div class="card-body">
+                            <h5 class="chart-title">الاتجاهات الشهرية</h5>
+                            <div class="chart-container">
+                                <canvas id="monthlyTrendsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- قسم كفاءة الأقسام -->
+                <div class="col-12 mt-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line"></i> كفاءة الأقسام
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                <div class="table-responsive">
+                                <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>القسم</th>
+                                            <th>الساعات المعتمدة</th>
+                                            <th>إجمالي الساعات المطلوبة</th>
+                                            <th>معدل الكفاءة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                        @foreach($hrStatistics['department_efficiency'] as $dept)
+                            <tr>
+                                <td>{{ $dept->department }}</td>
+                                            <td>{{ number_format($dept->approved_hours, 1) }}</td>
+                                            <td>{{ number_format($dept->total_requested_hours, 1) }}</td>
+                                <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1" style="height: 10px;">
+                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                            style="width: {{ $dept->efficiency_rate }}%;"
+                                                            aria-valuenow="{{ $dept->efficiency_rate }}"
+                                                            aria-valuemin="0"
+                                                            aria-valuemax="100"></div>
+                                                    </div>
+                                                    <span class="ms-2">{{ number_format($dept->efficiency_rate, 1) }}%</span>
+                                                </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- أكثر الموظفين استخداما للعمل الإضافي -->
+                <div class="col-12 mt-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-clock"></i> أكثر الموظفين استخداما للعمل الإضافي
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>اسم الموظف</th>
+                                            <th>القسم</th>
+                                            <th>عدد الطلبات</th>
+                                            <th>إجمالي الساعات المعتمدة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($hrStatistics['top_employees'] as $key => $employee)
+                                        <tr>
+                                            <td>{{ $key + 1 }}</td>
+                                            <td>{{ $employee->name }}</td>
+                                            <td>{{ $employee->department }}</td>
+                                            <td>{{ $employee->total_requests }}</td>
+                                            <td>{{ number_format($employee->approved_hours, 1) }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 
 <!-- Create Modal -->
 <div class="modal fade" id="createOvertimeModal" tabindex="-1">
@@ -1278,6 +1451,390 @@
             form.submit();
         }
     }
+
+    // Initialize charts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Define common chart colors and options
+        const chartColors = [
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(255, 205, 86, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(201, 203, 207, 0.7)'
+        ];
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    padding: 10,
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    }
+                }
+            }
+        };
+
+        // Personal Statistics Chart
+        const personalStatsCtx = document.getElementById('personalStatsChart');
+        if (personalStatsCtx) {
+            new Chart(personalStatsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['إجمالي الطلبات', 'الطلبات المعتمدة', 'الطلبات المعلقة', 'الطلبات المرفوضة'],
+                    datasets: [{
+                        label: 'عدد الطلبات',
+                        data: [
+                            {{ $personalStatistics['total_requests'] }},
+                            {{ $personalStatistics['approved_requests'] }},
+                            {{ $personalStatistics['pending_requests'] }},
+                            {{ $personalStatistics['total_requests'] - $personalStatistics['approved_requests'] - $personalStatistics['pending_requests'] }}
+                        ],
+                        backgroundColor: [
+                            chartColors[0],
+                            chartColors[1],
+                            chartColors[3],
+                            chartColors[2]
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...chartOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'توزيع حالات طلباتي',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Team Statistics Chart
+        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
+        const teamStatsCtx = document.getElementById('teamStatsChart');
+        if (teamStatsCtx) {
+            new Chart(teamStatsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['معتمد', 'معلق', 'مرفوض'],
+                    datasets: [{
+                        data: [
+                            {{ $teamStatistics['approved_requests'] }},
+                            {{ $teamStatistics['pending_requests'] }},
+                            {{ $teamStatistics['total_requests'] - $teamStatistics['approved_requests'] - $teamStatistics['pending_requests'] }}
+                        ],
+                        backgroundColor: [
+                            chartColors[1],
+                            chartColors[3],
+                            chartColors[2]
+                        ],
+                        borderWidth: 1,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'توزيع حالات طلبات الفريق',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        @endif
+
+        // HR Statistics Chart - Distribution of request statuses
+        @if(Auth::user()->hasRole('hr') && !empty($hrStatistics))
+        const hrStatsCtx = document.getElementById('hrStatsChart');
+        if (hrStatsCtx) {
+            new Chart(hrStatsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['معتمد', 'معلق', 'مرفوض'],
+                    datasets: [{
+                        data: [
+                            {{ $hrStatistics['total_company_requests'] - $hrStatistics['pending_requests'] - $hrStatistics['rejected_requests'] }},
+                            {{ $hrStatistics['pending_requests'] }},
+                            {{ $hrStatistics['rejected_requests'] }}
+                        ],
+                        backgroundColor: chartColors.slice(0, 3),
+                        borderWidth: 1,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    cutout: '50%',
+                    plugins: {
+                        ...chartOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'توزيع حالات طلبات العمل الإضافي',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Day of Week Chart
+        const dayOfWeekCtx = document.getElementById('dayOfWeekChart');
+        if (dayOfWeekCtx) {
+            // Map numeric day of week to day name
+            const dayNames = {
+                1: 'الأحد',
+                2: 'الاثنين',
+                3: 'الثلاثاء',
+                4: 'الأربعاء',
+                5: 'الخميس',
+                6: 'الجمعة',
+                7: 'السبت'
+            };
+
+            // Prepare data
+            const labels = [];
+            const requestData = [];
+            const hoursData = [];
+
+            @foreach($hrStatistics['day_of_week_stats'] as $day)
+            labels.push(dayNames[{{ $day->day_of_week }}]);
+            requestData.push({{ $day->total_requests }});
+            hoursData.push({{ $day->total_hours }});
+            @endforeach
+
+            new Chart(dayOfWeekCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'عدد الطلبات',
+                        data: requestData,
+                        backgroundColor: chartColors[0],
+                        borderColor: chartColors[0].replace('0.7', '1'),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }, {
+                        label: 'إجمالي الساعات',
+                        data: hoursData,
+                        backgroundColor: chartColors[1],
+                        borderColor: chartColors[1].replace('0.7', '1'),
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'عدد الطلبات'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'عدد الساعات'
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...chartOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'توزيع طلبات العمل الإضافي على أيام الأسبوع',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Monthly Trends Chart
+        const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart');
+        if (monthlyTrendsCtx) {
+            // Map numeric month to month name
+            const monthNames = {
+                1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
+                5: 'مايو', 6: 'يونيو', 7: 'يوليو', 8: 'أغسطس',
+                9: 'سبتمبر', 10: 'أكتوبر', 11: 'نوفمبر', 12: 'ديسمبر'
+            };
+
+            // Prepare data
+            const labels = [];
+            const approvedData = [];
+            const rejectedData = [];
+            const pendingData = [];
+
+            @foreach($hrStatistics['monthly_trends'] as $trend)
+            labels.push(monthNames[{{ $trend->month }}] + ' ' + {{ $trend->year }});
+            approvedData.push({{ $trend->approved_requests }});
+            rejectedData.push({{ $trend->rejected_requests }});
+            pendingData.push({{ $trend->pending_requests }});
+            @endforeach
+
+            new Chart(monthlyTrendsCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'طلبات معتمدة',
+                        data: approvedData,
+                        backgroundColor: chartColors[1],
+                        borderColor: chartColors[1].replace('0.7', '1'),
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }, {
+                        label: 'طلبات مرفوضة',
+                        data: rejectedData,
+                        backgroundColor: chartColors[2],
+                        borderColor: chartColors[2].replace('0.7', '1'),
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }, {
+                        label: 'طلبات معلقة',
+                        data: pendingData,
+                        backgroundColor: chartColors[3],
+                        borderColor: chartColors[3].replace('0.7', '1'),
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'عدد الطلبات'
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...chartOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'اتجاهات طلبات العمل الإضافي عبر الأشهر',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Departments Chart
+        const deptStatsCtx = document.getElementById('departmentsStatsChart');
+        if (deptStatsCtx) {
+            // Prepare data
+            const labels = [];
+            const hoursData = [];
+            const requestsData = [];
+
+            @foreach($hrStatistics['departments_stats'] as $dept)
+            labels.push('{{ $dept->department }}');
+            hoursData.push({{ $dept->total_hours }});
+            requestsData.push({{ $dept->total_requests }});
+            @endforeach
+
+            new Chart(deptStatsCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'إجمالي الساعات',
+                        data: hoursData,
+                        backgroundColor: chartColors[0],
+                        borderColor: chartColors[0].replace('0.7', '1'),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }, {
+                        label: 'عدد الطلبات',
+                        data: requestsData,
+                        backgroundColor: chartColors[2],
+                        borderColor: chartColors[2].replace('0.7', '1'),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'العدد'
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...chartOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'تحليل أقسام الشركة',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        @endif
+    });
 </script>
 @endpush
 

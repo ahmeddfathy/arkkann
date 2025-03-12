@@ -259,6 +259,138 @@ use Carbon\Carbon;
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </td>
+
+                                    <!-- تحليل الأداء والتنبؤات -->
+                                    <tr class="performance-analysis">
+                                        <td colspan="14">
+                                            <div class="card border-0 shadow-sm mt-3">
+                                                <div class="card-header bg-white py-3">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="fas fa-chart-line me-2"></i>
+                                                        تحليل الأداء والتنبؤات المستقبلية
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-4">
+                                                        <!-- مؤشرات الأداء -->
+                                                        <div class="col-md-6">
+                                                            <div class="performance-metrics p-4 bg-light rounded-3">
+                                                                <h6 class="fw-bold mb-4">مؤشرات الأداء الحالية</h6>
+
+                                                                <div class="metric-item mb-4">
+                                                                    <label class="d-flex justify-content-between mb-2">
+                                                                        <span>الدرجة الكلية</span>
+                                                                        <span class="badge bg-{{ $employee->performance_metrics['overall_score'] >= 80 ? 'success' : ($employee->performance_metrics['overall_score'] >= 60 ? 'warning' : 'danger') }}">
+                                                                            {{ $employee->performance_metrics['overall_score'] }}%
+                                                                        </span>
+                                                                    </label>
+                                                                    <div class="progress" style="height: 8px;">
+                                                                        <div class="progress-bar bg-{{ $employee->performance_metrics['overall_score'] >= 80 ? 'success' : ($employee->performance_metrics['overall_score'] >= 60 ? 'warning' : 'danger') }}"
+                                                                            role="progressbar"
+                                                                            style="width: {{ $employee->performance_metrics['overall_score'] }}%">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="metric-details">
+                                                                    <div class="row g-3">
+                                                                        <div class="col-md-4">
+                                                                            <div class="metric-card text-center p-3 border rounded">
+                                                                                <div class="metric-value text-primary h4 mb-1">
+                                                                                    {{ $employee->performance_metrics['attendance_score'] }}%
+                                                                                </div>
+                                                                                <div class="metric-label small">الحضور</div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-md-4">
+                                                                            <div class="metric-card text-center p-3 border rounded">
+                                                                                <div class="metric-value text-success h4 mb-1">
+                                                                                    {{ $employee->performance_metrics['punctuality_score'] }}%
+                                                                                </div>
+                                                                                <div class="metric-label small">الانضباط</div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-md-4">
+                                                                            <div class="metric-card text-center p-3 border rounded">
+                                                                                <div class="metric-value text-info h4 mb-1">
+                                                                                    {{ $employee->performance_metrics['working_hours_score'] }}%
+                                                                                </div>
+                                                                                <div class="metric-label small">ساعات العمل</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                @if($employee->performance_metrics['trend'] != 0)
+                                                                <div class="trend-indicator mt-3">
+                                                                    <i class="fas fa-{{ $employee->performance_metrics['trend'] > 0 ? 'arrow-up text-success' : 'arrow-down text-danger' }} me-1"></i>
+                                                                    <span class="{{ $employee->performance_metrics['trend'] > 0 ? 'text-success' : 'text-danger' }}">
+                                                                        {{ abs($employee->performance_metrics['trend']) }}%
+                                                                        {{ $employee->performance_metrics['trend'] > 0 ? 'تحسن' : 'تراجع' }}
+                                                                        عن الفترة السابقة
+                                                                    </span>
+                                                                </div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- التنبؤات والتوصيات -->
+                                                        <div class="col-md-6">
+                                                            <div class="predictions-section p-4 bg-light rounded-3">
+                                                                <h6 class="fw-bold mb-4">التنبؤات والتوصيات</h6>
+
+                                                                <div class="prediction-card mb-4 p-3 border rounded">
+                                                                    <h6 class="mb-3">التنبؤ بالأداء للشهر القادم</h6>
+                                                                    <div class="d-flex align-items-center mb-3">
+                                                                        <div class="prediction-score me-3">
+                                                                            <span class="h4 mb-0">{{ $employee->performance_predictions['predicted_attendance'] }}%</span>
+                                                                        </div>
+                                                                        <div class="prediction-trend">
+                                                                            <span class="badge bg-{{ $employee->performance_predictions['trend_direction'] == 'تحسن' ? 'success' : ($employee->performance_predictions['trend_direction'] == 'ثابت' ? 'info' : 'warning') }}">
+                                                                                <i class="fas fa-{{ $employee->performance_predictions['trend_direction'] == 'تحسن' ? 'arrow-up' : ($employee->performance_predictions['trend_direction'] == 'ثابت' ? 'equals' : 'arrow-down') }} me-1"></i>
+                                                                                {{ $employee->performance_predictions['trend_direction'] }}
+                                                                                @if($employee->performance_predictions['trend_percentage'] > 0)
+                                                                                    ({{ $employee->performance_predictions['trend_percentage'] }}%)
+                                                                                @endif
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- مجالات التحسين -->
+                                                                @if(count($employee->performance_metrics['areas_for_improvement']) > 0)
+                                                                <div class="improvement-areas mb-4">
+                                                                    <h6 class="mb-3">مجالات تحتاج إلى تحسين</h6>
+                                                                    <ul class="list-unstyled">
+                                                                        @foreach($employee->performance_metrics['areas_for_improvement'] as $area)
+                                                                        <li class="mb-2">
+                                                                            <i class="fas fa-exclamation-circle text-warning me-2"></i>
+                                                                            {{ $area }}
+                                                                        </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
+                                                                @endif
+
+                                                                <!-- التوصيات -->
+                                                                <div class="recommendations">
+                                                                    <h6 class="mb-3">التوصيات</h6>
+                                                                    <ul class="list-unstyled">
+                                                                        @foreach($employee->performance_predictions['recommendations'] as $recommendation)
+                                                                        <li class="mb-2">
+                                                                            <i class="fas fa-lightbulb text-primary me-2"></i>
+                                                                            {{ $recommendation }}
+                                                                        </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 </tr>
                                 @empty
                                 <tr>

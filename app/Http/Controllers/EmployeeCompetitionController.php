@@ -1,0 +1,231 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\Models\AbsenceRequest;
+use App\Models\PermissionRequest;
+use App\Models\OverTimeRequests;
+use App\Models\AttendanceRecord;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
+class EmployeeCompetitionController extends Controller
+{
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $now = now();
+
+        // Get default date range (26th to 25th of next month)
+        $startDate = $request->start_date ?? ($now->day >= 26
+            ? $now->copy()->startOfDay()->setDay(26)
+            : $now->copy()->subMonth()->startOfDay()->setDay(26))->format('Y-m-d');
+
+        $endDate = $request->end_date ?? ($now->day >= 26
+            ? $now->copy()->addMonth()->startOfDay()->setDay(25)->endOfDay()
+            : $now->copy()->startOfDay()->setDay(25)->endOfDay())->format('Y-m-d');
+
+        // Base query for employees
+        $employeeQuery = User::query();
+
+        // Apply role-based filters
+        if ($user->hasRole('hr')) {
+            $employeeQuery->whereDoesntHave('roles', function ($q) {
+                $q->whereIn('name', ['hr', 'company_manager']);
+            });
+        } elseif ($user->hasRole('department_manager')) {
+            $managedTeams = $user->allTeams()->pluck('id');
+            $employeeQuery->whereHas('teams', function ($q) use ($managedTeams) {
+                $q->whereIn('teams.id', $managedTeams);
+            });
+        } elseif ($user->hasRole('team_leader')) {
+            if ($user->currentTeam) {
+                $teamMembers = $user->currentTeam->users()
+                    ->whereHas('roles', function ($q) {
+                        $q->where('name', 'employee');
+                    })
+                    ->pluck('users.id');
+                $employeeQuery->whereIn('id', $teamMembers);
+            } else {
+                $employeeQuery->where('id', 0);
+            }
+        }
+
+        // Get employees with their statistics
+        $employees = $employeeQuery->get()->map(function ($employee) use ($startDate, $endDate) {
+            // Get attendance statistics
+            $attendanceStats = $this->getAttendanceStats($employee, $startDate, $endDate);
+
+            // Calculate early minutes (الحضور المبكر)
+            $earlyMinutes = AttendanceRecord::where('employee_id', $employee->employee_id)
+                ->whereBetween('attendance_date', [$startDate, $endDate])
+                ->where('early_minutes', '>', 0)
+                ->sum('early_minutes');
+
+            // Get permissions count
+            $permissionsCount = PermissionRequest::where('user_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereBetween('departure_time', [$startDate, $endDate])
+                ->count();
+
+            // Get leaves count
+            $leavesCount = AbsenceRequest::where('user_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereBetween('absence_date', [$startDate, $endDate])
+                ->count();
+
+            // Calculate competition points
+            $points = $this->calculatePoints(
+                $attendanceStats['attendance_percentage'],
+                $earlyMinutes,
+                $attendanceStats['absences'],
+                $permissionsCount,
+                $leavesCount
+            );
+
+            return [
+                'id' => $employee->id,
+                'employee_id' => $employee->employee_id,
+                'name' => $employee->name,
+                'department' => $employee->department,
+                'team' => $employee->currentTeam ? $employee->currentTeam->name : null,
+                'attendance_percentage' => $attendanceStats['attendance_percentage'],
+                'total_working_days' => $attendanceStats['total_working_days'],
+                'actual_attendance_days' => $attendanceStats['actual_attendance_days'],
+                'early_minutes' => $earlyMinutes,
+                'absences' => $attendanceStats['absences'],
+                'permissions_count' => $permissionsCount,
+                'leaves_count' => $leavesCount,
+                'points' => $points,
+                'profile_photo' => $employee->profile_photo_url
+            ];
+        });
+
+        // Sort employees by different metrics
+        $sortBy = $request->sort_by ?? 'points';
+        $employees = match ($sortBy) {
+            'attendance' => $employees->sortByDesc('attendance_percentage'),
+            'early_minutes' => $employees->sortByDesc('early_minutes'),
+            'absences' => $employees->sortBy('absences'),
+            'permissions' => $employees->sortBy('permissions_count'),
+            'leaves' => $employees->sortBy('leaves_count'),
+            default => $employees->sortByDesc('points')
+        };
+
+
+        $topPerformers = [
+            'attendance' => $employees->sortByDesc('attendance_percentage')->take(3),
+            'early_minutes' => $employees->sortByDesc('early_minutes')->take(3),
+            'least_absences' => $employees->sortBy('absences')->take(3),
+            'least_permissions' => $employees->sortBy('permissions_count')->take(3),
+            'least_leaves' => $employees->sortBy('leaves_count')->take(3),
+            'overall' => $employees->sortByDesc('points')->take(3)
+        ];
+
+        return view('employee-competition.index', compact(
+            'employees',
+            'topPerformers',
+            'startDate',
+            'endDate',
+            'sortBy'
+        ));
+    }
+
+    private function getAttendanceStats($employee, $startDate, $endDate)
+    {
+        $statsQuery = AttendanceRecord::where('employee_id', $employee->employee_id)
+            ->whereBetween('attendance_date', [$startDate, $endDate]);
+
+        $totalWorkDays = (clone $statsQuery)
+            ->where(function ($query) {
+                $query->where('status', 'حضـور')
+                    ->orWhere('status', 'غيــاب');
+            })
+            ->count();
+
+        $actualAttendanceDays = (clone $statsQuery)
+            ->where('status', 'حضـور')
+            ->whereNotNull('entry_time')
+            ->count();
+
+        $absences = (clone $statsQuery)
+            ->where('status', 'غيــاب')
+            ->count();
+
+        return [
+            'total_working_days' => $totalWorkDays,
+            'actual_attendance_days' => $actualAttendanceDays,
+            'attendance_percentage' => $totalWorkDays > 0
+                ? round(($actualAttendanceDays / $totalWorkDays) * 100, 1)
+                : 0,
+            'absences' => $absences
+        ];
+    }
+
+    private function calculatePoints(
+        $attendancePercentage,
+        $earlyMinutes,
+        $absences,
+        $permissionsCount,
+        $leavesCount
+    ) {
+        $points = 0;
+
+        // Points for attendance percentage (max 50 points)
+        $points += ($attendancePercentage / 100) * 50;
+
+        // Points for early arrival (max 20 points)
+        // New calculation: More gradual increase based on early minutes
+        if ($earlyMinutes > 0) {
+            if ($earlyMinutes <= 60) { // First hour
+                $points += ($earlyMinutes / 60) * 10;
+            } else if ($earlyMinutes <= 120) { // Second hour
+                $points += 10 + (($earlyMinutes - 60) / 60) * 6;
+            } else { // More than 2 hours
+                $points += 16 + (($earlyMinutes - 120) / 60) * 4;
+                $points = min($points, 20); // Cap at 20 points
+            }
+        }
+
+        // Deductions for absences (max -15 points)
+        // Progressive deduction: each absence costs more
+        if ($absences > 0) {
+            if ($absences <= 2) {
+                $points -= $absences * 4;
+            } else if ($absences <= 4) {
+                $points -= 8 + (($absences - 2) * 5);
+            } else {
+                $points -= min(15, 18 + (($absences - 4) * 6));
+            }
+        }
+
+        // Deductions for permissions (max -7.5 points)
+        // Progressive deduction: more permissions result in higher deductions per permission
+        if ($permissionsCount > 0) {
+            if ($permissionsCount <= 2) {
+                $points -= $permissionsCount * 2;
+            } else if ($permissionsCount <= 4) {
+                $points -= 4 + (($permissionsCount - 2) * 2.5);
+            } else {
+                $points -= min(7.5, 9 + (($permissionsCount - 4) * 3));
+            }
+        }
+
+        // Deductions for leaves (max -7.5 points)
+        // Progressive deduction: similar to permissions
+        if ($leavesCount > 0) {
+            if ($leavesCount <= 2) {
+                $points -= $leavesCount * 2;
+            } else if ($leavesCount <= 4) {
+                $points -= 4 + (($leavesCount - 2) * 2.5);
+            } else {
+                $points -= min(7.5, 9 + (($leavesCount - 4) * 3));
+            }
+        }
+
+        return max(round($points, 2), 0); // Ensure points don't go below 0
+    }
+}

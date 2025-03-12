@@ -51,355 +51,6 @@ use Carbon\Carbon;
 </style>
 @endpush
 
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Chart.js Configuration
-    Chart.defaults.font.family = 'Cairo, sans-serif';
-    Chart.defaults.color = '#4a5568';
-    Chart.defaults.plugins.tooltip.rtl = true;
-    Chart.defaults.plugins.tooltip.titleAlign = 'right';
-    Chart.defaults.plugins.tooltip.bodyAlign = 'right';
-
-    // Common Colors
-    const colors = {
-        approved: {
-            bg: 'rgba(40, 167, 69, 0.7)',
-            border: 'rgba(40, 167, 69, 1)'
-        },
-        pending: {
-            bg: 'rgba(255, 193, 7, 0.7)',
-            border: 'rgba(255, 193, 7, 1)'
-        },
-        rejected: {
-            bg: 'rgba(220, 53, 69, 0.7)',
-            border: 'rgba(220, 53, 69, 1)'
-        },
-        onTime: {
-            bg: 'rgba(13, 110, 253, 0.7)',
-            border: 'rgba(13, 110, 253, 1)'
-        },
-        late: {
-            bg: 'rgba(111, 66, 193, 0.7)',
-            border: 'rgba(111, 66, 193, 1)'
-        }
-    };
-
-    // Common Chart Options
-    const commonPieOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                rtl: true,
-                labels: {
-                    font: {
-                        family: 'Cairo, sans-serif'
-                    },
-                    padding: 20
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        const label = context.label || '';
-                        const value = context.parsed || 0;
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = total > 0 ? ((value * 100) / total).toFixed(1) : 0;
-                        return `${label}: ${value} (${percentage}%)`;
-                    }
-                }
-            }
-        }
-    };
-
-    const commonBarOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    font: {
-                        family: 'Cairo, sans-serif'
-                    }
-                }
-            },
-            x: {
-                ticks: {
-                    font: {
-                        family: 'Cairo, sans-serif'
-                    }
-                }
-            }
-        }
-    };
-
-    // Personal Statistics Charts
-    @if(isset($statistics) && isset($statistics['personal']))
-    const personalRequestsCtx = document.getElementById('personalRequestsChart')?.getContext('2d');
-    if (personalRequestsCtx) {
-        const approvedRequests = {{ $statistics['personal']['approved_requests'] }};
-        const pendingRequests = {{ $statistics['personal']['pending_requests'] }};
-        const rejectedRequests = {{ $statistics['personal']['rejected_requests'] }};
-
-        new Chart(personalRequestsCtx, {
-            type: 'pie',
-            data: {
-                labels: ['تمت الموافقة', 'معلقة', 'مرفوضة'],
-                datasets: [{
-                    data: [approvedRequests, pendingRequests, rejectedRequests],
-                    backgroundColor: [colors.approved.bg, colors.pending.bg, colors.rejected.bg],
-                    borderColor: [colors.approved.border, colors.pending.border, colors.rejected.border],
-                    borderWidth: 1
-                }]
-            },
-            options: commonPieOptions
-        });
-    }
-
-    const personalMinutesCtx = document.getElementById('personalMinutesChart')?.getContext('2d');
-    if (personalMinutesCtx) {
-        const onTimeReturns = {{ $statistics['personal']['on_time_returns'] }};
-        const lateReturns = {{ $statistics['personal']['late_returns'] }};
-        const totalMinutes = {{ $statistics['personal']['total_minutes'] }};
-
-        new Chart(personalMinutesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['الدقائق المستخدمة', 'عودة في الوقت', 'عودة متأخرة'],
-                datasets: [{
-                    label: 'العدد',
-                    data: [totalMinutes, onTimeReturns, lateReturns],
-                    backgroundColor: [colors.approved.bg, colors.onTime.bg, colors.late.bg],
-                    borderColor: [colors.approved.border, colors.onTime.border, colors.late.border],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                ...commonBarOptions,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const index = context.dataIndex;
-                                if (index === 0) {
-                                    return `الدقائق المستخدمة: ${context.parsed.y} دقيقة`;
-                                } else {
-                                    return `العدد: ${context.parsed.y}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    @endif
-
-    // Team Statistics Charts
-    @if(isset($statistics) && isset($statistics['team']))
-    const teamRequestsCtx = document.getElementById('teamRequestsChart')?.getContext('2d');
-    if (teamRequestsCtx) {
-        const totalRequests = {{ $statistics['team']['total_requests'] }};
-        const exceededLimit = {{ $statistics['team']['employees_exceeded_limit'] }};
-        const withinLimit = totalRequests - exceededLimit;
-
-        new Chart(teamRequestsCtx, {
-            type: 'pie',
-            data: {
-                labels: ['ضمن الحد المسموح', 'تجاوزوا الحد'],
-                datasets: [{
-                    data: [withinLimit, exceededLimit],
-                    backgroundColor: [colors.approved.bg, colors.rejected.bg],
-                    borderColor: [colors.approved.border, colors.rejected.border],
-                    borderWidth: 1
-                }]
-            },
-            options: commonPieOptions
-        });
-    }
-
-    const teamMinutesCtx = document.getElementById('teamMinutesChart')?.getContext('2d');
-    if (teamMinutesCtx) {
-        // Get top 5 employees by minutes if available
-        @if(isset($statistics['team']['team_employees']) && count($statistics['team']['team_employees']) > 0)
-        const teamEmployees = @json($statistics['team']['team_employees']);
-        const sortedEmployees = teamEmployees.sort((a, b) => b.minutes - a.minutes).slice(0, 5);
-        const labels = sortedEmployees.map(emp => emp.name);
-        const minutes = sortedEmployees.map(emp => emp.minutes);
-
-        new Chart(teamMinutesCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'الدقائق المستخدمة',
-                    data: minutes,
-                    backgroundColor: colors.approved.bg,
-                    borderColor: colors.approved.border,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                ...commonBarOptions,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.parsed.y} دقيقة`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    },
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-        @else
-        new Chart(teamMinutesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['إجمالي دقائق الفريق'],
-                datasets: [{
-                    label: 'الدقائق',
-                    data: [{{ $statistics['team']['total_minutes'] }}],
-                    backgroundColor: colors.approved.bg,
-                    borderColor: colors.approved.border,
-                    borderWidth: 1
-                }]
-            },
-            options: commonBarOptions
-        });
-        @endif
-    }
-    @endif
-
-    // HR Statistics Charts
-    @if(isset($statistics) && isset($statistics['hr']))
-    const hrRequestsCtx = document.getElementById('hrRequestsChart')?.getContext('2d');
-    if (hrRequestsCtx) {
-        const totalRequests = {{ $statistics['hr']['total_requests'] }};
-        const pendingRequests = {{ $statistics['hr']['pending_requests'] }};
-        const exceededLimit = {{ $statistics['hr']['employees_exceeded_limit'] }};
-        const normalRequests = totalRequests - pendingRequests - exceededLimit;
-
-        new Chart(hrRequestsCtx, {
-            type: 'pie',
-            data: {
-                labels: ['طلبات عادية', 'طلبات معلقة', 'تجاوزوا الحد'],
-                datasets: [{
-                    data: [normalRequests, pendingRequests, exceededLimit],
-                    backgroundColor: [colors.approved.bg, colors.pending.bg, colors.rejected.bg],
-                    borderColor: [colors.approved.border, colors.pending.border, colors.rejected.border],
-                    borderWidth: 1
-                }]
-            },
-            options: commonPieOptions
-        });
-    }
-
-    const hrDepartmentMinutesCtx = document.getElementById('hrDepartmentMinutesChart')?.getContext('2d');
-    if (hrDepartmentMinutesCtx) {
-        // Get department statistics if available
-        @if(isset($statistics['hr']['departments']) && count($statistics['hr']['departments']) > 0)
-        const departments = @json($statistics['hr']['departments']);
-        const labels = departments.map(dept => dept.name);
-        const minutes = departments.map(dept => dept.total_minutes);
-        const avgMinutes = departments.map(dept => dept.avg_minutes);
-
-        new Chart(hrDepartmentMinutesCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'إجمالي الدقائق',
-                        data: minutes,
-                        backgroundColor: colors.approved.bg,
-                        borderColor: colors.approved.border,
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'متوسط الدقائق للموظف',
-                        data: avgMinutes,
-                        backgroundColor: colors.onTime.bg,
-                        borderColor: colors.onTime.border,
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                ...commonBarOptions,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        rtl: true
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const datasetIndex = context.datasetIndex;
-                                if (datasetIndex === 0) {
-                                    return `إجمالي الدقائق: ${context.parsed.y} دقيقة`;
-                                } else {
-                                    return `متوسط الدقائق للموظف: ${context.parsed.y} دقيقة`;
-                                }
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    },
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-        @else
-        new Chart(hrDepartmentMinutesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['إجمالي دقائق الشركة'],
-                datasets: [{
-                    label: 'الدقائق',
-                    data: [{{ $statistics['hr']['total_minutes'] }}],
-                    backgroundColor: colors.approved.bg,
-                    borderColor: colors.approved.border,
-                    borderWidth: 1
-                }]
-            },
-            options: commonBarOptions
-        });
-        @endif
-    }
-    @endif
-});
-</script>
-@endpush
 
 @section('content')
 <div class="container">
@@ -470,312 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
-    <!-- قسم الإحصائيات -->
-    @if(isset($statistics))
-    <div class="row mb-4">
-        <!-- الإحصائيات الشخصية -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-user-clock"></i> إحصائيات طلباتي</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">إجمالي الطلبات</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['total_requests'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">الدقائق المستخدمة</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['total_minutes'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 text-success">
-                                <h6 class="mb-2">تمت الموافقة</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['approved_requests'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 text-danger">
-                                <h6 class="mb-2">مرفوضة</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['rejected_requests'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 text-warning">
-                                <h6 class="mb-2">معلقة</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['pending_requests'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="border rounded p-3 text-success">
-                                <h6 class="mb-2">عودة في الوقت</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['on_time_returns'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="border rounded p-3 text-danger">
-                                <h6 class="mb-2">عودة متأخرة</h6>
-                                <h4 class="mb-0">{{ $statistics['personal']['late_returns'] }}</h4>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Charts for Personal Statistics -->
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="chart-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع حالات الطلبات</h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="chart-container">
-                                        <canvas id="personalRequestsChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="chart-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع الدقائق</h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="chart-container">
-                                        <canvas id="personalMinutesChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- إحصائيات الفريق -->
-        @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
-        (Auth::user()->hasRole('hr') && (Auth::user()->ownedTeams->count() > 0 || Auth::user()->teams()->wherePivot('role', 'admin')->exists())))
-        && isset($statistics['team']))
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-users"></i> إحصائيات الفريق
-                        @if(isset($statistics['team']['team_name']))
-                        <small>({{ $statistics['team']['team_name'] }})</small>
-                        @endif
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">إجمالي طلبات الفريق</h6>
-                                <h4 class="mb-0">{{ $statistics['team']['total_requests'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">إجمالي الدقائق</h6>
-                                <h4 class="mb-0">{{ $statistics['team']['total_minutes'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">تجاوزوا الحد المسموح</h6>
-                                <h4 class="mb-0 text-danger">
-                                    <a href="#" data-bs-toggle="modal" data-bs-target="#teamExceededLimitModal" class="text-danger text-decoration-none">
-                                        {{ $statistics['team']['employees_exceeded_limit'] }} موظفين
-                                    </a>
-                                </h4>
-                            </div>
-                        </div>
-                        @if($statistics['team']['most_requested_employee'])
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">الأكثر طلباً للاستئذان</h6>
-                                <h5 class="mb-1">{{ $statistics['team']['most_requested_employee']['name'] }}</h5>
-                                <small class="text-muted">{{ $statistics['team']['most_requested_employee']['count'] }} طلبات</small>
-                            </div>
-                        </div>
-                        @endif
-                        @if($statistics['team']['highest_minutes_employee'])
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">الأكثر استخداماً للدقائق</h6>
-                                <h5 class="mb-1">{{ $statistics['team']['highest_minutes_employee']['name'] }}</h5>
-                                <small class="text-muted">{{ $statistics['team']['highest_minutes_employee']['minutes'] }} دقيقة</small>
-                            </div>
-                        </div>
-                        @endif
-                    </div>
-
-                    <!-- Charts for Team Statistics -->
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="chart-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع طلبات الفريق</h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="chart-container">
-                                        <canvas id="teamRequestsChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="chart-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع دقائق الفريق</h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="chart-container">
-                                        <canvas id="teamMinutesChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-    </div>
-    @endif
-
-    <!-- قسم الإحصائيات HR -->
-    @if(Auth::user()->hasRole('hr') && isset($statistics['hr']))
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> إحصائيات جميع الموظفين</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">إجمالي الطلبات</h6>
-                                <h4 class="mb-0">{{ $statistics['hr']['total_requests'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">إجمالي الدقائق</h6>
-                                <h4 class="mb-0">{{ $statistics['hr']['total_minutes'] }}</h4>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">تجاوزوا الحد المسموح</h6>
-                                <h4 class="mb-0 text-danger">
-                                    <a href="#" data-bs-toggle="modal" data-bs-target="#exceededLimitModal" class="text-danger text-decoration-none">
-                                        {{ $statistics['hr']['employees_exceeded_limit'] }} موظفين
-                                    </a>
-                                </h4>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">الطلبات المعلقة</h6>
-                                <h4 class="mb-0 text-warning">{{ $statistics['hr']['pending_requests'] }}</h4>
-                            </div>
-                        </div>
-                        @if($statistics['hr']['most_requested_employee'])
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">الأكثر طلباً للاستئذان</h6>
-                                <h5 class="mb-1">{{ $statistics['hr']['most_requested_employee']['name'] }}</h5>
-                                <small class="text-muted">{{ $statistics['hr']['most_requested_employee']['count'] }} طلبات</small>
-                            </div>
-                        </div>
-                        @endif
-                        @if($statistics['hr']['highest_minutes_employee'])
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-muted mb-2">الأكثر استخداماً للدقائق</h6>
-                                <h5 class="mb-1">{{ $statistics['hr']['highest_minutes_employee']['name'] }}</h5>
-                                <small class="text-muted">{{ $statistics['hr']['highest_minutes_employee']['minutes'] }} دقيقة</small>
-                            </div>
-                        </div>
-                        @endif
-                    </div>
-
-                    <!-- Charts for HR Statistics -->
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="chart-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع حالات الطلبات</h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="chart-container">
-                                        <canvas id="hrRequestsChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="chart-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع الدقائق حسب الأقسام</h5>
-                                </div>
-                                <div class="card-body p-3">
-                                    <div class="chart-container">
-                                        <canvas id="hrDepartmentMinutesChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal للموظفين المتجاوزين -->
-    <div class="modal fade" id="exceededLimitModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">الموظفين المتجاوزين للحد المسموح</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>اسم الموظف</th>
-                                    <th>الدقائق المستخدمة</th>
-                                    <th>تجاوز الحد بـ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($statistics['hr']['exceeded_employees'] ?? [] as $index => $employee)
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $employee['name'] }}</td>
-                                    <td>{{ $employee['total_minutes'] }} دقيقة</td>
-                                    <td class="text-danger">{{ $employee['total_minutes'] - 180 }} دقيقة</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    @endif
 
     <!-- عرض الدقائق المستخدمة في الفترة المحددة -->
     <div class="alert alert-info mb-4">
@@ -1475,6 +821,401 @@ document.addEventListener('DOMContentLoaded', function() {
 @endif
 
 
+    <!-- قسم الإحصائيات -->
+    @if(isset($statistics))
+    <div class="row mb-4">
+        <!-- الإحصائيات الشخصية -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-clock"></i> إحصائيات طلباتي</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">إجمالي الطلبات</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['total_requests'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">الدقائق المستخدمة</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['total_minutes'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-success">
+                                <h6 class="mb-2">تمت الموافقة</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['approved_requests'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-danger">
+                                <h6 class="mb-2">مرفوضة</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['rejected_requests'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-warning">
+                                <h6 class="mb-2">معلقة</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['pending_requests'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 text-success">
+                                <h6 class="mb-2">عودة في الوقت</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['on_time_returns'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 text-danger">
+                                <h6 class="mb-2">عودة متأخرة</h6>
+                                <h4 class="mb-0">{{ $statistics['personal']['late_returns'] }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts for Personal Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع حالات الطلبات</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="personalRequestsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع الدقائق</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="personalMinutesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- إحصائيات الفريق -->
+        @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
+        (Auth::user()->hasRole('hr') && (Auth::user()->ownedTeams->count() > 0 || Auth::user()->teams()->wherePivot('role', 'admin')->exists())))
+        && isset($statistics['team']))
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users"></i> إحصائيات الفريق
+                        @if(isset($statistics['team']['team_name']))
+                        <small>({{ $statistics['team']['team_name'] }})</small>
+                        @endif
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">إجمالي طلبات الفريق</h6>
+                                <h4 class="mb-0">{{ $statistics['team']['total_requests'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">إجمالي الدقائق</h6>
+                                <h4 class="mb-0">{{ $statistics['team']['total_minutes'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">تجاوزوا الحد المسموح</h6>
+                                <h4 class="mb-0 text-danger">
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#teamExceededLimitModal" class="text-danger text-decoration-none">
+                                        {{ $statistics['team']['employees_exceeded_limit'] }} موظفين
+                                    </a>
+                                </h4>
+                            </div>
+                        </div>
+                        @if($statistics['team']['most_requested_employee'])
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">الأكثر طلباً للاستئذان</h6>
+                                <h5 class="mb-1">{{ $statistics['team']['most_requested_employee']['name'] }}</h5>
+                                <small class="text-muted">{{ $statistics['team']['most_requested_employee']['count'] }} طلبات</small>
+                            </div>
+                        </div>
+                        @endif
+                        @if($statistics['team']['highest_minutes_employee'])
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <h6 class="text-muted mb-2">الأكثر استخداماً للدقائق</h6>
+                                <h5 class="mb-1">{{ $statistics['team']['highest_minutes_employee']['name'] }}</h5>
+                                <small class="text-muted">{{ $statistics['team']['highest_minutes_employee']['minutes'] }} دقيقة</small>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Charts for Team Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> توزيع طلبات الفريق</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="teamRequestsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> توزيع دقائق الفريق</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="chart-container">
+                                        <canvas id="teamMinutesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    <!-- قسم الإحصائيات HR -->
+    @if(Auth::user()->hasRole('hr') && isset($statistics['hr']))
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> إحصائيات جميع الموظفين</h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- بطاقات الإحصائيات الرئيسية -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 shadow-sm">
+                                <h6 class="text-muted mb-2">إجمالي الطلبات</h6>
+                                <h4 class="mb-0">{{ $statistics['hr']['total_requests'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 shadow-sm">
+                                <h6 class="text-muted mb-2">إجمالي الدقائق</h6>
+                                <h4 class="mb-0">{{ $statistics['hr']['total_minutes'] }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 shadow-sm">
+                                <h6 class="text-muted mb-2">تجاوزوا الحد المسموح</h6>
+                                <h4 class="mb-0 text-danger">
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#exceededLimitModal" class="text-danger text-decoration-none">
+                                        {{ $statistics['hr']['employees_exceeded_limit'] }} موظفين
+                                    </a>
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 shadow-sm">
+                                <h6 class="text-muted mb-2">الطلبات المعلقة</h6>
+                                <h4 class="mb-0 text-warning">{{ $statistics['hr']['pending_requests'] }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        @if($statistics['hr']['most_requested_employee'])
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 shadow-sm">
+                                <h6 class="text-muted mb-2">الأكثر طلباً للاستئذان</h6>
+                                <h5 class="mb-1">{{ $statistics['hr']['most_requested_employee']['name'] }}</h5>
+                                <small class="text-muted">{{ $statistics['hr']['most_requested_employee']['count'] }} طلبات</small>
+                            </div>
+                        </div>
+                        @endif
+                        @if($statistics['hr']['highest_minutes_employee'])
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 shadow-sm">
+                                <h6 class="text-muted mb-2">الأكثر استخداماً للوقت</h6>
+                                <h5 class="mb-1">{{ $statistics['hr']['highest_minutes_employee']['name'] }}</h5>
+                                <small class="text-muted">{{ $statistics['hr']['highest_minutes_employee']['minutes'] }} دقيقة</small>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- مقارنة مع الفترة السابقة -->
+                    <div class="row mt-4 mb-4">
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-exchange-alt"></i> مقارنة مع الفترة السابقة</h5>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="comparison-card">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="text-muted mb-3">الطلبات</h6>
+                                    <h3 class="mb-2">{{ $statistics['hr']['comparison_with_previous']['current_period']['total_requests'] }}</h3>
+                                    <div class="d-flex justify-content-center">
+                                        @php
+                                            $requestsChange = $statistics['hr']['comparison_with_previous']['percentage_change']['total_requests'];
+                                            $requestsChangeClass = $requestsChange > 0 ? 'text-success' : ($requestsChange < 0 ? 'text-danger' : 'text-muted');
+                                            $requestsChangeIcon = $requestsChange > 0 ? 'fa-arrow-up' : ($requestsChange < 0 ? 'fa-arrow-down' : 'fa-equals');
+                                        @endphp
+                                        <span class="{{ $requestsChangeClass }}">
+                                            <i class="fas {{ $requestsChangeIcon }}"></i>
+                                            {{ abs($requestsChange) }}%
+                                        </span>
+                                        <span class="text-muted ms-2">({{ $statistics['hr']['comparison_with_previous']['previous_period']['total_requests'] }})</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="comparison-card">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="text-muted mb-3">الدقائق</h6>
+                                    <h3 class="mb-2">{{ $statistics['hr']['comparison_with_previous']['current_period']['total_minutes'] }}</h3>
+                                    <div class="d-flex justify-content-center">
+                                        @php
+                                            $minutesChange = $statistics['hr']['comparison_with_previous']['percentage_change']['total_minutes'];
+                                            $minutesChangeClass = $minutesChange > 0 ? 'text-success' : ($minutesChange < 0 ? 'text-danger' : 'text-muted');
+                                            $minutesChangeIcon = $minutesChange > 0 ? 'fa-arrow-up' : ($minutesChange < 0 ? 'fa-arrow-down' : 'fa-equals');
+                                        @endphp
+                                        <span class="{{ $minutesChangeClass }}">
+                                            <i class="fas {{ $minutesChangeIcon }}"></i>
+                                            {{ abs($minutesChange) }}%
+                                        </span>
+                                        <span class="text-muted ms-2">({{ $statistics['hr']['comparison_with_previous']['previous_period']['total_minutes'] }})</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="comparison-card">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="text-muted mb-3">العودة في الوقت</h6>
+                                    <h3 class="mb-2">{{ $statistics['hr']['comparison_with_previous']['current_period']['on_time_returns'] }}</h3>
+                                    <div class="d-flex justify-content-center">
+                                        @php
+                                            $onTimeChange = $statistics['hr']['comparison_with_previous']['percentage_change']['on_time_returns'];
+                                            $onTimeChangeClass = $onTimeChange > 0 ? 'text-success' : ($onTimeChange < 0 ? 'text-danger' : 'text-muted');
+                                            $onTimeChangeIcon = $onTimeChange > 0 ? 'fa-arrow-up' : ($onTimeChange < 0 ? 'fa-arrow-down' : 'fa-equals');
+                                        @endphp
+                                        <span class="{{ $onTimeChangeClass }}">
+                                            <i class="fas {{ $onTimeChangeIcon }}"></i>
+                                            {{ abs($onTimeChange) }}%
+                                        </span>
+                                        <span class="text-muted ms-2">({{ $statistics['hr']['comparison_with_previous']['previous_period']['on_time_returns'] }})</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="comparison-card">
+                                <div class="card-body text-center p-3">
+                                    <h6 class="text-muted mb-3">التأخير عن العودة</h6>
+                                    <h3 class="mb-2">{{ $statistics['hr']['comparison_with_previous']['current_period']['late_returns'] }}</h3>
+                                    <div class="d-flex justify-content-center">
+                                        @php
+                                            $lateChange = $statistics['hr']['comparison_with_previous']['percentage_change']['late_returns'];
+                                            $lateChangeClass = $lateChange < 0 ? 'text-success' : ($lateChange > 0 ? 'text-danger' : 'text-muted');
+                                            $lateChangeIcon = $lateChange > 0 ? 'fa-arrow-up' : ($lateChange < 0 ? 'fa-arrow-down' : 'fa-equals');
+                                        @endphp
+                                        <span class="{{ $lateChangeClass }}">
+                                            <i class="fas {{ $lateChangeIcon }}"></i>
+                                            {{ abs($lateChange) }}%
+                                        </span>
+                                        <span class="text-muted ms-2">({{ $statistics['hr']['comparison_with_previous']['previous_period']['late_returns'] }})</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الرسومات البيانية -->
+                    <div class="stats-grid">
+                        <div class="hr-chart-wrapper">
+                            <div class="hr-chart-card">
+                                <div class="hr-chart-header">
+                                    <span><i class="fas fa-chart-pie"></i> توزيع حالات الطلبات</span>
+                                </div>
+                                <div class="hr-chart-body">
+                                    <canvas id="hrRequestsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hr-chart-wrapper">
+                            <div class="hr-chart-card">
+                                <div class="hr-chart-header">
+                                    <span><i class="fas fa-clock"></i> حالة العودة للطلبات المعتمدة</span>
+                                </div>
+                                <div class="hr-chart-body">
+                                    <canvas id="hrReturnStatusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hr-chart-wrapper">
+                            <div class="hr-chart-card">
+                                <div class="hr-chart-header">
+                                    <span><i class="fas fa-building"></i> إحصائيات الأقسام (الدقائق)</span>
+                                </div>
+                                <div class="hr-chart-body">
+                                    <canvas id="hrDepartmentMinutesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hr-chart-wrapper">
+                            <div class="hr-chart-card">
+                                <div class="hr-chart-header">
+                                    <span><i class="fas fa-calendar-day"></i> الاتجاه اليومي للطلبات</span>
+                                </div>
+                                <div class="hr-chart-body">
+                                    <canvas id="hrDailyTrendChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hr-chart-wrapper">
+                            <div class="hr-chart-card">
+                                <div class="hr-chart-header">
+                                    <span><i class="fas fa-calendar-week"></i> أكثر أيام الأسبوع ازدحاماً</span>
+                                </div>
+                                <div class="hr-chart-body">
+                                    <canvas id="hrBusiestDaysChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hr-chart-wrapper">
+                            <div class="hr-chart-card">
+                                <div class="hr-chart-header">
+                                    <span><i class="fas fa-hourglass-half"></i> أكثر ساعات العمل ازدحاماً</span>
+                                </div>
+                                <div class="hr-chart-body">
+                                    <canvas id="hrBusiestHoursChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 <!-- Create Modal -->
 <div class="modal fade" id="createPermissionModal" tabindex="-1">
@@ -1696,6 +1437,42 @@ document.addEventListener('DOMContentLoaded', function() {
                         </thead>
                         <tbody>
                             @foreach($statistics['team']['exceeded_employees'] ?? [] as $index => $employee)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ $employee['name'] }}</td>
+                                <td>{{ $employee['total_minutes'] }} دقيقة</td>
+                                <td class="text-danger">{{ $employee['total_minutes'] - 180 }} دقيقة</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal للموظفين المتجاوزين -->
+<div class="modal fade" id="exceededLimitModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">الموظفين المتجاوزين للحد المسموح</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الموظف</th>
+                                <th>الدقائق المستخدمة</th>
+                                <th>تجاوز الحد بـ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($statistics['hr']['exceeded_employees'] ?? [] as $index => $employee)
                             <tr>
                                 <td>{{ $index + 1 }}</td>
                                 <td>{{ $employee['name'] }}</td>
@@ -1983,5 +1760,677 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 </script>
 @endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js Configuration
+    Chart.defaults.font.family = 'Cairo, sans-serif';
+    Chart.defaults.color = '#4a5568';
+    Chart.defaults.plugins.tooltip.rtl = true;
+    Chart.defaults.plugins.tooltip.titleAlign = 'right';
+    Chart.defaults.plugins.tooltip.bodyAlign = 'right';
+
+    // Ensure charts are responsive
+    const resizeCharts = () => {
+        const chartContainers = document.querySelectorAll('.hr-chart-body');
+        chartContainers.forEach(container => {
+            const canvas = container.querySelector('canvas');
+            if (canvas) {
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.height = container.offsetHeight;
+                canvas.width = container.offsetWidth;
+            }
+        });
+    };
+
+    // Call resize on load and window resize
+    resizeCharts();
+    window.addEventListener('resize', resizeCharts);
+
+    // Ensure charts are visible after load
+    setTimeout(() => {
+        document.querySelectorAll('.hr-chart-card').forEach(card => {
+            card.classList.add('fade-in');
+        });
+
+        // Force redraw of charts
+        window.dispatchEvent(new Event('resize'));
+    }, 100);
+
+    // Common Colors
+    const colors = {
+        approved: {
+            bg: 'rgba(25, 135, 84, 0.2)',
+            border: 'rgb(25, 135, 84)'
+        },
+        pending: {
+            bg: 'rgba(255, 193, 7, 0.2)',
+            border: 'rgb(255, 193, 7)'
+        },
+        rejected: {
+            bg: 'rgba(220, 53, 69, 0.2)',
+            border: 'rgb(220, 53, 69)'
+        },
+        onTime: {
+            bg: 'rgba(13, 110, 253, 0.2)',
+            border: 'rgb(13, 110, 253)'
+        },
+        late: {
+            bg: 'rgba(220, 53, 69, 0.2)',
+            border: 'rgb(220, 53, 69)'
+        }
+    };
+
+    // Common Chart Options
+    const commonPieOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                rtl: true,
+                labels: {
+                    font: {
+                        family: 'Cairo, sans-serif'
+                    },
+                    padding: 20
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = total > 0 ? ((value * 100) / total).toFixed(1) : 0;
+                        return `${label}: ${value} (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    const commonBarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    font: {
+                        family: 'Cairo, sans-serif'
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    font: {
+                        family: 'Cairo, sans-serif'
+                    }
+                }
+            }
+        }
+    };
+
+    // Personal Statistics Charts
+    @if(isset($statistics) && isset($statistics['personal']))
+    const personalRequestsCtx = document.getElementById('personalRequestsChart')?.getContext('2d');
+    if (personalRequestsCtx) {
+        const approvedRequests = {{ $statistics['personal']['approved_requests'] }};
+        const pendingRequests = {{ $statistics['personal']['pending_requests'] }};
+        const rejectedRequests = {{ $statistics['personal']['rejected_requests'] }};
+
+        new Chart(personalRequestsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['تمت الموافقة', 'معلقة', 'مرفوضة'],
+                datasets: [{
+                    data: [approvedRequests, pendingRequests, rejectedRequests],
+                    backgroundColor: [colors.approved.bg, colors.pending.bg, colors.rejected.bg],
+                    borderColor: [colors.approved.border, colors.pending.border, colors.rejected.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    const personalMinutesCtx = document.getElementById('personalMinutesChart')?.getContext('2d');
+    if (personalMinutesCtx) {
+        const onTimeReturns = {{ $statistics['personal']['on_time_returns'] }};
+        const lateReturns = {{ $statistics['personal']['late_returns'] }};
+        const totalMinutes = {{ $statistics['personal']['total_minutes'] }};
+
+        new Chart(personalMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['الدقائق المستخدمة', 'عودة في الوقت', 'عودة متأخرة'],
+                datasets: [{
+                    label: 'العدد',
+                    data: [totalMinutes, onTimeReturns, lateReturns],
+                    backgroundColor: [colors.approved.bg, colors.onTime.bg, colors.late.bg],
+                    borderColor: [colors.approved.border, colors.onTime.border, colors.late.border],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...commonBarOptions,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                if (index === 0) {
+                                    return `الدقائق المستخدمة: ${context.parsed.y} دقيقة`;
+                                } else {
+                                    return `العدد: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    @endif
+
+    // Team Statistics Charts
+    @if(isset($statistics) && isset($statistics['team']))
+    const teamRequestsCtx = document.getElementById('teamRequestsChart')?.getContext('2d');
+    if (teamRequestsCtx) {
+        const totalRequests = {{ $statistics['team']['total_requests'] }};
+        const exceededLimit = {{ $statistics['team']['employees_exceeded_limit'] }};
+        const withinLimit = totalRequests - exceededLimit;
+
+        new Chart(teamRequestsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['ضمن الحد المسموح', 'تجاوزوا الحد'],
+                datasets: [{
+                    data: [withinLimit, exceededLimit],
+                    backgroundColor: [colors.approved.bg, colors.rejected.bg],
+                    borderColor: [colors.approved.border, colors.rejected.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    const teamMinutesCtx = document.getElementById('teamMinutesChart')?.getContext('2d');
+    if (teamMinutesCtx) {
+        // Get top 5 employees by minutes if available
+        @if(isset($statistics['team']['team_employees']) && count($statistics['team']['team_employees']) > 0)
+        const teamEmployees = @json($statistics['team']['team_employees']);
+        const sortedEmployees = teamEmployees.sort((a, b) => b.minutes - a.minutes).slice(0, 5);
+        const labels = sortedEmployees.map(emp => emp.name);
+        const minutes = sortedEmployees.map(emp => emp.minutes);
+
+        new Chart(teamMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'الدقائق المستخدمة',
+                    data: minutes,
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...commonBarOptions,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y} دقيقة`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(teamMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['إجمالي دقائق الفريق'],
+                datasets: [{
+                    label: 'الدقائق',
+                    data: [{{ $statistics['team']['total_minutes'] }}],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+    @endif
+
+    // HR Statistics Charts
+    @if(isset($statistics) && isset($statistics['hr']))
+    const hrRequestsCtx = document.getElementById('hrRequestsChart')?.getContext('2d');
+    if (hrRequestsCtx) {
+        const totalRequests = {{ $statistics['hr']['total_requests'] }};
+        const pendingRequests = {{ $statistics['hr']['pending_requests'] }};
+        const exceededLimit = {{ $statistics['hr']['employees_exceeded_limit'] }};
+        const normalRequests = totalRequests - pendingRequests - exceededLimit;
+
+        new Chart(hrRequestsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['طلبات عادية', 'طلبات معلقة', 'تجاوزوا الحد'],
+                datasets: [{
+                    data: [normalRequests, pendingRequests, exceededLimit],
+                    backgroundColor: [colors.approved.bg, colors.pending.bg, colors.rejected.bg],
+                    borderColor: [colors.approved.border, colors.pending.border, colors.rejected.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    // إحصائيات حالة العودة
+    const hrReturnStatusCtx = document.getElementById('hrReturnStatusChart')?.getContext('2d');
+    if (hrReturnStatusCtx) {
+        const returnStats = @json($statistics['hr']['return_status_stats']);
+
+        new Chart(hrReturnStatusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['عاد في الوقت', 'تأخر عن العودة', 'غير محدد'],
+                datasets: [{
+                    data: [returnStats.on_time_returns, returnStats.late_returns, returnStats.undefined_returns],
+                    backgroundColor: [colors.onTime.bg, colors.late.bg, colors.pending.bg],
+                    borderColor: [colors.onTime.border, colors.late.border, colors.pending.border],
+                    borderWidth: 1
+                }]
+            },
+            options: commonPieOptions
+        });
+    }
+
+    const hrDepartmentMinutesCtx = document.getElementById('hrDepartmentMinutesChart')?.getContext('2d');
+    if (hrDepartmentMinutesCtx) {
+        // Get department statistics if available
+        @if(isset($statistics['hr']['departments']) && count($statistics['hr']['departments']) > 0)
+        const departments = @json($statistics['hr']['departments']);
+        const labels = departments.map(dept => dept.name);
+        const minutes = departments.map(dept => dept.total_minutes);
+        const avgMinutes = departments.map(dept => dept.avg_minutes);
+        const requestCounts = departments.map(dept => dept.request_count);
+
+        new Chart(hrDepartmentMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'إجمالي الدقائق',
+                        data: minutes,
+                        backgroundColor: colors.approved.bg,
+                        borderColor: colors.approved.border,
+                        borderWidth: 1,
+                        yAxisID: 'minutes'
+                    },
+                    {
+                        label: 'متوسط الدقائق للموظف',
+                        data: avgMinutes,
+                        backgroundColor: colors.onTime.bg,
+                        borderColor: colors.onTime.border,
+                        borderWidth: 1,
+                        yAxisID: 'minutes'
+                    },
+                    {
+                        label: 'عدد الطلبات',
+                        data: requestCounts,
+                        backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'requests'
+                    }
+                ]
+            },
+            options: {
+                ...commonBarOptions,
+                scales: {
+                    minutes: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'الدقائق'
+                        }
+                    },
+                    requests: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'عدد الطلبات'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const dept = departments[context.dataIndex];
+                                return [
+                                    `عدد الموظفين: ${dept.employee_count}`,
+                                    `عدد الطلبات: ${dept.request_count}`,
+                                    `عادوا في الوقت: ${dept.on_time_returns}`,
+                                    `تأخروا عن العودة: ${dept.late_returns}`
+                                ];
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'إحصائيات الاستئذان حسب الأقسام الإدارية',
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        },
+                        font: {
+                            size: 14
+                        }
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(hrDepartmentMinutesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['لا توجد بيانات'],
+                datasets: [{
+                    label: 'الدقائق',
+                    data: [{{ $statistics['hr']['total_minutes'] }}],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+
+    // الاتجاه اليومي للطلبات
+    const hrDailyTrendCtx = document.getElementById('hrDailyTrendChart')?.getContext('2d');
+    if (hrDailyTrendCtx) {
+        @if(isset($statistics['hr']['daily_stats']) && count($statistics['hr']['daily_stats']) > 0)
+        const dailyStats = @json($statistics['hr']['daily_stats']);
+        const dates = dailyStats.map(item => item.date);
+        const dailyRequests = dailyStats.map(item => item.total_requests);
+        const dailyMinutes = dailyStats.map(item => item.total_minutes);
+
+        new Chart(hrDailyTrendCtx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'عدد الطلبات',
+                        data: dailyRequests,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        yAxisID: 'requests'
+                    },
+                    {
+                        label: 'إجمالي الدقائق',
+                        data: dailyMinutes,
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        yAxisID: 'minutes'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    requests: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'عدد الطلبات'
+                        }
+                    },
+                    minutes: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'إجمالي الدقائق'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(hrDailyTrendCtx, {
+            type: 'bar',
+            data: {
+                labels: ['لا توجد بيانات كافية'],
+                datasets: [{
+                    label: 'الطلبات',
+                    data: [0],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+
+    // أكثر أيام الأسبوع ازدحاماً
+    const hrBusiestDaysCtx = document.getElementById('hrBusiestDaysChart')?.getContext('2d');
+    if (hrBusiestDaysCtx) {
+        @if(isset($statistics['hr']['busiest_days']) && count($statistics['hr']['busiest_days']) > 0)
+        const busiestDays = @json($statistics['hr']['busiest_days']);
+
+        // تعريب أسماء أيام الأسبوع
+        const arabicDayNames = {
+            'Sunday': 'الأحد',
+            'Monday': 'الإثنين',
+            'Tuesday': 'الثلاثاء',
+            'Wednesday': 'الأربعاء',
+            'Thursday': 'الخميس',
+            'Friday': 'الجمعة',
+            'Saturday': 'السبت'
+        };
+
+        const dayNames = busiestDays.map(day => arabicDayNames[day.day_name] || day.day_name);
+        const dayRequests = busiestDays.map(day => day.total_requests);
+        const dayMinutes = busiestDays.map(day => day.total_minutes);
+
+        new Chart(hrBusiestDaysCtx, {
+            type: 'bar',
+            data: {
+                labels: dayNames,
+                datasets: [
+                    {
+                        label: 'عدد الطلبات',
+                        data: dayRequests,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'requests'
+                    },
+                    {
+                        label: 'إجمالي الدقائق',
+                        data: dayMinutes,
+                        backgroundColor: 'rgba(255, 159, 64, 0.7)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'minutes'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    requests: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'عدد الطلبات'
+                        }
+                    },
+                    minutes: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'إجمالي الدقائق'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(hrBusiestDaysCtx, {
+            type: 'bar',
+            data: {
+                labels: ['لا توجد بيانات كافية'],
+                datasets: [{
+                    label: 'الطلبات',
+                    data: [0],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+
+    // أكثر ساعات العمل ازدحاماً
+    const hrBusiestHoursCtx = document.getElementById('hrBusiestHoursChart')?.getContext('2d');
+    if (hrBusiestHoursCtx) {
+        @if(isset($statistics['hr']['busiest_hours']) && count($statistics['hr']['busiest_hours']) > 0)
+        const busiestHours = @json($statistics['hr']['busiest_hours']);
+        const hourLabels = busiestHours.map(hour => hour.hour_formatted);
+        const hourRequests = busiestHours.map(hour => hour.total_requests);
+        const hourMinutes = busiestHours.map(hour => hour.total_minutes);
+
+        new Chart(hrBusiestHoursCtx, {
+            type: 'bar',
+            data: {
+                labels: hourLabels,
+                datasets: [
+                    {
+                        label: 'عدد الطلبات',
+                        data: hourRequests,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'requests'
+                    },
+                    {
+                        label: 'إجمالي الدقائق',
+                        data: hourMinutes,
+                        backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'minutes'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    requests: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'عدد الطلبات'
+                        }
+                    },
+                    minutes: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'إجمالي الدقائق'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+        @else
+        new Chart(hrBusiestHoursCtx, {
+            type: 'bar',
+            data: {
+                labels: ['لا توجد بيانات كافية'],
+                datasets: [{
+                    label: 'الطلبات',
+                    data: [0],
+                    backgroundColor: colors.approved.bg,
+                    borderColor: colors.approved.border,
+                    borderWidth: 1
+                }]
+            },
+            options: commonBarOptions
+        });
+        @endif
+    }
+    @endif
+});
+</script>
+@endpush
+
 
 @endsection

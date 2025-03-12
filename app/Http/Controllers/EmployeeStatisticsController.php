@@ -228,6 +228,10 @@ class EmployeeStatisticsController extends Controller
                 ->count();
 
             $employee->current_month_leaves = $currentMonthLeaves;
+
+            // Add performance analysis
+            $employee->performance_metrics = $this->calculatePerformanceMetrics($employee, $startDate, $endDate);
+            $employee->performance_predictions = $this->predictFuturePerformance($employee);
         }
 
         return view('employee-statistics.index', compact(
@@ -546,5 +550,137 @@ class EmployeeStatisticsController extends Controller
         });
 
         return response()->json($formattedLeaves);
+    }
+
+    private function calculatePerformanceMetrics($employee, $startDate, $endDate)
+    {
+        // Calculate attendance score (0-100)
+        $attendanceScore = min(100, ($employee->attendance_percentage ?? 0));
+
+        // Calculate punctuality score (0-100)
+        $maxAcceptableDelays = 180; // 3 hours per month
+        $punctualityScore = max(0, 100 - (($employee->delays / $maxAcceptableDelays) * 100));
+
+        // Calculate work consistency score (0-100)
+        $workingHoursScore = min(100, (($employee->average_working_hours / 8) * 100));
+
+        // Calculate overall performance score
+        $overallScore = round(($attendanceScore * 0.4) + ($punctualityScore * 0.3) + ($workingHoursScore * 0.3), 1);
+
+        // Performance trend (comparing with previous period)
+        $previousPeriodScore = $this->calculatePreviousPeriodScore($employee, $startDate);
+        $trend = $overallScore - $previousPeriodScore;
+
+        return [
+            'attendance_score' => round($attendanceScore, 1),
+            'punctuality_score' => round($punctualityScore, 1),
+            'working_hours_score' => round($workingHoursScore, 1),
+            'overall_score' => $overallScore,
+            'trend' => round($trend, 1),
+            'performance_level' => $this->getPerformanceLevel($overallScore),
+            'areas_for_improvement' => $this->getAreasForImprovement($attendanceScore, $punctualityScore, $workingHoursScore)
+        ];
+    }
+
+    private function calculatePreviousPeriodScore($employee, $startDate)
+    {
+        // Get previous period dates
+        $previousStart = Carbon::parse($startDate)->subMonth();
+        $previousEnd = Carbon::parse($startDate)->subDay();
+
+        // Calculate previous attendance percentage
+        $previousStats = AttendanceRecord::where('employee_id', $employee->employee_id)
+            ->whereBetween('attendance_date', [$previousStart, $previousEnd])
+            ->get();
+
+        $totalDays = $previousStats->count();
+        $presentDays = $previousStats->where('status', 'حضـور')->count();
+
+        $prevAttendanceScore = $totalDays > 0 ? ($presentDays / $totalDays) * 100 : 0;
+        $prevPunctualityScore = 100 - (($previousStats->sum('delay_minutes') / 180) * 100);
+        $prevWorkingHoursScore = $previousStats->avg('working_hours') ? (($previousStats->avg('working_hours') / 8) * 100) : 0;
+
+        return round(($prevAttendanceScore * 0.4) + ($prevPunctualityScore * 0.3) + ($prevWorkingHoursScore * 0.3), 1);
+    }
+
+    private function getPerformanceLevel($score)
+    {
+        if ($score >= 90) return 'ممتاز';
+        if ($score >= 80) return 'جيد جداً';
+        if ($score >= 70) return 'جيد';
+        if ($score >= 60) return 'مقبول';
+        return 'يحتاج إلى تحسين';
+    }
+
+    private function getAreasForImprovement($attendanceScore, $punctualityScore, $workingHoursScore)
+    {
+        $areas = [];
+
+        if ($attendanceScore < 80) {
+            $areas[] = 'تحسين نسبة الحضور';
+        }
+        if ($punctualityScore < 80) {
+            $areas[] = 'الالتزام بمواعيد الحضور';
+        }
+        if ($workingHoursScore < 80) {
+            $areas[] = 'زيادة ساعات العمل الفعلية';
+        }
+
+        return $areas;
+    }
+
+    private function predictFuturePerformance($employee)
+    {
+        // Calculate trend based on last 3 months
+        $threeMonthsAgo = now()->subMonths(3);
+        $monthlyScores = [];
+
+        for ($i = 0; $i < 3; $i++) {
+            $monthStart = now()->subMonths($i)->startOfMonth();
+            $monthEnd = now()->subMonths($i)->endOfMonth();
+
+            $monthStats = AttendanceRecord::where('employee_id', $employee->employee_id)
+                ->whereBetween('attendance_date', [$monthStart, $monthEnd])
+                ->get();
+
+            $presentDays = $monthStats->where('status', 'حضـور')->count();
+            $totalDays = $monthStats->count() ?: 1;
+
+            $monthlyScores[] = ($presentDays / $totalDays) * 100;
+        }
+
+        // Calculate trend
+        $trend = 0;
+        if (count($monthlyScores) >= 2) {
+            $trend = ($monthlyScores[0] - $monthlyScores[count($monthlyScores)-1]) / count($monthlyScores);
+        }
+
+        // Predict next month's performance
+        $predictedScore = end($monthlyScores) + $trend;
+        $predictedScore = max(0, min(100, $predictedScore));
+
+        return [
+            'predicted_attendance' => round($predictedScore, 1),
+            'trend_direction' => $trend > 0 ? 'تحسن' : ($trend < 0 ? 'تراجع' : 'ثابت'),
+            'trend_percentage' => abs(round($trend, 1)),
+            'recommendations' => $this->getRecommendations($predictedScore, $trend)
+        ];
+    }
+
+    private function getRecommendations($predictedScore, $trend)
+    {
+        $recommendations = [];
+
+        if ($predictedScore < 70) {
+            $recommendations[] = 'يحتاج إلى متابعة مباشرة وخطة تحسين عاجلة';
+        } elseif ($predictedScore < 85) {
+            $recommendations[] = 'يحتاج إلى تحسين في بعض جوانب الأداء';
+        }
+
+        if ($trend < 0) {
+            $recommendations[] = 'مراجعة أسباب تراجع الأداء ووضع خطة تصحيحية';
+        }
+
+        return $recommendations ?: ['الحفاظ على مستوى الأداء الحالي'];
     }
 }

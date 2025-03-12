@@ -423,8 +423,13 @@ class AbsenceRequestController extends Controller
                 'employees_exceeded_limit' => 0,
                 'most_absent_employee' => null,
                 'highest_days_employee' => null,
-                'departments_stats' => [],
-                'monthly_trend' => [],
+                'charts_data' => [
+                    'monthly_stats' => [],
+                    'department_stats' => [],
+                    'reasons_stats' => [],
+                    'weekday_stats' => [],
+                    'age_group_stats' => []
+                ]
             ],
         ];
 
@@ -580,6 +585,88 @@ class AbsenceRequestController extends Controller
                         'count' => $mostAbsent->absence_count
                     ] : null,
                     'exceeded_employees' => $exceededEmployees
+                ];
+
+                // Monthly Statistics
+                $monthlyStats = DB::table('absence_requests')
+                    ->whereIn('user_id', $allEmployees)
+                    ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                    ->select(
+                        DB::raw('DATE_FORMAT(absence_date, "%Y-%m") as month'),
+                        DB::raw('COUNT(*) as total_requests'),
+                        DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved_count'),
+                        DB::raw('SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected_count'),
+                        DB::raw('COUNT(DISTINCT user_id) as unique_employees')
+                    )
+                    ->groupBy(DB::raw('DATE_FORMAT(absence_date, "%Y-%m")'))
+                    ->orderBy('month')
+                    ->get();
+
+                // Department Statistics
+                $departmentStats = DB::table('absence_requests')
+                    ->join('users', 'users.id', '=', 'absence_requests.user_id')
+                    ->join('team_user', 'users.id', '=', 'team_user.user_id')
+                    ->join('teams', 'teams.id', '=', 'team_user.team_id')
+                    ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                    ->select(
+                        'teams.name as department',
+                        DB::raw('COUNT(DISTINCT absence_requests.user_id) as employee_count'),
+                        DB::raw('COUNT(*) as request_count'),
+                        DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved_count'),
+                        DB::raw('ROUND(AVG(CASE WHEN status = "approved" THEN 1 ELSE 0 END) * 100, 2) as approval_rate')
+                    )
+                    ->groupBy('teams.id', 'teams.name')
+                    ->get();
+
+                // Reasons Statistics
+                $reasonsStats = DB::table('absence_requests')
+                    ->whereIn('user_id', $allEmployees)
+                    ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                    ->select('reason', DB::raw('COUNT(*) as count'))
+                    ->groupBy('reason')
+                    ->orderByDesc('count')
+                    ->limit(5)
+                    ->get();
+
+                // Weekday Statistics
+                $weekdayStats = DB::table('absence_requests')
+                    ->whereIn('user_id', $allEmployees)
+                    ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                    ->select(
+                        DB::raw('DAYNAME(absence_date) as weekday'),
+                        DB::raw('COUNT(*) as count')
+                    )
+                    ->groupBy('weekday')
+                    ->orderBy(DB::raw('DAYOFWEEK(absence_date)'))
+                    ->get();
+
+                // Age Group Statistics
+                $ageStats = DB::table('absence_requests')
+                    ->join('users', 'users.id', '=', 'absence_requests.user_id')
+                    ->whereIn('absence_requests.user_id', $allEmployees)
+                    ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                    ->select(
+                        DB::raw('
+                            CASE
+                                WHEN TIMESTAMPDIFF(YEAR, users.date_of_birth, CURDATE()) < 25 THEN "18-24"
+                                WHEN TIMESTAMPDIFF(YEAR, users.date_of_birth, CURDATE()) < 35 THEN "25-34"
+                                WHEN TIMESTAMPDIFF(YEAR, users.date_of_birth, CURDATE()) < 45 THEN "35-44"
+                                ELSE "45+"
+                            END as age_group
+                        '),
+                        DB::raw('COUNT(*) as request_count'),
+                        DB::raw('COUNT(DISTINCT absence_requests.user_id) as employee_count'),
+                        DB::raw('ROUND(AVG(CASE WHEN status = "approved" THEN 1 ELSE 0 END) * 100, 2) as approval_rate')
+                    )
+                    ->groupBy('age_group')
+                    ->get();
+
+                $statistics['hr']['charts_data'] = [
+                    'monthly_stats' => $monthlyStats,
+                    'department_stats' => $departmentStats,
+                    'reasons_stats' => $reasonsStats,
+                    'weekday_stats' => $weekdayStats,
+                    'age_group_stats' => $ageStats
                 ];
             }
 

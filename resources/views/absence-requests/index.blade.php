@@ -1,4 +1,4 @@
-@extends('layouts.app')
+ @extends('layouts.app')
 
 @section('content')
 <link href="{{ asset('css/absence-management.css') }}" rel="stylesheet">
@@ -1157,6 +1157,61 @@
     </div>
     @endif
 
+    @if(Auth::user()->hasRole('hr'))
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">إحصائيات تفصيلية للغياب</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Monthly Trend Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container">
+                                <h6 class="text-center mb-3">تحليل الغياب الشهري</h6>
+                                <canvas id="hrMonthlyChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Department Statistics Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container">
+                                <h6 class="text-center mb-3">معدل الغياب حسب القسم</h6>
+                                <canvas id="hrDepartmentChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Top Reasons Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container">
+                                <h6 class="text-center mb-3">أكثر أسباب الغياب شيوعاً</h6>
+                                <canvas id="hrReasonsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Weekday Statistics Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container">
+                                <h6 class="text-center mb-3">معدل الغياب حسب أيام الأسبوع</h6>
+                                <canvas id="hrWeekdayChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Age Group Statistics Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="chart-container">
+                                <h6 class="text-center mb-3">معدل الغياب حسب الفئة العمرية</h6>
+                                <canvas id="hrAgeGroupChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
 
 @push('scripts')
@@ -1696,6 +1751,202 @@
                 }
             });
         }
+
+        // HR Detailed Statistics Charts
+        @if(Auth::user()->hasRole('hr'))
+        // Monthly Analysis Chart
+        if (document.getElementById('hrMonthlyChart')) {
+            const monthlyData = @json($statistics['hr']['charts_data']['monthly_stats']);
+            const monthlyCtx = document.getElementById('hrMonthlyChart').getContext('2d');
+            new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(item => item.month),
+                    datasets: [{
+                        label: 'إجمالي الطلبات',
+                        data: monthlyData.map(item => item.total_requests),
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        fill: true
+                    }, {
+                        label: 'الطلبات المقبولة',
+                        data: monthlyData.map(item => item.approved_count),
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'تحليل الغياب الشهري',
+                            font: { family: 'Cairo, sans-serif', size: 16 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Department Statistics Chart
+        if (document.getElementById('hrDepartmentChart')) {
+            const departmentData = @json($statistics['hr']['charts_data']['department_stats']);
+            const departmentCtx = document.getElementById('hrDepartmentChart').getContext('2d');
+            new Chart(departmentCtx, {
+                type: 'bar',
+                data: {
+                    labels: departmentData.map(item => item.department),
+                    datasets: [{
+                        label: 'معدل الموافقة (%)',
+                        data: departmentData.map(item => item.approval_rate),
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'معدل الغياب حسب القسم',
+                            font: { family: 'Cairo, sans-serif', size: 16 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Reasons Chart
+        if (document.getElementById('hrReasonsChart')) {
+            const reasonsData = @json($statistics['hr']['charts_data']['reasons_stats']);
+            const reasonsCtx = document.getElementById('hrReasonsChart').getContext('2d');
+            new Chart(reasonsCtx, {
+                type: 'pie',
+                data: {
+                    labels: reasonsData.map(item => item.reason),
+                    datasets: [{
+                        data: reasonsData.map(item => item.count),
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(13, 110, 253, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(108, 117, 125, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true,
+                            labels: { font: { family: 'Cairo, sans-serif' } }
+                        },
+                        title: {
+                            display: true,
+                            text: 'أسباب الغياب',
+                            font: { family: 'Cairo, sans-serif', size: 16 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Weekday Statistics Chart
+        if (document.getElementById('hrWeekdayChart')) {
+            const weekdayData = @json($statistics['hr']['charts_data']['weekday_stats']);
+            const weekdayCtx = document.getElementById('hrWeekdayChart').getContext('2d');
+            new Chart(weekdayCtx, {
+                type: 'bar',
+                data: {
+                    labels: weekdayData.map(item => item.weekday),
+                    datasets: [{
+                        label: 'عدد الطلبات',
+                        data: weekdayData.map(item => item.count),
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'توزيع الغياب على أيام الأسبوع',
+                            font: { family: 'Cairo, sans-serif', size: 16 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Age Group Statistics Chart
+        if (document.getElementById('hrAgeGroupChart')) {
+            const ageData = @json($statistics['hr']['charts_data']['age_group_stats']);
+            const ageCtx = document.getElementById('hrAgeGroupChart').getContext('2d');
+            new Chart(ageCtx, {
+                type: 'bar',
+                data: {
+                    labels: ageData.map(item => item.age_group),
+                    datasets: [{
+                        label: 'معدل الموافقة (%)',
+                        data: ageData.map(item => item.approval_rate),
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'معدل الموافقة حسب الفئة العمرية',
+                            font: { family: 'Cairo, sans-serif', size: 16 }
+                        }
+                    }
+                }
+            });
+        }
+        @endif
         @endif
         @endif
     });

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class OverTimeRequestsController extends Controller
 {
@@ -264,6 +265,95 @@ class OverTimeRequestsController extends Controller
                 'pending_requests' => OverTimeRequests::where('status', 'pending')
                     ->whereBetween('overtime_date', [$dateStart, $dateEnd])
                     ->count(),
+                'rejected_requests' => OverTimeRequests::where('status', 'rejected')
+                    ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                    ->count(),
+                'approval_rate' => OverTimeRequests::whereBetween('overtime_date', [$dateStart, $dateEnd])
+                    ->whereIn('status', ['approved', 'rejected'])
+                    ->count() > 0
+                        ? (OverTimeRequests::where('status', 'approved')
+                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                            ->count() /
+                          OverTimeRequests::whereIn('status', ['approved', 'rejected'])
+                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                            ->count()) * 100
+                        : 0,
+                'average_hours_per_request' => OverTimeRequests::where('status', 'approved')
+                    ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                    ->count() > 0
+                        ? OverTimeRequests::where('status', 'approved')
+                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                            ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) / COUNT(*) as avg_hours')
+                            ->value('avg_hours')
+                        : 0,
+                'monthly_trends' => DB::table('over_time_requests')
+                    ->select(DB::raw('YEAR(overtime_date) as year, MONTH(overtime_date) as month'))
+                    ->selectRaw('COUNT(*) as total_requests')
+                    ->selectRaw('COUNT(CASE WHEN status = "approved" THEN 1 END) as approved_requests')
+                    ->selectRaw('COUNT(CASE WHEN status = "rejected" THEN 1 END) as rejected_requests')
+                    ->selectRaw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_requests')
+                    ->selectRaw('COALESCE(SUM(CASE WHEN status = "approved" THEN TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600 ELSE 0 END), 0) as total_hours')
+                    ->whereBetween('overtime_date', [Carbon::parse($dateStart)->subMonths(6), $dateEnd])
+                    ->groupBy('year', 'month')
+                    ->orderBy('year', 'asc')
+                    ->orderBy('month', 'asc')
+                    ->get(),
+                'day_of_week_stats' => DB::table('over_time_requests')
+                    ->select(DB::raw('DAYOFWEEK(overtime_date) as day_of_week'))
+                    ->selectRaw('COUNT(*) as total_requests')
+                    ->selectRaw('COALESCE(SUM(CASE WHEN status = "approved" THEN TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600 ELSE 0 END), 0) as total_hours')
+                    ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                    ->groupBy('day_of_week')
+                    ->get(),
+                'top_employees' => User::select('users.id', 'users.name', 'users.department')
+                    ->selectRaw('COUNT(DISTINCT over_time_requests.id) as total_requests')
+                    ->selectRaw('COALESCE(SUM(CASE WHEN over_time_requests.status = "approved" THEN TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600 ELSE 0 END), 0) as approved_hours')
+                    ->leftJoin('over_time_requests', function ($join) use ($dateStart, $dateEnd) {
+                        $join->on('users.id', '=', 'over_time_requests.user_id')
+                            ->whereBetween('over_time_requests.overtime_date', [$dateStart, $dateEnd]);
+                    })
+                    ->whereNotNull('department')
+                    ->havingRaw('approved_hours > 0')
+                    ->groupBy('users.id', 'users.name', 'users.department')
+                    ->orderByDesc('approved_hours')
+                    ->limit(10)
+                    ->get(),
+                'department_efficiency' => User::select('department')
+                    ->selectRaw('COALESCE(SUM(CASE WHEN over_time_requests.status = "approved" THEN TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600 ELSE 0 END), 0) as approved_hours')
+                    ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600), 0) as total_requested_hours')
+                    ->selectRaw('CASE WHEN COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600), 0) > 0
+                        THEN COALESCE(SUM(CASE WHEN over_time_requests.status = "approved" THEN TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600 ELSE 0 END), 0) /
+                             COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600), 0) * 100
+                        ELSE 0 END as efficiency_rate')
+                    ->leftJoin('over_time_requests', function ($join) use ($dateStart, $dateEnd) {
+                        $join->on('users.id', '=', 'over_time_requests.user_id')
+                            ->whereBetween('over_time_requests.overtime_date', [$dateStart, $dateEnd]);
+                    })
+                    ->whereNotNull('department')
+                    ->havingRaw('total_requested_hours > 0')
+                    ->groupBy('department')
+                    ->get(),
+                'comparative_analysis' => [
+                    'current_period' => [
+                        'total_requests' => OverTimeRequests::whereBetween('overtime_date', [$dateStart, $dateEnd])->count(),
+                        'approved_hours' => OverTimeRequests::where('status', 'approved')
+                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                            ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) as total_hours')
+                            ->value('total_hours')
+                    ],
+                    'previous_period' => [
+                        'total_requests' => OverTimeRequests::whereBetween('overtime_date',
+                            [Carbon::parse($dateStart)->subDays(Carbon::parse($dateEnd)->diffInDays(Carbon::parse($dateStart))),
+                             Carbon::parse($dateStart)->subDay()])
+                            ->count(),
+                        'approved_hours' => OverTimeRequests::where('status', 'approved')
+                            ->whereBetween('overtime_date',
+                                [Carbon::parse($dateStart)->subDays(Carbon::parse($dateEnd)->diffInDays(Carbon::parse($dateStart))),
+                                 Carbon::parse($dateStart)->subDay()])
+                            ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) as total_hours')
+                            ->value('total_hours')
+                    ]
+                ],
                 'departments_stats' => User::select('department')
                     ->selectRaw('COUNT(DISTINCT users.id) as total_employees')
                     ->selectRaw('COUNT(DISTINCT over_time_requests.id) as total_requests')

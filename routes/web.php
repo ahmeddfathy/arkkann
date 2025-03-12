@@ -21,6 +21,7 @@ use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\EmployeeStatisticsController;
 use App\Http\Controllers\SpecialCaseController;
 use App\Http\Controllers\WorkShiftController;
+use App\Http\Controllers\EmployeeCompetitionController;
 
 
 Route::get('/send-mail', function () {
@@ -172,6 +173,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('employee-statistics.index');
     Route::get('/employee-statistics/{id}', [EmployeeStatisticsController::class, 'getEmployeeDetails'])
         ->name('employee-statistics.details');
+
+    // Employee Competition Routes
+    Route::get('/employee-competition', [EmployeeCompetitionController::class, 'index'])
+        ->name('employee-competition.index');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -254,13 +259,4 @@ Route::post('/fcm-token', [App\Http\Controllers\FcmTokenController::class, 'upda
     ->middleware('auth')
     ->name('fcm.token.update');
 
-Route::get('/firebase/config', function () {
-    return response()->json([
-        'apiKey' => config('services.firebase.api_key'),
-        'authDomain' => config('services.firebase.auth_domain'),
-        'projectId' => config('services.firebase.project_id'),
-        'storageBucket' => config('services.firebase.storage_bucket'),
-        'messagingSenderId' => config('services.firebase.messaging_sender_id'),
-        'appId' => config('services.firebase.app_id'),
-    ]);
-});
+
