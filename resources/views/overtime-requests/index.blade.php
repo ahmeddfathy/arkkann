@@ -138,7 +138,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    @if($request->canUpdate(Auth::user()))
+                                    @if($request->canUpdate(Auth::user()) && Auth::user()->hasPermissionTo('update_overtime'))
                                     <button type="button" class="btn btn-primary edit-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editOvertimeModal"
@@ -153,7 +153,7 @@
                                     </button>
                                     @endif
 
-                                    @if($request->canDelete(Auth::user()))
+                                    @if($request->canDelete(Auth::user()) && Auth::user()->hasPermissionTo('delete_overtime'))
                                     <form action="{{ route('overtime-requests.destroy', $request->id) }}"
                                         method="POST"
                                         class="d-inline delete-form">
@@ -165,7 +165,7 @@
                                     </form>
                                     @endif
 
-                                    @if($canRespondAsManager && !Auth::user()->hasRole('hr'))
+                                    @if($canRespondAsManager && !Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_overtime_request'))
                                     @if($request->manager_status === 'pending')
                                     <button type="button" class="btn btn-info respond-btn"
                                         data-bs-toggle="modal"
@@ -191,7 +191,7 @@
                                     @endif
                                     @endif
 
-                                    @if($canRespondAsHR)
+                                    @if($canRespondAsHR && Auth::user()->hasPermissionTo('hr_respond_overtime_request'))
                                     @if($request->hr_status === 'pending')
                                     <button type="button" class="btn btn-info respond-btn"
                                         data-bs-toggle="modal"
@@ -200,7 +200,7 @@
                                         data-response-type="hr">
                                         <i class="fas fa-reply"></i> رد HR
                                     </button>
-                                    @elseif($canRespondAsHR && $request->hr_status !== 'pending')
+                                    @elseif($request->hr_status !== 'pending')
                                     <button type="button" class="btn btn-sm btn-warning modify-response-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#modifyResponseModal"
@@ -242,7 +242,7 @@
             <h5 class="mb-0">
                 <i class="fas fa-clock"></i> طلبات العمل الإضافي الخاصة بي
             </h5>
-            @if($canCreateOvertime)
+            @if($canCreateOvertime && Auth::user()->hasPermissionTo('create_overtime'))
             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createOvertimeModal">
                 <i class="fas fa-plus"></i> طلب جديد
             </button>
@@ -294,7 +294,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    @if($request->canUpdate(Auth::user()) && $request->hr_status === 'pending' && $request -> manager_status == 'pending')
+                                    @if($request->canUpdate(Auth::user()) && $request->hr_status === 'pending' && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('update_overtime'))
                                     <button type="button" class="btn btn-primary edit-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editOvertimeModal"
@@ -305,11 +305,11 @@
                                             'end_time' => \Carbon\Carbon::parse($request->end_time)->format('H:i'),
                                             'reason' => $request->reason
                                         ]) }}">
-                                        <i class="fas fa-edit"></i>
+                                        <i class="fas fa-edit"></i> تعديل
                                     </button>
                                     @endif
 
-                                    @if($request->canDelete(Auth::user()) && $request->hr_status === 'pending' && $request -> manager_status == 'pending'))
+                                    @if($request->canDelete(Auth::user()) && $request->hr_status === 'pending' && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('delete_overtime'))
                                     <form action="{{ route('overtime-requests.destroy', $request->id) }}"
                                         method="POST"
                                         class="d-inline delete-form">
@@ -338,7 +338,7 @@
     </div>
 
     <!-- جدول طلبات موظفي الشركة - لل HR فقط -->
-    @if(Auth::user()->hasRole('hr'))
+    @if(Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('hr_respond_overtime_request'))
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
@@ -480,29 +480,29 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     @if($canRespondAsHR)
-                                    @if($request->hr_status === 'pending')
-                                    <button type="button" class="btn btn-info respond-btn"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#respondOvertimeModal"
-                                        data-request-id="{{ $request->id }}"
-                                        data-response-type="hr">
-                                        <i class="fas fa-reply"></i> رد HR
-                                    </button>
-                                    @else
-                                    <button type="button" class="btn btn-warning modify-response-btn"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modifyResponseModal"
-                                        data-request-id="{{ $request->id }}"
-                                        data-response-type="hr"
-                                        data-current-status="{{ $request->hr_status }}"
-                                        data-current-reason="{{ $request->hr_rejection_reason }}">
-                                        <i class="fas fa-edit"></i> تعديل الرد
-                                    </button>
-                                    <button type="button" class="btn btn-secondary reset-btn"
-                                        onclick="resetStatus('{{ $request->id }}', 'hr')">
-                                        <i class="fas fa-undo"></i> إعادة تعيين
-                                    </button>
-                                    @endif
+                                        @if($request->hr_status === 'pending')
+                                            <button type="button" class="btn btn-info respond-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#respondOvertimeModal"
+                                                data-request-id="{{ $request->id }}"
+                                                data-response-type="hr">
+                                                <i class="fas fa-reply"></i> رد HR
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-warning modify-response-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modifyResponseModal"
+                                                data-request-id="{{ $request->id }}"
+                                                data-response-type="hr"
+                                                data-current-status="{{ $request->hr_status }}"
+                                                data-current-reason="{{ $request->hr_rejection_reason }}">
+                                                <i class="fas fa-edit"></i> تعديل الرد
+                                            </button>
+                                            <button type="button" class="btn btn-secondary reset-btn"
+                                                onclick="resetStatus('{{ $request->id }}', 'hr')">
+                                                <i class="fas fa-undo"></i> إعادة تعيين
+                                            </button>
+                                        @endif
                                     @endif
                                 </div>
                             </td>
@@ -573,7 +573,7 @@
     </div>
 
     <!-- إحصائيات الفريق للمدراء -->
-    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
+    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">
@@ -647,7 +647,7 @@
     @endif
 
     <!-- مودل تفاصيل الفريق -->
-    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
+    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
     <div class="modal fade" id="teamDetailsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -1540,7 +1540,7 @@
         }
 
         // Team Statistics Chart
-        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && !empty($teamStatistics))
+        @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
         const teamStatsCtx = document.getElementById('teamStatsChart');
         if (teamStatsCtx) {
             new Chart(teamStatsCtx, {

@@ -1813,6 +1813,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -1822,13 +1823,40 @@
                                     return value + '%';
                                 }
                             }
+                        },
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
                         }
                     },
                     plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
                         title: {
                             display: true,
                             text: 'معدل الغياب حسب القسم',
-                            font: { family: 'Cairo, sans-serif', size: 16 }
+                            font: {
+                                family: 'Cairo, sans-serif',
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const department = departmentData[context.dataIndex];
+                                    return [
+                                        `معدل الموافقة: ${department.approval_rate}%`,
+                                        `عدد الموظفين: ${department.employee_count}`,
+                                        `عدد الطلبات: ${department.request_count}`,
+                                        `الطلبات الموافق عليها: ${department.approved_count}`
+                                    ];
+                                }
+                            }
                         }
                     }
                 }

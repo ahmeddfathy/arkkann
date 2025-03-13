@@ -462,4 +462,43 @@ class PermissionRequest extends Model
     // تعرض العد التنازلي فقط إذا كان الوقت الحالي بين وقت المغادرة ووقت العودة (أو نهاية الوردية)
     return $now->gte($departureTime) && $now->lte($maxReturnTime);
   }
+
+  public function canView(User $user): bool
+  {
+    // صاحب الطلب يمكنه رؤية طلبه
+    if ($user->id === $this->user_id) {
+      return true;
+    }
+
+    // التحقق من صلاحية عرض الطلبات
+    return $user->hasPermissionTo('view_permission');
+  }
+
+  public function canRespondAsManager(User $user): bool
+  {
+    // يمكن الرد كمدير إذا كان:
+    // 1. المستخدم لديه صلاحية الرد كمدير
+    // 2. المستخدم ليس صاحب الطلب
+    return $user->hasPermissionTo('manager_respond_permission_request') &&
+           $user->id !== $this->user_id;
+  }
+
+  public function canRespondAsHR(User $user): bool
+  {
+
+    return $user->hasPermissionTo('hr_respond_permission_request') &&
+           $user->id !== $this->user_id;
+  }
+
+  public function canResetManagerResponse(User $user): bool
+  {
+    return $user->hasPermissionTo('manager_respond_permission_request') &&
+           $this->manager_status !== 'pending';
+  }
+
+  public function canResetHRResponse(User $user): bool
+  {
+    return $user->hasPermissionTo('hr_respond_permission_request') &&
+           $this->hr_status !== 'pending';
+  }
 }

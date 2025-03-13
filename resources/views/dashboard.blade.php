@@ -250,6 +250,30 @@
       </div>
     </div>
   </div>
+
+  <!-- قسم إحصائيات الموظفين -->
+  <div class="action-cards mt-5">
+    <div class="action-card">
+      <div class="action-icon bg-success">
+        <i class="fas fa-chart-bar text-white text-2xl"></i>
+      </div>
+      <h3 class="text-xl font-semibold mb-3">إحصائيات الموظفين</h3>
+      <p class="text-gray-600 mb-4">عرض تقارير وإحصائيات مفصلة عن أداء الموظفين</p>
+      <div class="row g-2">
+        <div class="col-6 mb-3">
+          <a href="{{ route('employee-statistics.index') }}" class="btn-dashboard  btn-block">
+            <i class="fas fa-chart-line ml-1"></i>عرض الإحصائيات الشاملة
+          </a>
+        </div>
+
+        <div class="col-6">
+          <a href="{{ route('employee-competition.index') }}" class="btn-dashboard">
+            <i class="fas fa-user-chart ml-1"></i>  المسابقه
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 @push('styles')

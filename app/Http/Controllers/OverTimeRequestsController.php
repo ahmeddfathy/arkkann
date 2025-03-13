@@ -26,6 +26,11 @@ class OverTimeRequestsController extends Controller
 
     public function index(Request $request)
     {
+        // التحقق من صلاحية عرض طلبات العمل الإضافي
+        if (!auth()->user()->hasPermissionTo('view_overtime')) {
+            abort(403, 'ليس لديك صلاحية عرض طلبات العمل الإضافي');
+        }
+
         $user = Auth::user();
         $employeeName = $request->input('employee_name');
         $status = $request->input('status');
@@ -71,6 +76,7 @@ class OverTimeRequestsController extends Controller
         $pendingCount = 0;
         $overtimeHoursCount = [];
         $noTeamOvertimeHoursCount = [];
+        $teamStatistics = [];
 
         if ($user->hasRole('hr')) {
             // طلبات الموظفين بدون فريق - لموظفي HR فقط
@@ -100,7 +106,9 @@ class OverTimeRequestsController extends Controller
 
             $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
 
-            // طلبات الفريق - للفريق الذي يديره المستخدم (إذا كان لديه فريق)
+            $users = User::select('id', 'name')->get();
+
+            // إضافة إحصائيات الفريق لموظف HR إذا كان لديه فريق
             if ($user->currentTeam) {
                 $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
 
@@ -118,9 +126,43 @@ class OverTimeRequestsController extends Controller
 
                 $pendingCount = $teamQuery->clone()->where('status', 'pending')->count();
                 $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
-            }
 
-            $users = User::select('id', 'name')->get();
+                // إضافة إحصائيات الفريق
+                $teamStatistics = [
+                    'total_requests' => OverTimeRequests::whereIn('user_id', $teamMembers)
+                        ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                        ->count(),
+                    'approved_requests' => OverTimeRequests::whereIn('user_id', $teamMembers)
+                        ->where('status', 'approved')
+                        ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                        ->count(),
+                    'pending_requests' => $pendingCount,
+                    'total_hours' => OverTimeRequests::whereIn('user_id', $teamMembers)
+                        ->where('status', 'approved')
+                        ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                        ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) as total_hours')
+                        ->value('total_hours'),
+                    'team_employees' => User::select('users.id', 'users.name')
+                        ->selectRaw('COUNT(DISTINCT over_time_requests.id) as total_requests')
+                        ->selectRaw('COUNT(CASE WHEN over_time_requests.status = "approved" THEN 1 END) as approved_requests')
+                        ->selectRaw('COUNT(CASE WHEN over_time_requests.status = "rejected" THEN 1 END) as rejected_requests')
+                        ->selectRaw('COUNT(CASE WHEN over_time_requests.status = "pending" THEN 1 END) as pending_requests')
+                        ->selectRaw('COALESCE(SUM(CASE WHEN over_time_requests.status = "approved" THEN TIME_TO_SEC(TIMEDIFF(over_time_requests.end_time, over_time_requests.start_time))/3600 ELSE 0 END), 0) as approved_hours')
+                        ->leftJoin('over_time_requests', function ($join) use ($dateStart, $dateEnd) {
+                            $join->on('users.id', '=', 'over_time_requests.user_id')
+                                ->whereBetween('over_time_requests.overtime_date', [$dateStart, $dateEnd]);
+                        })
+                        ->whereIn('users.id', $teamMembers)
+                        ->groupBy('users.id', 'users.name')
+                        ->get(),
+                    'most_active_employee' => User::whereIn('id', $teamMembers)
+                        ->withCount(['overtimeRequests' => function ($query) use ($dateStart, $dateEnd) {
+                            $query->whereBetween('overtime_date', [$dateStart, $dateEnd]);
+                        }])
+                        ->orderByDesc('overtime_requests_count')
+                        ->first()
+                ];
+            }
         } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
@@ -181,7 +223,6 @@ class OverTimeRequestsController extends Controller
 
         $statistics = [];
         $personalStatistics = [];
-        $teamStatistics = [];
         $hrStatistics = [];
 
         $personalStatistics = [
@@ -416,6 +457,11 @@ class OverTimeRequestsController extends Controller
 
     public function store(Request $request)
     {
+        // التحقق من صلاحية إنشاء طلب عمل إضافي
+        if (!auth()->user()->hasPermissionTo('create_overtime')) {
+            abort(403, 'ليس لديك صلاحية إنشاء طلب عمل إضافي');
+        }
+
         $request->validate([
             'overtime_date' => 'required|date|after:today',
             'start_time' => 'required|date_format:H:i',
@@ -434,6 +480,11 @@ class OverTimeRequestsController extends Controller
 
     public function update(Request $request, $id)
     {
+        // التحقق من صلاحية تعديل طلب العمل الإضافي
+        if (!auth()->user()->hasPermissionTo('update_overtime')) {
+            abort(403, 'ليس لديك صلاحية تعديل طلب العمل الإضافي');
+        }
+
         $request->validate([
             'overtime_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
@@ -452,6 +503,11 @@ class OverTimeRequestsController extends Controller
 
     public function destroy($id)
     {
+        // التحقق من صلاحية حذف طلب العمل الإضافي
+        if (!auth()->user()->hasPermissionTo('delete_overtime')) {
+            abort(403, 'ليس لديك صلاحية حذف طلب العمل الإضافي');
+        }
+
         try {
             $overtimeRequest = OverTimeRequests::findOrFail($id);
             $this->overTimeRequestService->deleteRequest($overtimeRequest);
@@ -470,6 +526,11 @@ class OverTimeRequestsController extends Controller
 
     public function updateManagerStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الرد على الطلب كمدير
+        if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
+            abort(403, 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'rejection_reason' => 'required_if:status,rejected'
@@ -486,6 +547,11 @@ class OverTimeRequestsController extends Controller
 
     public function updateHrStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الرد على الطلب كـ HR
+        if (!auth()->user()->hasPermissionTo('hr_respond_overtime_request')) {
+            abort(403, 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كموارد بشرية');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'rejection_reason' => 'required_if:status,rejected'
@@ -502,6 +568,11 @@ class OverTimeRequestsController extends Controller
 
     public function resetManagerStatus($id)
     {
+        // التحقق من صلاحية الرد على الطلب كمدير
+        if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
+            abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
+        }
+
         try {
             $overtimeRequest = OverTimeRequests::findOrFail($id);
             $overtimeRequest->manager_status = 'pending';
@@ -520,6 +591,11 @@ class OverTimeRequestsController extends Controller
 
     public function resetHrStatus($id)
     {
+        // التحقق من صلاحية الرد على الطلب كـ HR
+        if (!auth()->user()->hasPermissionTo('hr_respond_overtime_request')) {
+            abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كموارد بشرية');
+        }
+
         try {
             $overtimeRequest = OverTimeRequests::findOrFail($id);
             $overtimeRequest->hr_status = 'pending';
@@ -538,6 +614,11 @@ class OverTimeRequestsController extends Controller
 
     public function modifyManagerStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الرد على الطلب كمدير
+        if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
+            abort(403, 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'rejection_reason' => 'required_if:status,rejected'
@@ -565,6 +646,11 @@ class OverTimeRequestsController extends Controller
 
     public function modifyHrStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الرد على الطلب كـ HR
+        if (!auth()->user()->hasPermissionTo('hr_respond_overtime_request')) {
+            abort(403, 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كموارد بشرية');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'rejection_reason' => 'required_if:status,rejected'
@@ -594,12 +680,14 @@ class OverTimeRequestsController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('team_leader') && !$user->hasPermissionTo('manager_respond_overtime_request')) {
-            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي');
+        // التحقق من صلاحيات المدير
+        if ($request->input('response_type') === 'manager' && !$user->hasPermissionTo('manager_respond_overtime_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
 
-        if ($user->hasRole('hr') && !$user->hasPermissionTo('hr_respond_overtime_request')) {
-            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي');
+        // التحقق من صلاحيات HR
+        if ($request->input('response_type') === 'hr' && !$user->hasPermissionTo('hr_respond_overtime_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كموارد بشرية');
         }
 
         $validated = $request->validate([

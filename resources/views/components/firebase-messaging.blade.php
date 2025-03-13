@@ -121,27 +121,7 @@
             }
 
             messaging.onMessage((payload) => {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    const { title, body } = payload.notification;
-                    const notificationOptions = {
-                        body,
-                        icon: '/logo.png',
-                        badge: '/badge.png',
-                        data: payload.data || {},
-                        vibrate: [100, 50, 100],
-                        requireInteraction: true,
-                        dir: 'rtl',
-                        lang: 'ar',
-                        tag: `notification_${Date.now()}`
-                    };
-
-                    const notification = new Notification(title, notificationOptions);
-                    notification.onclick = function() {
-                        const url = payload.data?.url || '/dashboard';
-                        window.open(url, '_blank');
-                        notification.close();
-                    };
-                }
+                console.log('Received foreground message, letting service worker handle it');
             });
 
             if (document.readyState === 'complete' || document.readyState === 'interactive') {

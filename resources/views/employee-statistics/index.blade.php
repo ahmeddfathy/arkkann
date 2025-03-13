@@ -292,6 +292,41 @@ use Carbon\Carbon;
                                                                     </div>
                                                                 </div>
 
+                                                                <!-- حالة التأخير -->
+                                                                <div class="metric-item mb-4">
+                                                                    <label class="d-flex justify-content-between mb-2">
+                                                                        <span>دقائق التأخير</span>
+                                                                        <span class="badge bg-{{ $employee->performance_metrics['delay_status']['is_good'] ? 'success' : 'danger' }}">
+                                                                            {{ $employee->performance_metrics['delay_status']['minutes'] }} دقيقة
+                                                                        </span>
+                                                                    </label>
+                                                                    <div class="progress" style="height: 8px;">
+                                                                        <div class="progress-bar bg-{{ $employee->performance_metrics['delay_status']['is_good'] ? 'success' : 'danger' }}"
+                                                                            role="progressbar"
+                                                                            style="width: {{ $employee->performance_metrics['delay_status']['percentage'] }}%">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="text-muted">الحد المسموح: 120 دقيقة</small>
+                                                                </div>
+
+                                                                <!-- حالة الأذونات -->
+                                                                <div class="metric-item mb-4">
+                                                                    <label class="d-flex justify-content-between mb-2">
+                                                                        <span>دقائق الأذونات</span>
+                                                                        <span class="badge bg-{{ $employee->performance_metrics['permissions_status']['is_good'] ? 'success' : 'danger' }}">
+                                                                            {{ $employee->performance_metrics['permissions_status']['minutes'] }} دقيقة
+                                                                        </span>
+                                                                    </label>
+                                                                    <div class="progress" style="height: 8px;">
+                                                                        <div class="progress-bar bg-{{ $employee->performance_metrics['permissions_status']['is_good'] ? 'success' : 'danger' }}"
+                                                                            role="progressbar"
+                                                                            style="width: {{ $employee->performance_metrics['permissions_status']['percentage'] }}%">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="text-muted">الحد المسموح: 180 دقيقة</small>
+                                                                </div>
+
+                                                                <!-- مؤشرات الأداء التفصيلية -->
                                                                 <div class="metric-details">
                                                                     <div class="row g-3">
                                                                         <div class="col-md-4">

@@ -16,19 +16,26 @@ if (!firebase.apps.length) {
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+self.addEventListener('push', function(event) {
+    console.log('[firebase-messaging-sw.js] Push received');
+
+    let payload;
+    try {
+        payload = event.data.json();
+    } catch (e) {
+        console.error('Error parsing push event data:', e);
+        return;
+    }
 
     const data = payload.data || {};
-
-    const notificationTitle = payload.notification?.title || data.title || 'إشعار جديد';
-    const notificationBody = payload.notification?.body || data.body || '';
+    const notificationTitle = data.title || 'إشعار جديد';
+    const notificationBody = data.body || '';
 
     const notificationOptions = {
         body: notificationBody,
         icon: '/logo.png',
         badge: '/badge.png',
-        data: payload.data || {},
+        data: data,
         vibrate: [100, 50, 100],
         requireInteraction: true,
         dir: 'rtl',
@@ -36,11 +43,14 @@ messaging.onBackgroundMessage((payload) => {
         tag: `notification_${Date.now()}`
     };
 
-    try {
-        return self.registration.showNotification(notificationTitle, notificationOptions);
-    } catch (error) {
-        console.error('Error showing notification:', error);
-    }
+    event.waitUntil(
+        self.registration.showNotification(notificationTitle, notificationOptions)
+    );
+});
+
+messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+    // لا نحتاج لمعالجة إضافية هنا لأن حدث 'push' سيتعامل معها
 });
 
 self.addEventListener('notificationclick', function(event) {

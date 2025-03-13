@@ -192,6 +192,15 @@
         عرض الإحصائيات
       </a>
     </div>
+    <div class="action-card">
+      <div class="action-icon">
+        <i class="fas fa-trophy text-white text-2xl"></i>
+      </div>
+      <h3 class="text-xl font-semibold mb-3">المسابقة</h3>
+      <a href="{{ route('employee-competition.index') }}" class="btn-dashboard">
+         تابع المسابقه
+      </a>
+    </div>
   </div>
 
   @if($salaryFiles->count() > 0)

@@ -167,9 +167,12 @@ use Carbon\Carbon;
                             </span>
                         </small>
                     </h5>
+                    <!-- زر إنشاء طلب جديد -->
+                    @if(Auth::user()->hasPermissionTo('create_permission'))
                     <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#createPermissionModal">
                         <i class="fas fa-plus"></i> طلب جديد
                     </button>
+                    @endif
                 </div>
 
                 <div class="table-responsive">
@@ -277,29 +280,94 @@ use Carbon\Carbon;
                                         @endif
 
                                         @if($request->manager_status === 'pending' && $request->hr_status === 'pending')
-                                        <button class="btn btn-sm btn-warning edit-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editPermissionModal"
-                                            data-id="{{ $request->id }}"
-                                            data-departure="{{ $request->departure_time }}"
-                                            data-return="{{ $request->return_time }}"
-                                            data-reason="{{ $request->reason }}">
-                                            <i class="fas fa-edit"></i> تعديل
-                                        </button>
-
-                                        <form action="{{ route('permission-requests.destroy', $request) }}"
-                                            method="POST"
-                                            class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="btn btn-sm btn-danger"
-                                                onclick="return confirm('هل أنت متأكد من الحذف؟')">
-                                                <i class="fas fa-trash"></i> حذف
+                                            @if(Auth::user()->hasPermissionTo('update_permission'))
+                                            <button class="btn btn-sm btn-warning edit-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editPermissionModal"
+                                                data-id="{{ $request->id }}"
+                                                data-departure="{{ $request->departure_time }}"
+                                                data-return="{{ $request->return_time }}"
+                                                data-reason="{{ $request->reason }}">
+                                                <i class="fas fa-edit"></i> تعديل
                                             </button>
-                                        </form>
+                                            @endif
+
+                                            @if(Auth::user()->hasPermissionTo('delete_permission'))
+                                            <form action="{{ route('permission-requests.destroy', $request) }}"
+                                                method="POST"
+                                                class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                                                    <i class="fas fa-trash"></i> حذف
+                                                </button>
+                                            </form>
+                                            @endif
                                         @endif
 
+                                        <!-- أزرار الرد للمدراء -->
+                                        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && $request->user->teams()->exists())
+                                            @if(Auth::user()->hasPermissionTo('manager_respond_permission_request'))
+                                            @if($request->manager_status === 'pending')
+                                            <button class="btn btn-sm btn-info respond-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#respondModal"
+                                                data-request-id="{{ $request->id }}"
+                                                data-response-type="manager">
+                                                <i class="fas fa-reply"></i> رد المدير
+                                            </button>
+                                            @else
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-warning modify-response-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modifyResponseModal"
+                                                    data-request-id="{{ $request->id }}"
+                                                    data-response-type="manager"
+                                                    data-status="{{ $request->manager_status }}"
+                                                    data-reason="{{ $request->manager_rejection_reason }}">
+                                                    <i class="fas fa-edit"></i> تعديل الرد
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-secondary"
+                                                    onclick="resetStatus('{{ $request->id }}', 'manager')">
+                                                    <i class="fas fa-undo"></i> إعادة تعيين
+                                                </button>
+                                            </div>
+                                            @endif
+                                            @endif
+                                        @endif
+
+                                        <!-- أزرار الرد لل HR -->
+                                        @if(Auth::user()->hasRole('hr'))
+                                            @if($request->canRespondAsHR(Auth::user()))
+                                            @if($request->hr_status === 'pending')
+                                            <button class="btn btn-sm btn-info respond-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#respondModal"
+                                                data-request-id="{{ $request->id }}"
+                                                data-response-type="hr">
+                                                <i class="fas fa-reply"></i> رد HR
+                                            </button>
+                                            @else
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-warning modify-response-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modifyResponseModal"
+                                                    data-request-id="{{ $request->id }}"
+                                                    data-response-type="hr"
+                                                    data-status="{{ $request->hr_status }}"
+                                                    data-reason="{{ $request->hr_rejection_reason }}">
+                                                    <i class="fas fa-edit"></i> تعديل رد HR
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-secondary"
+                                                    onclick="resetStatus('{{ $request->id }}', 'hr')">
+                                                    <i class="fas fa-undo"></i> إعادة تعيين
+                                                </button>
+                                            </div>
+                                            @endif
+                                            @endif
+                                        @endif
 
                                     </div>
                                 </td>
@@ -394,7 +462,7 @@ use Carbon\Carbon;
                                 <td>
                                     <div class="action-buttons">
                                         <!-- أزرار الرد للمدراء و HR -->
-                                        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && $request->user->teams()->exists())
+                                        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) && $request->user->teams()->exists() && Auth::user()->hasPermissionTo('manager_respond_permission_request'))
                                         @if($request->manager_status === 'pending')
                                         <button class="btn btn-sm btn-info respond-btn"
                                             data-bs-toggle="modal"
@@ -423,7 +491,7 @@ use Carbon\Carbon;
                                         @endif
 
                                         @if(Auth::user()->hasRole('hr'))
-                                        @if($request->hr_status === 'pending')
+                                        @if($request->hr_status === 'pending' && $request->canRespondAsHR(Auth::user()))
                                         <button class="btn btn-sm btn-info respond-btn"
                                             data-bs-toggle="modal"
                                             data-bs-target="#respondModal"
@@ -602,30 +670,32 @@ use Carbon\Carbon;
                                 </td>
                                 <td>{{ $request->getReturnStatusLabel() }}</td>
                                 <td>
-                                    @if($request->hr_status === 'pending')
-                                    <button class="btn btn-sm btn-info respond-btn"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#respondModal"
-                                        data-request-id="{{ $request->id }}"
-                                        data-response-type="hr">
-                                        <i class="fas fa-reply"></i> رد HR
-                                    </button>
-                                    @else
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-warning modify-response-btn"
+                                    @if(Auth::user()->hasPermissionTo('hr_respond_permission_request'))
+                                        @if($request->hr_status === 'pending')
+                                        <button class="btn btn-sm btn-info respond-btn"
                                             data-bs-toggle="modal"
-                                            data-bs-target="#modifyResponseModal"
+                                            data-bs-target="#respondModal"
                                             data-request-id="{{ $request->id }}"
-                                            data-response-type="hr"
-                                            data-status="{{ $request->hr_status }}"
-                                            data-reason="{{ $request->hr_rejection_reason }}">
-                                            <i class="fas fa-edit"></i> تعديل رد HR
+                                            data-response-type="hr">
+                                            <i class="fas fa-reply"></i> رد HR
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-secondary"
-                                            onclick="resetStatus('{{ $request->id }}', 'hr')">
-                                            <i class="fas fa-undo"></i> إعادة تعيين
-                                        </button>
-                                    </div>
+                                        @else
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-warning modify-response-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modifyResponseModal"
+                                                data-request-id="{{ $request->id }}"
+                                                data-response-type="hr"
+                                                data-status="{{ $request->hr_status }}"
+                                                data-reason="{{ $request->hr_rejection_reason }}">
+                                                <i class="fas fa-edit"></i> تعديل رد HR
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary"
+                                                onclick="resetStatus('{{ $request->id }}', 'hr')">
+                                                <i class="fas fa-undo"></i> إعادة تعيين
+                                            </button>
+                                        </div>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>
@@ -709,6 +779,7 @@ use Carbon\Carbon;
                         <td>
                             <div class="action-buttons">
                                 @if($request->hr_status === 'pending')
+                                @if(Auth::user()->hasPermissionTo('hr_respond_permission_request'))
                                 <button class="btn btn-sm btn-info respond-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#respondModal"
@@ -716,6 +787,7 @@ use Carbon\Carbon;
                                     data-response-type="hr">
                                     <i class="fas fa-reply"></i> رد HR
                                 </button>
+                                @endif
                                 @else
                                 <div class="btn-group">
                                     <button class="btn btn-sm btn-warning modify-response-btn"

@@ -26,6 +26,11 @@ class PermissionRequestController extends Controller
 
     public function index(Request $request)
     {
+        // التحقق من صلاحية عرض طلبات الاستئذان
+        if (!auth()->user()->hasPermissionTo('view_permission')) {
+            abort(403, 'ليس لديك صلاحية عرض طلبات الاستئذان');
+        }
+
         $user = Auth::user();
         $employeeName = $request->input('employee_name');
         $status = $request->input('status');
@@ -236,6 +241,11 @@ class PermissionRequestController extends Controller
 
     public function store(Request $request)
     {
+        // التحقق من صلاحية إنشاء طلب استئذان
+        if (!auth()->user()->hasPermissionTo('create_permission')) {
+            abort(403, 'ليس لديك صلاحية تقديم طلب استئذان');
+        }
+
         $user = Auth::user();
 
         if ($user->role !== 'employee' && $user->role !== 'manager') {
@@ -305,6 +315,16 @@ class PermissionRequestController extends Controller
 
     public function update(Request $request, PermissionRequest $permissionRequest)
     {
+        // التحقق من صلاحية تعديل طلب الاستئذان
+        if (!auth()->user()->hasPermissionTo('update_permission')) {
+            abort(403, 'ليس لديك صلاحية تعديل طلب الاستئذان');
+        }
+
+        // التحقق من أن الطلب في حالة pending وأن المستخدم هو صاحب الطلب
+        if ($permissionRequest->status !== 'pending' || auth()->id() !== $permissionRequest->user_id) {
+            abort(403, 'لا يمكن تعديل هذا الطلب');
+        }
+
         $user = Auth::user();
 
         if ($user->role !== 'manager' && $user->id !== $permissionRequest->user_id) {
@@ -339,6 +359,16 @@ class PermissionRequestController extends Controller
 
     public function destroy(PermissionRequest $permissionRequest)
     {
+        // التحقق من صلاحية حذف طلب الاستئذان
+        if (!auth()->user()->hasPermissionTo('delete_permission')) {
+            abort(403, 'ليس لديك صلاحية حذف طلب الاستئذان');
+        }
+
+        // التحقق من أن الطلب في حالة pending وأن المستخدم هو صاحب الطلب
+        if ($permissionRequest->status !== 'pending' || auth()->id() !== $permissionRequest->user_id) {
+            abort(403, 'لا يمكن حذف هذا الطلب');
+        }
+
         $user = Auth::user();
 
         if ($user->role !== 'manager' && $user->id !== $permissionRequest->user_id) {
@@ -497,6 +527,11 @@ class PermissionRequestController extends Controller
 
     public function updateHrStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الرد على الطلب كـ HR
+        if (!auth()->user()->hasPermissionTo('hr_respond_permission_request')) {
+            abort(403, 'ليس لديك صلاحية الرد على طلبات الاستئذان كموارد بشرية');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'rejection_reason' => 'required_if:status,rejected'
@@ -548,16 +583,21 @@ class PermissionRequestController extends Controller
 
     public function resetHrStatus(Request $request, PermissionRequest $permissionRequest)
     {
+        // التحقق من صلاحية الرد على الطلب كـ HR
+        if (!auth()->user()->hasPermissionTo('hr_respond_permission_request')) {
+            abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كموارد بشرية');
+        }
+
         $user = Auth::user();
 
         if (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_permission_request')) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان'
+                    'message' => 'ليس لديك صلاحية إعادة تعيين الرد'
                 ]);
             }
-            return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان');
+            return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد');
         }
 
         try {
@@ -585,6 +625,11 @@ class PermissionRequestController extends Controller
 
     public function updateManagerStatus(Request $request, $id)
     {
+        // التحقق من صلاحية الرد على الطلب كمدير
+        if (!auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
+            abort(403, 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'rejection_reason' => 'required_if:status,rejected'
@@ -616,6 +661,11 @@ class PermissionRequestController extends Controller
 
     public function resetManagerStatus(PermissionRequest $permissionRequest)
     {
+        // التحقق من صلاحية الرد على الطلب كمدير
+        if (!auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
+            abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير');
+        }
+
         $user = Auth::user();
 
         if (

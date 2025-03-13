@@ -1,71 +1,162 @@
-<<<<<<< HEAD
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# نظام طلبات العمل الإضافي (Overtime Requests System)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## نظرة عامة
+نظام متكامل لإدارة طلبات العمل الإضافي في المؤسسة، يتيح للموظفين تقديم طلبات العمل الإضافي ومتابعتها، كما يمكن للمدراء وموظفي الموارد البشرية مراجعة واعتماد هذه الطلبات.
 
-## About Laravel
+## الأدوار الرئيسية في النظام
+1. **الموظف (Employee)**
+   - تقديم طلبات العمل الإضافي
+   - عرض طلباته السابقة وحالتها
+   - تعديل أو حذف الطلبات المعلقة
+   - عرض إحصائياته الشخصية
+   - تلقي إشعارات حول حالة طلباته
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+2. **قائد الفريق (Team Leader)**
+   - مراجعة طلبات أعضاء فريقه
+   - الموافقة أو رفض الطلبات مع إبداء السبب
+   - عرض إحصائيات فريقه
+   - متابعة أداء أعضاء الفريق
+   - تلقي إشعارات بالطلبات الجديدة
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+3. **مدير القسم (Department Manager)**
+   - مراجعة طلبات الأقسام التابعة له
+   - الموافقة أو رفض الطلبات مع التعليق
+   - عرض إحصائيات القسم التفصيلية
+   - تحليل اتجاهات العمل الإضافي
+   - إدارة الموافقات المتعددة
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+4. **الموارد البشرية (HR)**
+   - مراجعة جميع طلبات العمل الإضافي
+   - الموافقة النهائية أو الرفض مع التبرير
+   - عرض إحصائيات الشركة الشاملة
+   - إدارة التقارير المتقدمة
+   - مراقبة الامتثال للسياسات
 
-## Learning Laravel
+## حالات الطلب
+- **معلق (Pending)**: الطلب في انتظار المراجعة
+- **موافق عليه (Approved)**: تمت الموافقة على الطلب
+- **مرفوض (Rejected)**: تم رفض الطلب مع ذكر السبب
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## مسار الموافقة على الطلب
+1. يقدم الموظف طلب العمل الإضافي
+2. يراجع المدير المباشر (قائد الفريق/مدير القسم) الطلب
+3. تراجع الموارد البشرية الطلب
+4. يتم اعتماد الطلب نهائياً في حالة موافقة الطرفين
+5. يتم إخطار الموظف بكل تغيير في حالة الطلب
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## الميزات الرئيسية
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 1. إدارة الطلبات
+- إنشاء طلبات جديدة مع التحقق التلقائي
+- تعديل الطلبات المعلقة بسهولة
+- حذف الطلبات غير المعتمدة
+- عرض تفاصيل الطلبات الشاملة
+- تتبع حالة الطلبات في الوقت الفعلي
+- البحث المتقدم في الطلبات
 
-## Laravel Sponsors
+### 2. الصلاحيات والأدوار
+- نظام صلاحيات متكامل لكل دور
+- تحكم دقيق في الوصول للوظائف
+- فصل صلاحيات المدراء عن HR
+- إدارة مرنة للأدوار والصلاحيات
+- حماية العمليات الحساسة
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 3. الإشعارات
+- إشعارات فورية للطلبات الجديدة
+- تنبيهات تحديث حالة الطلب
+- إشعارات الموافقة أو الرفض
+- تذكيرات للطلبات المعلقة
+- إشعارات مخصصة لكل دور
 
-### Premium Partners
+### 4. التقارير والإحصائيات
+- إحصائيات شخصية تفصيلية للموظف
+- تقارير أداء الفريق للمدراء
+- إحصائيات شاملة للموارد البشرية
+- تحليل الاتجاهات الشهرية والسنوية
+- تقارير حسب الأقسام والفرق
+- مؤشرات الأداء الرئيسية (KPIs)
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### 5. التحقق والتدقيق
+- التحقق من تداخل الأوقات تلقائياً
+- التحقق من الصلاحيات والأدوار
+- تتبع التغييرات على الطلبات
+- سجل المراجعة الكامل
+- ضمان الامتثال للسياسات
 
-## Contributing
+## المكونات التقنية
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. النماذج (Models)
+- `OverTimeRequests`: نموذج طلبات العمل الإضافي
+- `User`: نموذج المستخدمين والصلاحيات
+- `Team`: نموذج الفرق والأقسام
+- `Notification`: نموذج الإشعارات
 
-## Code of Conduct
+### 2. الخدمات (Services)
+- `OverTimeRequestService`: منطق العمل الرئيسي
+- `NotificationOvertimeService`: خدمة الإشعارات
+- `StatisticsService`: خدمة التقارير والإحصائيات
+- `ValidationService`: خدمة التحقق والتدقيق
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 3. المتحكمات (Controllers)
+- `OverTimeRequestsController`: التحكم في العمليات
+- `StatisticsController`: إدارة التقارير
+- `NotificationsController`: إدارة الإشعارات
 
-## Security Vulnerabilities
+## الوظائف المتقدمة
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. حساب ساعات العمل الإضافي
+- حساب إجمالي الساعات بدقة
+- تتبع الساعات المعتمدة والمرفوضة
+- تقارير شهرية للساعات
+- تحليل توزيع الساعات
+- مقارنة مع الحدود المسموحة
 
-## License
+### 2. التصفية والبحث
+- تصفية متقدمة حسب الحالة
+- البحث الشامل في الطلبات
+- تصفية حسب النطاق الزمني
+- فلترة حسب الأقسام والفرق
+- خيارات بحث مخصصة
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-=======
-# arkkann
-hello 
->>>>>>> d13cde2a4e739064d0e84770650a30c1f56a94a1
+### 3. الإحصائيات المتقدمة
+- معدلات الموافقة والرفض
+- تحليل الاتجاهات الزمنية
+- أكثر الموظفين والفرق نشاطاً
+- كفاءة الأقسام والفرق
+- تحليل أسباب الرفض
+
+## الأمان والتحقق
+- التحقق الشامل من البيانات
+- حماية متعددة المستويات للصلاحيات
+- تسجيل كامل للعمليات
+- منع التداخل في الطلبات
+- حماية البيانات الحساسة
+
+## التقنيات المستخدمة
+- Laravel Framework للتطوير
+- Eloquent ORM للتعامل مع البيانات
+- Blade Templates لواجهة المستخدم
+- Carbon للتعامل مع التواريخ
+- نظام الصلاحيات والأدوار المتكامل
+- Bootstrap للتصميم المتجاوب
+- JavaScript للتفاعلات الديناميكية
+- Chart.js للرسوم البيانية
+- MySQL لقاعدة البيانات
+
+## متطلبات النظام
+- PHP >= 8.1
+- Laravel >= 10.x
+- MySQL >= 8.0
+- Node.js >= 16.x
+- Composer
+- npm
+
+## التثبيت والإعداد
+1. نسخ المستودع
+2. تثبيت التبعيات
+3. إعداد ملف البيئة
+4. تهيئة قاعدة البيانات
+5. تشغيل الخدمات
+
+## المساهمة
+نرحب بمساهماتكم في تطوير النظام. يرجى اتباع إرشادات المساهمة المرفقة.

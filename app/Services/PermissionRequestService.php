@@ -61,6 +61,13 @@ class PermissionRequestService
     public function createRequest(array $data): array
     {
         try {
+            if (!auth()->user()->hasPermissionTo('create_permission')) {
+                return [
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية تقديم طلب استئذان'
+                ];
+            }
+
             $userId = Auth::id();
             $validation = $this->validateTimeRequest($userId, $data['departure_time'], $data['return_time']);
 
@@ -142,6 +149,13 @@ class PermissionRequestService
     public function createRequestForUser(int $userId, array $data): array
     {
         try {
+            if (!auth()->user()->hasPermissionTo('create_permission')) {
+                return [
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية تقديم طلب استئذان'
+                ];
+            }
+
             $validation = $this->validateTimeRequest($userId, $data['departure_time'], $data['return_time']);
 
             if (!$validation['valid']) {
@@ -234,6 +248,20 @@ class PermissionRequestService
     public function updateRequest(PermissionRequest $request, array $data): array
     {
         try {
+            if (!auth()->user()->hasPermissionTo('update_permission')) {
+                return [
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية تعديل طلب الاستئذان'
+                ];
+            }
+
+            if ($request->status !== 'pending' || auth()->id() !== $request->user_id) {
+                return [
+                    'success' => false,
+                    'message' => 'لا يمكن تعديل هذا الطلب'
+                ];
+            }
+
             $validation = $this->validateTimeRequest($request->user_id, $data['departure_time'], $data['return_time'], $request->id);
 
             if (!$validation['valid']) {
@@ -290,6 +318,21 @@ class PermissionRequestService
         $status = $data['status'];
         $rejectionReason = $status === 'rejected' ? $data['rejection_reason'] : null;
 
+        // التحقق من الصلاحيات حسب نوع الرد
+        if ($responseType === 'manager' && !auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
+            return [
+                'success' => false,
+                'message' => 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير'
+            ];
+        }
+
+        if ($responseType === 'hr' && !auth()->user()->hasPermissionTo('hr_respond_permission_request')) {
+            return [
+                'success' => false,
+                'message' => 'ليس لديك صلاحية الرد على طلبات الاستئذان كموارد بشرية'
+            ];
+        }
+
         if ($responseType === 'manager') {
             $request->updateManagerStatus($status, $rejectionReason);
         } elseif ($responseType === 'hr') {
@@ -304,6 +347,19 @@ class PermissionRequestService
     public function resetStatus(PermissionRequest $request, string $responseType)
     {
         try {
+            // التحقق من الصلاحيات حسب نوع الرد
+            if ($responseType === 'manager' && !auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
+                throw new \Illuminate\Auth\Access\AuthorizationException(
+                    'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير'
+                );
+            }
+
+            if ($responseType === 'hr' && !auth()->user()->hasPermissionTo('hr_respond_permission_request')) {
+                throw new \Illuminate\Auth\Access\AuthorizationException(
+                    'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كموارد بشرية'
+                );
+            }
+
             if ($responseType === 'manager') {
                 $request->updateManagerStatus('pending', null);
                 $request->updateFinalStatus();
@@ -318,7 +374,7 @@ class PermissionRequestService
 
             return $request;
         } catch (\Exception $e) {
-            \Log::error('Error resetting status: ' . $e->getMessage());
+            Log::error('Error resetting status: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -536,6 +592,18 @@ class PermissionRequestService
 
     public function deleteRequest(PermissionRequest $request)
     {
+        if (!auth()->user()->hasPermissionTo('delete_permission')) {
+            throw new \Illuminate\Auth\Access\AuthorizationException(
+                'ليس لديك صلاحية حذف طلب الاستئذان'
+            );
+        }
+
+        if ($request->status !== 'pending' || auth()->id() !== $request->user_id) {
+            throw new \Illuminate\Auth\Access\AuthorizationException(
+                'لا يمكن حذف هذا الطلب'
+            );
+        }
+
         $this->notificationService->notifyPermissionDeleted($request);
         $request->delete();
         return ['success' => true];

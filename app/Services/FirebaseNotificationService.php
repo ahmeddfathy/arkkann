@@ -13,7 +13,7 @@ class FirebaseNotificationService
 
     public function __construct()
     {
-        $firebaseKey = file_get_contents(storage_path('app/firebase/hr-system-46dda-firebase-adminsdk-fbsvc-15058b8add.json'));
+        $firebaseKey = file_get_contents(storage_path('app/firebase/hr-system-46dda-firebase-adminsdk-fbsvc-4465c46c3e.json'));
         $this->credentials = json_decode($firebaseKey, true);
     }
 
@@ -35,22 +35,14 @@ class FirebaseNotificationService
             $payload = [
                 'message' => [
                     'token' => $fcmToken,
-                    'notification' => [
+                    'data' => [
+                        'url' => $link,
                         'title' => $title,
                         'body' => $body
                     ],
                     'webpush' => [
                         'headers' => [
                             'Urgency' => 'high'
-                        ],
-                        'notification' => [
-                            'title' => $title,
-                            'body' => $body,
-                            'vibrate' => [100, 50, 100],
-                            'requireInteraction' => true,
-                            'dir' => 'rtl',
-                            'lang' => 'ar',
-                            'tag' => 'notification_' . uniqid()
                         ],
                         'fcm_options' => [
                             'link' => $link

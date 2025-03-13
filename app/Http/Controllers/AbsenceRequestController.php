@@ -212,7 +212,7 @@ class AbsenceRequestController extends Controller
 
     public function store(Request $request)
     {
-        if (!auth()->user()->hasPermissionTo('create_absence')) {
+        if (!Auth::user()->hasPermissionTo('create_absence')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -464,7 +464,7 @@ class AbsenceRequestController extends Controller
                 ] : null,
             ];
 
-            if ($user->hasRole(['team_leader', 'department_manager', 'company_manager' ])) {
+            if ($user->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) {
                 $hasTeamWithMultipleMembers = $user->ownedTeams()
                     ->withCount('users')
                     ->having('users_count', '>', 1)
@@ -603,20 +603,35 @@ class AbsenceRequestController extends Controller
                     ->get();
 
                 // Department Statistics
-                $departmentStats = DB::table('absence_requests')
-                    ->join('users', 'users.id', '=', 'absence_requests.user_id')
-                    ->join('team_user', 'users.id', '=', 'team_user.user_id')
-                    ->join('teams', 'teams.id', '=', 'team_user.team_id')
-                    ->whereBetween('absence_date', [$dateStart, $dateEnd])
-                    ->select(
-                        'teams.name as department',
-                        DB::raw('COUNT(DISTINCT absence_requests.user_id) as employee_count'),
-                        DB::raw('COUNT(*) as request_count'),
-                        DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved_count'),
-                        DB::raw('ROUND(AVG(CASE WHEN status = "approved" THEN 1 ELSE 0 END) * 100, 2) as approval_rate')
-                    )
-                    ->groupBy('teams.id', 'teams.name')
-                    ->get();
+                $departmentStats = DB::table('users')
+                    ->select('department')
+                    ->whereNotNull('department')
+                    ->distinct()
+                    ->get()
+                    ->map(function($dept) use ($dateStart, $dateEnd, $allEmployees) {
+                        $stats = DB::table('absence_requests')
+                            ->join('users', 'users.id', '=', 'absence_requests.user_id')
+                            ->where('users.department', $dept->department)
+                            ->whereIn('absence_requests.user_id', $allEmployees)
+                            ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                            ->select(
+                                DB::raw('COUNT(DISTINCT absence_requests.user_id) as employee_count'),
+                                DB::raw('COUNT(*) as request_count'),
+                                DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved_count'),
+                                DB::raw('ROUND(AVG(CASE WHEN status = "approved" THEN 1 ELSE 0 END) * 100, 2) as approval_rate')
+                            )
+                            ->first();
+
+                        return [
+                            'department' => $dept->department,
+                            'employee_count' => $stats->employee_count ?? 0,
+                            'request_count' => $stats->request_count ?? 0,
+                            'approved_count' => $stats->approved_count ?? 0,
+                            'approval_rate' => $stats->approval_rate ?? 0
+                        ];
+                    })
+                    ->sortByDesc('request_count')
+                    ->values();
 
                 // Reasons Statistics
                 $reasonsStats = DB::table('absence_requests')
@@ -683,6 +698,8 @@ class AbsenceRequestController extends Controller
         } elseif ($user->hasRole('department_manager')) {
             return ['employee', 'team_leader'];
         } elseif ($user->hasRole('company_manager')) {
+            return ['employee', 'team_leader', 'department_manager'];
+        } elseif ($user->hasRole('hr')) {
             return ['employee', 'team_leader', 'department_manager'];
         }
         return [];
