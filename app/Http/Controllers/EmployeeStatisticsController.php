@@ -19,17 +19,23 @@ class EmployeeStatisticsController extends Controller
         $employeeQuery = User::query();
 
         if ($user->hasRole('hr')) {
-            $employeeQuery->whereDoesntHave('roles', function ($q) {
-                $q->whereIn('name', ['hr', 'company_manager']);
+            $employeeQuery->where(function($query) use ($user) {
+                $query->whereDoesntHave('roles', function ($q) {
+                    $q->whereIn('name', ['hr', 'company_manager']);
+                })
+                ->orWhere('id', $user->id); // Include the current HR user
             });
 
-            $allUsers = User::whereDoesntHave('roles', function ($q) {
-                $q->whereIn('name', ['hr', 'company_manager']);
+            $allUsers = User::where(function($query) use ($user) {
+                $query->whereDoesntHave('roles', function ($q) {
+                    $q->whereIn('name', ['hr', 'company_manager']);
+                })
+                ->orWhere('id', $user->id); // Include the current HR user
             })->get();
         } elseif ($user->hasRole('department_manager')) {
             $managedTeams = $user->allTeams()->pluck('id');
 
-            $employeeQuery->where(function ($query) use ($managedTeams) {
+            $employeeQuery->where(function ($query) use ($managedTeams, $user) {
                 $query->whereHas('teams', function ($q) use ($managedTeams) {
                     $q->whereIn('teams.id', $managedTeams);
                 })->whereHas('roles', function ($q) {
@@ -37,10 +43,11 @@ class EmployeeStatisticsController extends Controller
                 })
                     ->orWhereHas('ownedTeams', function ($q) use ($managedTeams) {
                         $q->whereIn('id', $managedTeams);
-                    });
+                    })
+                    ->orWhere('id', $user->id); // Include the current department manager
             });
 
-            $allUsers = User::where(function ($query) use ($managedTeams) {
+            $allUsers = User::where(function ($query) use ($managedTeams, $user) {
                 $query->whereHas('teams', function ($q) use ($managedTeams) {
                     $q->whereIn('teams.id', $managedTeams);
                 })->whereHas('roles', function ($q) {
@@ -48,7 +55,8 @@ class EmployeeStatisticsController extends Controller
                 })
                     ->orWhereHas('ownedTeams', function ($q) use ($managedTeams) {
                         $q->whereIn('id', $managedTeams);
-                    });
+                    })
+                    ->orWhere('id', $user->id); // Include the current department manager
             })->get();
         } elseif ($user->hasRole('team_leader')) {
             if ($user->currentTeam) {
@@ -58,19 +66,32 @@ class EmployeeStatisticsController extends Controller
                     })
                     ->pluck('users.id');
 
-                $employeeQuery->whereIn('id', $teamMembers);
-                $allUsers = User::whereIn('id', $teamMembers)->get();
+                $employeeQuery->where(function($query) use ($teamMembers, $user) {
+                    $query->whereIn('id', $teamMembers)
+                          ->orWhere('id', $user->id); // Include the current team leader
+                });
+
+                $allUsers = User::where(function($query) use ($teamMembers, $user) {
+                    $query->whereIn('id', $teamMembers)
+                          ->orWhere('id', $user->id); // Include the current team leader
+                })->get();
             } else {
-                $employeeQuery->where('id', 0);
-                $allUsers = collect();
+                $employeeQuery->where('id', $user->id); // If no team, just show self
+                $allUsers = collect([$user]);
             }
         } elseif ($user->hasRole('company_manager')) {
-            $employeeQuery->whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'hr');
+            $employeeQuery->where(function($query) use ($user) {
+                $query->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'hr');
+                })
+                ->orWhere('id', $user->id); // Include the current company manager
             });
 
-            $allUsers = User::whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'hr');
+            $allUsers = User::where(function($query) use ($user) {
+                $query->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'hr');
+                })
+                ->orWhere('id', $user->id); // Include the current company manager
             })->get();
         } else {
             $employeeQuery->where('id', $user->id);
@@ -268,6 +289,11 @@ class EmployeeStatisticsController extends Controller
             $canViewEmployee = !$employee->hasRole('hr');
         } else {
             $canViewEmployee = $user->id === $employee->id;
+        }
+
+        // Always allow users to see their own statistics
+        if ($user->employee_id === $employee_id) {
+            $canViewEmployee = true;
         }
 
         if (!$canViewEmployee) {
@@ -554,42 +580,61 @@ class EmployeeStatisticsController extends Controller
 
     private function calculatePerformanceMetrics($employee, $startDate, $endDate)
     {
-        // Calculate attendance score (0-100)
+        // Default values in case we can't calculate metrics
+        $defaultMetrics = [
+            'attendance_score' => 0,
+            'punctuality_score' => 0,
+            'working_hours_score' => 0,
+            'permissions_score' => 0,
+            'overall_score' => 0,
+            'trend' => 0,
+            'performance_level' => 'غير محدد',
+            'areas_for_improvement' => [],
+            'delay_status' => [
+                'minutes' => 0,
+                'is_good' => true,
+                'percentage' => 0
+            ],
+            'permissions_status' => [
+                'minutes' => 0,
+                'is_good' => true,
+                'percentage' => 0
+            ]
+        ];
+
+        // If employee data is not properly set, return default metrics
+        if (!isset($employee->attendance_percentage) && !isset($employee->delays) &&
+            !isset($employee->total_working_days) && !isset($employee->actual_attendance_days)) {
+            return $defaultMetrics;
+        }
+
         $attendanceScore = min(100, ($employee->attendance_percentage ?? 0));
 
-        // Calculate punctuality score (0-100)
-        $maxAcceptableDelays = 120; // 2 hours per month
-        $punctualityScore = 100; // Start with full score
+        $maxAcceptableDelays = 120;
+        $punctualityScore = 100;
 
-        // Only deduct points if delays exceed the limit
-        if ($employee->delays > $maxAcceptableDelays) {
-            $excessDelays = $employee->delays - $maxAcceptableDelays;
+        if (($employee->delays ?? 0) > $maxAcceptableDelays) {
+            $excessDelays = ($employee->delays ?? 0) - $maxAcceptableDelays;
             $punctualityScore = max(0, 100 - (($excessDelays / $maxAcceptableDelays) * 100));
         }
 
-        // Calculate work consistency score (0-100) - MODIFIED TO CONSIDER ABSENCES BUT NOT ACCEPTABLE DELAYS
-        if ($employee->total_working_days > 0) {
-            // Calculate the attendance rate first
-            $attendanceRate = $employee->actual_attendance_days / $employee->total_working_days;
+        $workingHoursScore = 0;
 
-            // Get total working hours
+        if (($employee->total_working_days ?? 0) > 0) {
+            $attendanceRate = ($employee->actual_attendance_days ?? 0) / ($employee->total_working_days ?? 1);
+
             $statsQuery = AttendanceRecord::where('employee_id', $employee->employee_id)
                 ->whereBetween('attendance_date', [$startDate, $endDate])
                 ->where('status', 'حضـور');
 
-            // Adjust working hours calculation to not penalize for acceptable delays
             $workingHoursRecords = (clone $statsQuery)->get();
             $totalWorkingHours = 0;
 
             foreach ($workingHoursRecords as $record) {
-                // If delay is within acceptable limits, consider full 8 hour day
-                // Otherwise, use actual working hours
                 $delayMinutes = $record->delay_minutes ?? 0;
                 if ($delayMinutes <= $maxAcceptableDelays) {
-                    // If delay is acceptable, use either actual working hours or standard 8 hours
                     $totalWorkingHours += max($record->working_hours ?? 0, 8);
                 } else {
-                    // If delay exceeds limit, use actual working hours
                     $totalWorkingHours += $record->working_hours ?? 0;
                 }
             }
@@ -598,26 +643,19 @@ class EmployeeStatisticsController extends Controller
             $avgHours = $daysWithHours > 0 ? $totalWorkingHours / $daysWithHours : 0;
             $avgHoursRate = ($avgHours / 8);
 
-            // Combine both factors: attendance rate and average hours when present
             $workingHoursScore = min(100, ($attendanceRate * $avgHoursRate * 100));
-        } else {
-            $workingHoursScore = 0;
         }
 
-        // Calculate permissions score (0-100)
-        $maxAcceptablePermissions = 180; // 3 hours per month
-        $permissionsScore = 100; // Start with full score
+        $maxAcceptablePermissions = 180;
+        $permissionsScore = 100;
 
-        // Only deduct points if permissions exceed the limit
-        if ($employee->permissions > $maxAcceptablePermissions) {
-            $excessPermissions = $employee->permissions - $maxAcceptablePermissions;
+        if (($employee->permissions ?? 0) > $maxAcceptablePermissions) {
+            $excessPermissions = ($employee->permissions ?? 0) - $maxAcceptablePermissions;
             $permissionsScore = max(0, 100 - (($excessPermissions / $maxAcceptablePermissions) * 100));
         }
 
-        // Calculate overall performance score
-        $overallScore = round(($attendanceScore * 0.4) + ($punctualityScore * 0.4) + ($workingHoursScore * 0.2), 1);
+        $overallScore = round(($attendanceScore * 0.45) + ($punctualityScore * 0.2) + ($workingHoursScore * 0.35), 1);
 
-        // Performance trend (comparing with previous period)
         $previousPeriodScore = $this->calculatePreviousPeriodScore($employee, $startDate);
         $trend = $overallScore - $previousPeriodScore;
 
@@ -631,25 +669,38 @@ class EmployeeStatisticsController extends Controller
             'performance_level' => $this->getPerformanceLevel($overallScore),
             'areas_for_improvement' => $this->getAreasForImprovement($attendanceScore, $punctualityScore, $workingHoursScore, $permissionsScore),
             'delay_status' => [
-                'minutes' => $employee->delays,
-                'is_good' => $employee->delays <= 120,
-                'percentage' => min(100, ($employee->delays / 120) * 100)
+                'minutes' => $employee->delays ?? 0,
+                'is_good' => ($employee->delays ?? 0) <= 120,
+                'percentage' => min(100, (($employee->delays ?? 0) / 120) * 100)
             ],
             'permissions_status' => [
-                'minutes' => $employee->permissions,
-                'is_good' => $employee->permissions <= 180,
-                'percentage' => min(100, ($employee->permissions / 180) * 100)
+                'minutes' => $employee->permissions ?? 0,
+                'is_good' => ($employee->permissions ?? 0) <= 180,
+                'percentage' => min(100, (($employee->permissions ?? 0) / 180) * 100)
             ]
         ];
     }
 
     private function calculatePreviousPeriodScore($employee, $startDate)
     {
-        // Get previous period dates
+        $currentPeriodStart = Carbon::parse($startDate);
+
         $previousStart = Carbon::parse($startDate)->subMonth();
         $previousEnd = Carbon::parse($startDate)->subDay();
 
-        // Calculate previous attendance percentage
+        $employee->comparison_periods = [
+            'current_period' => [
+                'start' => $currentPeriodStart->format('Y-m-d'),
+                'end' => Carbon::parse($startDate)->addMonth()->subDay()->format('Y-m-d'),
+                'label' => 'من ' . $currentPeriodStart->format('Y-m-d') . ' إلى ' . Carbon::parse($startDate)->addMonth()->subDay()->format('Y-m-d')
+            ],
+            'previous_period' => [
+                'start' => $previousStart->format('Y-m-d'),
+                'end' => $previousEnd->format('Y-m-d'),
+                'label' => 'من ' . $previousStart->format('Y-m-d') . ' إلى ' . $previousEnd->format('Y-m-d')
+            ]
+        ];
+
         $previousStats = AttendanceRecord::where('employee_id', $employee->employee_id)
             ->whereBetween('attendance_date', [$previousStart, $previousEnd])
             ->get();
@@ -659,7 +710,6 @@ class EmployeeStatisticsController extends Controller
 
         $prevAttendanceScore = $totalDays > 0 ? ($presentDays / $totalDays) * 100 : 0;
 
-        // Calculate previous punctuality score
         $maxAcceptableDelays = 120;
         $prevDelays = $previousStats->sum('delay_minutes');
         $prevPunctualityScore = 100;
@@ -668,23 +718,17 @@ class EmployeeStatisticsController extends Controller
             $prevPunctualityScore = max(0, 100 - (($excessDelays / $maxAcceptableDelays) * 100));
         }
 
-        // Calculate previous working hours score - MODIFIED TO CONSIDER ABSENCES BUT NOT ACCEPTABLE DELAYS
         if ($totalDays > 0) {
-            // Calculate attendance rate
             $attendanceRate = $presentDays / $totalDays;
 
-            // Get work records with hours
             $workRecords = $previousStats->where('status', 'حضـور');
             $totalWorkingHours = 0;
 
             foreach ($workRecords as $record) {
-                // If delay is within acceptable limits, consider full 8 hour day
                 $delayMinutes = $record->delay_minutes ?? 0;
                 if ($delayMinutes <= $maxAcceptableDelays) {
-                    // If delay is acceptable, use either actual working hours or standard 8 hours
                     $totalWorkingHours += max($record->working_hours ?? 0, 8);
                 } else {
-                    // If delay exceeds limit, use actual working hours
                     $totalWorkingHours += $record->working_hours ?? 0;
                 }
             }
@@ -693,13 +737,11 @@ class EmployeeStatisticsController extends Controller
             $avgHours = $daysWithHours > 0 ? $totalWorkingHours / $daysWithHours : 0;
             $avgHoursRate = $avgHours / 8;
 
-            // Combine both factors
             $prevWorkingHoursScore = min(100, ($attendanceRate * $avgHoursRate * 100));
         } else {
             $prevWorkingHoursScore = 0;
         }
 
-        // Calculate previous permissions score
         $maxAcceptablePermissions = 180;
         $prevPermissions = PermissionRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
@@ -711,7 +753,57 @@ class EmployeeStatisticsController extends Controller
             $prevPermissionsScore = max(0, 100 - (($excessPermissions / $maxAcceptablePermissions) * 100));
         }
 
-        return round(($prevAttendanceScore * 0.4) + ($prevPunctualityScore * 0.4) + ($prevWorkingHoursScore * 0.2), 1);
+        $employee->previous_scores = [
+            'attendance_score' => round($prevAttendanceScore, 1),
+            'punctuality_score' => round($prevPunctualityScore, 1),
+            'working_hours_score' => round($prevWorkingHoursScore, 1),
+            'permissions_score' => round($prevPermissionsScore, 1)
+        ];
+
+        $employee->previous_period_stats = [
+            'total_working_days' => $totalDays,
+            'actual_attendance_days' => $presentDays,
+            'attendance_percentage' => $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0,
+            'delays' => $prevDelays,
+            'average_working_hours' => $daysWithHours > 0 ? round($totalWorkingHours / $daysWithHours, 2) : 0
+        ];
+
+        $this->calculateTotalStatistics($employee);
+
+        return round(($prevAttendanceScore * 0.45) + ($prevPunctualityScore * 0.2) + ($prevWorkingHoursScore * 0.35), 1);
+    }
+
+    private function calculateTotalStatistics($employee)
+    {
+        $totalWorkingDays = ($employee->total_working_days ?? 0) +
+            ($employee->previous_period_stats['total_working_days'] ?? 0);
+
+        $totalAttendanceDays = ($employee->actual_attendance_days ?? 0) +
+            ($employee->previous_period_stats['actual_attendance_days'] ?? 0);
+
+        $totalDelays = ($employee->delays ?? 0) +
+            ($employee->previous_period_stats['delays'] ?? 0);
+
+        $currentWorkingHours = ($employee->average_working_hours ?? 0) * ($employee->actual_attendance_days ?? 0);
+        $previousWorkingHours = ($employee->previous_period_stats['average_working_hours'] ?? 0) *
+            ($employee->previous_period_stats['actual_attendance_days'] ?? 0);
+
+        $totalHours = $currentWorkingHours + $previousWorkingHours;
+        $totalDays = ($employee->actual_attendance_days ?? 0) +
+            ($employee->previous_period_stats['actual_attendance_days'] ?? 0);
+
+        $averageWorkingHours = $totalDays > 0 ? $totalHours / $totalDays : 0;
+
+        $totalAttendancePercentage = $totalWorkingDays > 0 ?
+            ($totalAttendanceDays / $totalWorkingDays) * 100 : 0;
+
+        $employee->total_periods_stats = [
+            'total_working_days' => $totalWorkingDays,
+            'total_attendance_days' => $totalAttendanceDays,
+            'total_attendance_percentage' => round($totalAttendancePercentage, 1),
+            'total_delays' => $totalDelays,
+            'average_working_hours' => round($averageWorkingHours, 2)
+        ];
     }
 
     private function getPerformanceLevel($score)
@@ -745,163 +837,226 @@ class EmployeeStatisticsController extends Controller
 
     private function predictFuturePerformance($employee)
     {
-        // Get current performance metrics
+        // Check if performance metrics exist
+        if (!isset($employee->performance_metrics) || empty($employee->performance_metrics)) {
+            // Return default predictions if no metrics are available
+            return [
+                'predicted_attendance' => 0,
+                'trend_direction' => 'ثابت',
+                'trend_percentage' => 0,
+                'improvement_percentage' => 0,
+                'current_period' => ['label' => 'غير محدد'],
+                'previous_period' => ['label' => 'غير محدد'],
+                'prediction_period' => ['label' => 'غير محدد'],
+                'current_score' => 0,
+                'previous_score' => 0,
+                'recommendations' => ['غير متوفر'],
+                'metric_predictions' => [
+                    'attendance' => ['current' => 0, 'previous' => 0, 'predicted' => 0, 'improvement' => 0, 'improvement_percentage' => 0],
+                    'punctuality' => ['current' => 0, 'previous' => 0, 'predicted' => 0, 'improvement' => 0, 'improvement_percentage' => 0],
+                    'working_hours' => ['current' => 0, 'previous' => 0, 'predicted' => 0, 'improvement' => 0, 'improvement_percentage' => 0],
+                    'permissions' => ['current' => 0, 'previous' => 0, 'predicted' => 0, 'improvement' => 0, 'improvement_percentage' => 0],
+                    'summary' => ['based_on_periods' => ['current' => 'غير محدد', 'previous' => 'غير محدد'], 'prediction_for' => 'غير محدد']
+                ],
+                'periods_details' => []
+            ];
+        }
+
         $currentMetrics = $employee->performance_metrics;
-        $currentScore = $currentMetrics['overall_score'];
+        $currentScore = $currentMetrics['overall_score'] ?? 0;
 
-        // Define current period (current month)
-        $now = now();
-        $currentPeriodStart = $now->day >= 26
-            ? $now->copy()->startOfDay()->setDay(26)
-            : $now->copy()->subMonth()->startOfDay()->setDay(26);
+        $prevOverallScore = isset($employee->previous_scores) ?
+            (($employee->previous_scores['attendance_score'] * 0.45) +
+             ($employee->previous_scores['punctuality_score'] * 0.2) +
+             ($employee->previous_scores['working_hours_score'] * 0.35)) :
+            $this->calculatePreviousPeriodScore($employee, now()->format('Y-m-d'));
 
-        $currentPeriodEnd = $now->day >= 26
-            ? $now->copy()->addMonth()->startOfDay()->setDay(25)->endOfDay()
-            : $now->copy()->startOfDay()->setDay(25)->endOfDay();
-
-        // Define previous period (previous month)
-        $previousPeriodStart = $currentPeriodStart->copy()->subMonth();
-        $previousPeriodEnd = $currentPeriodEnd->copy()->subMonth();
-
-        // Get attendance stats for previous period
-        $previousStats = AttendanceRecord::where('employee_id', $employee->employee_id)
-            ->whereBetween('attendance_date', [$previousPeriodStart->format('Y-m-d'), $previousPeriodEnd->format('Y-m-d')])
-            ->get();
-
-        // Calculate previous period metrics
-        $totalDays = $previousStats->count() ?: 1;
-        $presentDays = $previousStats->where('status', 'حضـور')->count();
-        $prevAttendanceScore = min(100, ($presentDays / $totalDays) * 100);
-
-        // Calculate previous punctuality score
-        $maxAcceptableDelays = 120;
-        $prevDelays = $previousStats->sum('delay_minutes');
-        $prevPunctualityScore = 100;
-        if ($prevDelays > $maxAcceptableDelays) {
-            $excessDelays = $prevDelays - $maxAcceptableDelays;
-            $prevPunctualityScore = max(0, 100 - (($excessDelays / $maxAcceptableDelays) * 100));
-        }
-
-        // Calculate previous working hours score - MODIFIED TO CONSIDER ABSENCES BUT NOT ACCEPTABLE DELAYS
-        if ($totalDays > 0) {
-            // Calculate attendance rate
-            $attendanceRate = $presentDays / $totalDays;
-
-            // Get work records with hours
-            $workRecords = $previousStats->where('status', 'حضـور');
-            $totalWorkingHours = 0;
-
-            foreach ($workRecords as $record) {
-                // If delay is within acceptable limits, consider full 8 hour day
-                $delayMinutes = $record->delay_minutes ?? 0;
-                if ($delayMinutes <= $maxAcceptableDelays) {
-                    // If delay is acceptable, use either actual working hours or standard 8 hours
-                    $totalWorkingHours += max($record->working_hours ?? 0, 8);
-                } else {
-                    // If delay exceeds limit, use actual working hours
-                    $totalWorkingHours += $record->working_hours ?? 0;
-                }
-            }
-
-            $daysWithHours = $workRecords->count();
-            $avgHours = $daysWithHours > 0 ? $totalWorkingHours / $daysWithHours : 0;
-            $avgHoursRate = $avgHours / 8;
-
-            // Combine both factors
-            $prevWorkingHoursScore = min(100, ($attendanceRate * $avgHoursRate * 100));
-        } else {
-            $prevWorkingHoursScore = 0;
-        }
-
-        // Ignoring permissions as requested by user
-        $prevPermissionsScore = 100;
-
-        // Recalculate weights - Adjusting to ignore permissions (giving more weight to the other metrics)
-        $prevOverallScore = round(
-            ($prevAttendanceScore * 0.4) +
-            ($prevPunctualityScore * 0.4) +
-            ($prevWorkingHoursScore * 0.2),
-        1);
-
-        // Calculate trend (current vs previous)
         $trend = $currentScore - $prevOverallScore;
 
-        // Calculate improvement percentage
         $improvementPercentage = 0;
         if ($prevOverallScore > 0) {
             $improvementPercentage = round(($trend / $prevOverallScore) * 100, 1);
         } elseif ($trend > 0) {
-            $improvementPercentage = 100; // If previous was 0 and now it's positive, that's 100% improvement
+            $improvementPercentage = 100;
         }
 
-        // If current score is high, prediction should not drop drastically
         $predictedScore = $currentScore;
+
         if ($trend > 0) {
-            // If improving, slight increase up to max 100
-            $predictedScore = min(100, $currentScore + min($trend * 0.5, 5));
-        } else if ($trend < 0) {
-            // If declining, slight decrease but not below 80% of current if current is good
-            $min = $currentScore >= 90 ? $currentScore * 0.9 : $currentScore + $trend * 0.5;
-            $predictedScore = max($min, $currentScore + $trend * 0.5);
+            $predictedImprovement = min(5, $trend * 0.3);
+            $predictedScore = min(100, $currentScore + $predictedImprovement);
+        }
+        else if ($trend < 0) {
+            if ($currentScore >= 90) {
+                $predictedDecline = max(-2, $trend * 0.2);
+            } else {
+                $predictedDecline = max(-5, $trend * 0.3);
+            }
+            $predictedScore = max(50, $currentScore + $predictedDecline);
         }
 
-        // Generate detailed predictions for each metric
+        $predictedScore = round(min(100, max(0, $predictedScore)), 1);
+
+        $periodsDetails = [
+            'current_period' => [
+                'start' => null,
+                'end' => null,
+                'label' => 'غير محدد'
+            ],
+            'previous_period' => [
+                'start' => null,
+                'end' => null,
+                'label' => 'غير محدد'
+            ]
+        ];
+
+        if (isset($employee->comparison_periods)) {
+            $periodsDetails = $employee->comparison_periods;
+        } else {
+            $now = now();
+            $currentPeriodStart = $now->day >= 26
+                ? $now->copy()->startOfDay()->setDay(26)
+                : $now->copy()->subMonth()->startOfDay()->setDay(26);
+
+            $currentPeriodEnd = $now->day >= 26
+                ? $now->copy()->addMonth()->startOfDay()->setDay(25)->endOfDay()
+                : $now->copy()->startOfDay()->setDay(25)->endOfDay();
+
+            $previousPeriodStart = $currentPeriodStart->copy()->subMonth();
+            $previousPeriodEnd = $currentPeriodEnd->copy()->subMonth();
+
+            $periodsDetails = [
+                'current_period' => [
+                    'start' => $currentPeriodStart->format('Y-m-d'),
+                    'end' => $currentPeriodEnd->format('Y-m-d'),
+                    'label' => 'من ' . $currentPeriodStart->format('Y-m-d') . ' إلى ' . $currentPeriodEnd->format('Y-m-d')
+                ],
+                'previous_period' => [
+                    'start' => $previousPeriodStart->format('Y-m-d'),
+                    'end' => $previousPeriodEnd->format('Y-m-d'),
+                    'label' => 'من ' . $previousPeriodStart->format('Y-m-d') . ' إلى ' . $previousPeriodEnd->format('Y-m-d')
+                ]
+            ];
+        }
+
+        $currentEndDate = isset($periodsDetails['current_period']['end']) ?
+            Carbon::parse($periodsDetails['current_period']['end']) : Carbon::now();
+        $predictionStart = $currentEndDate->copy()->addDay();
+        $predictionEnd = $currentEndDate->copy()->addMonth();
+
+        $periodsDetails['prediction_period'] = [
+            'start' => $predictionStart->format('Y-m-d'),
+            'end' => $predictionEnd->format('Y-m-d'),
+            'label' => 'من ' . $predictionStart->format('Y-m-d') . ' إلى ' . $predictionEnd->format('Y-m-d')
+        ];
+
+        $prevAttendanceScore = isset($employee->previous_scores) ?
+            $employee->previous_scores['attendance_score'] : 0;
+        $prevPunctualityScore = isset($employee->previous_scores) ?
+            $employee->previous_scores['punctuality_score'] : 0;
+        $prevWorkingHoursScore = isset($employee->previous_scores) ?
+            $employee->previous_scores['working_hours_score'] : 0;
+
         $predictions = [
             'attendance' => [
-                'current' => $currentMetrics['attendance_score'],
+                'current' => $currentMetrics['attendance_score'] ?? 0,
                 'previous' => $prevAttendanceScore,
-                'predicted' => min(100, max(0, $currentMetrics['attendance_score'] + ($currentMetrics['attendance_score'] - $prevAttendanceScore) * 0.5)),
-                'improvement' => $currentMetrics['attendance_score'] - $prevAttendanceScore,
-                'improvement_percentage' => $prevAttendanceScore > 0 ? round((($currentMetrics['attendance_score'] - $prevAttendanceScore) / $prevAttendanceScore) * 100, 1) : 0
+                'predicted' => min(100, max(0, $this->calculateMetricPrediction(
+                    $currentMetrics['attendance_score'] ?? 0,
+                    $prevAttendanceScore
+                ))),
+                'improvement' => ($currentMetrics['attendance_score'] ?? 0) - $prevAttendanceScore,
+                'improvement_percentage' => $prevAttendanceScore > 0 ?
+                    round((($currentMetrics['attendance_score'] ?? 0 - $prevAttendanceScore) / $prevAttendanceScore) * 100, 1) : 0
             ],
             'punctuality' => [
-                'current' => $currentMetrics['punctuality_score'],
+                'current' => $currentMetrics['punctuality_score'] ?? 0,
                 'previous' => $prevPunctualityScore,
-                'predicted' => min(100, max(0, $currentMetrics['punctuality_score'] + ($currentMetrics['punctuality_score'] - $prevPunctualityScore) * 0.5)),
-                'improvement' => $currentMetrics['punctuality_score'] - $prevPunctualityScore,
-                'improvement_percentage' => $prevPunctualityScore > 0 ? round((($currentMetrics['punctuality_score'] - $prevPunctualityScore) / $prevPunctualityScore) * 100, 1) : 0
+                'predicted' => min(100, max(0, $this->calculateMetricPrediction(
+                    $currentMetrics['punctuality_score'] ?? 0,
+                    $prevPunctualityScore
+                ))),
+                'improvement' => ($currentMetrics['punctuality_score'] ?? 0) - $prevPunctualityScore,
+                'improvement_percentage' => $prevPunctualityScore > 0 ?
+                    round((($currentMetrics['punctuality_score'] ?? 0 - $prevPunctualityScore) / $prevPunctualityScore) * 100, 1) : 0
             ],
             'working_hours' => [
-                'current' => $currentMetrics['working_hours_score'],
+                'current' => $currentMetrics['working_hours_score'] ?? 0,
                 'previous' => $prevWorkingHoursScore,
-                'predicted' => min(100, max(0, $currentMetrics['working_hours_score'] + ($currentMetrics['working_hours_score'] - $prevWorkingHoursScore) * 0.5)),
-                'improvement' => $currentMetrics['working_hours_score'] - $prevWorkingHoursScore,
-                'improvement_percentage' => $prevWorkingHoursScore > 0 ? round((($currentMetrics['working_hours_score'] - $prevWorkingHoursScore) / $prevWorkingHoursScore) * 100, 1) : 0
+                'predicted' => min(100, max(0, $this->calculateMetricPrediction(
+                    $currentMetrics['working_hours_score'] ?? 0,
+                    $prevWorkingHoursScore
+                ))),
+                'improvement' => ($currentMetrics['working_hours_score'] ?? 0) - $prevWorkingHoursScore,
+                'improvement_percentage' => $prevWorkingHoursScore > 0 ?
+                    round((($currentMetrics['working_hours_score'] ?? 0 - $prevWorkingHoursScore) / $prevWorkingHoursScore) * 100, 1) : 0
             ],
             'permissions' => [
-                'current' => $currentMetrics['permissions_score'],
-                'previous' => 100, // Fixed at 100 as we're ignoring permissions
-                'predicted' => 100, // Fixed at 100 as we're ignoring permissions
+                'current' => $currentMetrics['permissions_score'] ?? 0,
+                'previous' => 100,
+                'predicted' => 100,
                 'improvement' => 0,
                 'improvement_percentage' => 0
+            ],
+            'summary' => [
+                'based_on_periods' => [
+                    'current' => $periodsDetails['current_period']['label'],
+                    'previous' => $periodsDetails['previous_period']['label']
+                ],
+                'prediction_for' => $periodsDetails['prediction_period']['label'],
+                'calculation_method' => [
+                    'description' => 'تم حساب التنبؤ بناءً على تحليل الفرق في الأداء بين الفترة الحالية والفترة السابقة، ' .
+                                   'واستخدام هذا الاتجاه لتوقع الأداء المستقبلي مع مراعاة معدل تحسن أو تراجع أبطأ.'
+                ],
+                'current_vs_previous' => [
+                    'current_score' => $currentScore,
+                    'previous_score' => round($prevOverallScore, 1),
+                    'difference' => round($trend, 1),
+                    'percentage_change' => $improvementPercentage
+                ]
             ]
         ];
 
         return [
-            'predicted_attendance' => round($predictedScore, 1),
+            'predicted_attendance' => $predictedScore,
             'trend_direction' => $trend > 0 ? 'تحسن' : ($trend < 0 ? 'تراجع' : 'ثابت'),
             'trend_percentage' => abs(round($trend, 1)),
             'improvement_percentage' => $improvementPercentage,
-            'current_period' => [
-                'start' => $currentPeriodStart->format('Y-m-d'),
-                'end' => $currentPeriodEnd->format('Y-m-d')
-            ],
-            'previous_period' => [
-                'start' => $previousPeriodStart->format('Y-m-d'),
-                'end' => $previousPeriodEnd->format('Y-m-d')
-            ],
+            'current_period' => $periodsDetails['current_period'],
+            'previous_period' => $periodsDetails['previous_period'],
+            'prediction_period' => $periodsDetails['prediction_period'],
             'current_score' => $currentScore,
-            'previous_score' => $prevOverallScore,
+            'previous_score' => round($prevOverallScore, 1),
             'recommendations' => $this->getRecommendations($predictedScore, $trend, $predictions, $currentScore),
-            'metric_predictions' => $predictions
+            'metric_predictions' => $predictions,
+            'periods_details' => $periodsDetails
         ];
+    }
+
+    private function calculateMetricPrediction($currentScore, $previousScore)
+    {
+        $trend = $currentScore - $previousScore;
+
+        if ($trend > 0) {
+            $predictedChange = min(5, $trend * 0.25);
+            return min(100, $currentScore + $predictedChange);
+        }
+        else if ($trend < 0) {
+            if ($currentScore >= 90) {
+                $predictedChange = max(-2, $trend * 0.15);
+            } else {
+                $predictedChange = max(-4, $trend * 0.25);
+            }
+            return max(50, $currentScore + $predictedChange);
+        }
+
+        return $currentScore;
     }
 
     private function getRecommendations($predictedScore, $trend, $predictions, $currentScore)
     {
         $recommendations = [];
 
-        // If current performance is already excellent
         if ($currentScore >= 90) {
             if ($trend >= 0) {
                 return ['الحفاظ على مستوى الأداء الممتاز'];
@@ -910,9 +1065,17 @@ class EmployeeStatisticsController extends Controller
             }
         }
 
-        // Check each metric's prediction
         foreach ($predictions as $metric => $data) {
-            if ($data['predicted'] < 80 || $data['current'] < 80) {
+            // Skip 'summary' key which doesn't have the 'predicted' field
+            if ($metric === 'summary') {
+                continue;
+            }
+
+            // Ensure the predicted key exists
+            $predictedValue = $data['predicted'] ?? 0;
+            $currentValue = $data['current'] ?? 0;
+
+            if ($predictedValue < 80 || $currentValue < 80) {
                 switch ($metric) {
                     case 'attendance':
                         $recommendations[] = 'تحسين نسبة الحضور';

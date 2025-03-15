@@ -300,3 +300,93 @@
         height: 200px;
     }
 }
+
+/* Rules Section Styles */
+#rulesCollapse {
+    padding-top: 15px;
+    overflow: hidden;
+}
+
+#rulesCollapse .card {
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+#rulesCollapse .table {
+    font-size: 0.9rem;
+}
+
+#rulesCollapse .formula {
+    font-family: monospace;
+    font-size: 1rem;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+/* Button Styles for Rules Toggle */
+#rulesToggleBtn {
+    position: relative;
+    transition: all 0.25s ease;
+}
+
+#rulesToggleBtn:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-2px);
+}
+
+#rulesIcon {
+    transition: transform 0.25s ease;
+}
+
+/* Styling for Rules Table */
+#rulesCollapse .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+#rulesCollapse .table-dark th {
+    background-color: #3a7bd5 !important;
+    color: white;
+}
+
+#rulesCollapse ul {
+    margin-bottom: 0;
+}
+
+#rulesCollapse ul li {
+    margin-bottom: 5px;
+}
+
+#rulesCollapse ul li:last-child {
+    margin-bottom: 0;
+}
+
+/* Badge Styling in Rules Section */
+#rulesCollapse .badge {
+    font-size: 0.8rem;
+    padding: 5px 8px;
+}
+
+/* Make the Rules Card More Attractive */
+#rulesCollapse .card-body {
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+}
+
+#rulesCollapse .text-primary,
+#rulesCollapse .text-success,
+#rulesCollapse .text-info,
+#rulesCollapse .text-warning {
+    font-weight: 600;
+}
+
+/* Responsive Design for Rules Section */
+@media (max-width: 768px) {
+    #rulesCollapse .table {
+        font-size: 0.75rem;
+    }
+
+    #rulesCollapse .formula {
+        font-size: 0.85rem;
+    }
+}

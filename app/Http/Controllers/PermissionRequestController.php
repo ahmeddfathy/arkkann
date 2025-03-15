@@ -248,19 +248,17 @@ class PermissionRequestController extends Controller
 
         $user = Auth::user();
 
-        if ($user->role !== 'employee' && $user->role !== 'manager') {
-            return redirect()->route('welcome')->with('error', 'Unauthorized action.');
-        }
-
         $validated = $request->validate([
             'departure_time' => 'required|date|after:now',
             'return_time' => 'required|date|after:departure_time',
             'reason' => 'required|string|max:255',
-            'user_id' => 'required_if:role,manager|exists:users,id|nullable'
+            'user_id' => 'nullable|exists:users,id',
+            'registration_type' => 'nullable|in:self,other'
         ]);
 
-        if ($user->role === 'manager' && $request->input('user_id') && $request->input('user_id') !== $user->id) {
-            $result = $this->permissionRequestService->createRequestForUser($validated['user_id'], $validated);
+        // Check if the request is for another user based on registration_type and user_id
+        if ($request->input('registration_type') === 'other' && $request->filled('user_id') && $request->input('user_id') != $user->id) {
+            $result = $this->permissionRequestService->createRequestForUser($request->input('user_id'), $validated);
         } else {
             $result = $this->permissionRequestService->createRequest($validated);
         }
@@ -450,7 +448,29 @@ class PermissionRequestController extends Controller
                 ]);
             }
 
-            if ($validated['return_status'] == 1) {
+            // معالجة إعادة التعيين (return_status = 0) أولاً
+            if ($validated['return_status'] == 0) {
+                // إعادة تعيين حالة العودة إلى صفر بدلاً من null لتجنب خطأ قاعدة البيانات
+                $permissionRequest->returned_on_time = 0;
+                $permissionRequest->updateActualMinutesUsed();
+                $permissionRequest->save();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إعادة تعيين حالة العودة بنجاح',
+                    'actual_minutes_used' => $permissionRequest->minutes_used
+                ]);
+            }
+            // تسجيل العودة (return_status = 1)
+            else if ($validated['return_status'] == 1) {
+                // التحقق من إمكانية تسجيل العودة
+                if (!$permissionRequest->canMarkAsReturned($user)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'لقد تجاوزت الوقت المسموح به للعودة'
+                    ]);
+                }
+
                 // السماح بتسجيل العودة حتى لو تجاوز الوقت المحدد
                 // لكن نسجل ما إذا كان الموظف عاد في الوقت المحدد أم متأخراً
                 $isOnTime = $now->lte($maxReturnTime);
@@ -479,8 +499,10 @@ class PermissionRequestController extends Controller
                     'success' => true,
                     'message' => $isOnTime ? 'تم تسجيل العودة بنجاح' : 'تم تسجيل العودة، لكن بعد انتهاء الوقت المحدد'
                 ]);
-            } elseif ($validated['return_status'] == 2) {
-                $permissionRequest->returned_on_time = false;
+            }
+            // تسجيل عدم العودة (return_status = 2)
+            else if ($validated['return_status'] == 2) {
+                $permissionRequest->returned_on_time = 2;
                 $permissionRequest->updateActualMinutesUsed();
                 $permissionRequest->save();
 
@@ -490,37 +512,22 @@ class PermissionRequestController extends Controller
                     'reason' => 'عدم العودة من الاستئذان في الوقت المحدد',
                     'manager_mistake' => false
                 ]);
-            }
 
-            // لا يمكن إعادة التعيين إذا كان وقت العودة قد انتهى
-            if ($validated['return_status'] == 0 && $user->id === $permissionRequest->user_id) {
-                if (!$permissionRequest->canResetReturnStatus($user)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'لا يمكن إعادة تعيين الحالة بعد انتهاء وقت العودة'
-                    ]);
-                }
-            }
-
-            // لا يمكن تسجيل العودة إذا كان وقت العودة قد انتهى
-            if ($validated['return_status'] == 1 && $user->id === $permissionRequest->user_id) {
-                if (!$permissionRequest->canMarkAsReturned($user)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'لقد تجاوزت الوقت المسموح به للعودة'
-                    ]);
-                }
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم تسجيل عدم العودة بنجاح',
+                    'actual_minutes_used' => $permissionRequest->minutes_used
+                ]);
             }
 
             return response()->json([
-                'success' => true,
-                'message' => 'تم تحديث حالة العودة بنجاح',
-                'actual_minutes_used' => $permissionRequest->minutes_used
+                'success' => false,
+                'message' => 'قيمة غير صالحة لحالة العودة'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء تحديث حالة العودة'
+                'message' => 'حدث خطأ أثناء تحديث حالة العودة: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -720,6 +727,48 @@ class PermissionRequestController extends Controller
             return back()->with('success', 'تم تعديل الرد بنجاح');
         } catch (\Exception $e) {
             return back()->with('error', 'حدث خطأ أثناء تعديل الرد');
+        }
+    }
+
+    /**
+     * التحقق من نهاية يوم العمل وتسجيل عدم العودة تلقائيًا
+     */
+    public function checkEndOfDay(Request $request)
+    {
+        $requestIds = $request->input('request_ids', []);
+        $updatedRequests = [];
+
+        try {
+            foreach ($requestIds as $requestId) {
+                $permissionRequest = PermissionRequest::find($requestId);
+
+                if ($permissionRequest && $permissionRequest->isApproved()) {
+                    // استدعاء دالة التحقق من نهاية يوم العمل
+                    if ($permissionRequest->markAsNotReturnedAtEndOfShift()) {
+                        $updatedRequests[] = $requestId;
+
+                        // إضافة مخالفة للموظف الذي لم يعد
+                        Violation::create([
+                            'user_id' => $permissionRequest->user_id,
+                            'permission_requests_id' => $permissionRequest->id,
+                            'reason' => 'عدم العودة من الاستئذان في الوقت المحدد (تسجيل تلقائي)',
+                            'manager_mistake' => false
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'updated_requests' => $updatedRequests
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in checkEndOfDay: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء التحقق من نهاية يوم العمل: ' . $e->getMessage()
+            ], 500);
         }
     }
 

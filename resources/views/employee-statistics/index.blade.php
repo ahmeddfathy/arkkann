@@ -31,6 +31,194 @@ use Carbon\Carbon;
                     </h5>
                 </div>
 
+                <!-- قواعد التقييم -->
+                <div class="card-body border-bottom pb-3">
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <h5 class="mb-0">
+                                <i class="fas fa-book me-2 text-primary"></i> قواعد التقييم وأسس احتساب النقاط
+                            </h5>
+                            <button class="btn btn-sm btn-outline-secondary ms-3" type="button" id="rulesToggleBtn">
+                                <i class="fas fa-chevron-down" id="rulesIcon"></i> عرض/إخفاء القواعد
+                            </button>
+                        </div>
+
+                        <div id="rulesCollapse" style="display: none;">
+                            <div class="card card-body bg-light">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <h6 class="fw-bold text-primary mb-3">كيفية احتساب التقييم النهائي للموظفين</h6>
+                                        <p>يتم تقييم أداء الموظفين بناءً على ثلاثة مؤشرات رئيسية ولكل منها وزن نسبي في التقييم النهائي:</p>
+
+                                        <div class="d-flex flex-wrap">
+                                            <div class="me-4 mb-3">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <span class="badge bg-primary d-inline-block" style="width:30px; height:30px; line-height:30px; border-radius:50%;">45%</span>
+                                                    <span class="ms-2 fw-bold">الحضور</span>
+                                                </div>
+                                            </div>
+                                            <div class="me-4 mb-3">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <span class="badge bg-success d-inline-block" style="width:30px; height:30px; line-height:30px; border-radius:50%;">20%</span>
+                                                    <span class="ms-2 fw-bold">الالتزام بالمواعيد</span>
+                                                </div>
+                                            </div>
+                                            <div class="me-4 mb-3">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <span class="badge bg-info d-inline-block" style="width:30px; height:30px; line-height:30px; border-radius:50%;">35%</span>
+                                                    <span class="ms-2 fw-bold">ساعات العمل</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>المؤشر</th>
+                                                        <th>الوزن النسبي</th>
+                                                        <th>القواعد</th>
+                                                        <th>حالات خصم النقاط</th>
+                                                        <th>مثال</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <!-- الحضور -->
+                                                    <tr>
+                                                        <td class="text-primary fw-bold">
+                                                            <i class="fas fa-user-check me-1"></i> الحضور
+                                                        </td>
+                                                        <td>45% من التقييم الكلي</td>
+                                                        <td>
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>الدرجة الكاملة (100%) لمن لديه نسبة حضور 100%</li>
+                                                                <li>يتم خصم النقاط بنفس نسبة الغياب</li>
+                                                                <li>لا يتم احتساب الإجازات المعتمدة كغياب</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            يتم خصم نقاط من درجة الحضور في حالة:
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>الغياب بدون إجازة معتمدة</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            <small>
+                                                                إذا كان لدى الموظف 22 يوم عمل، وحضر 20 يوم منها:<br>
+                                                                - نسبة الحضور = 90.9%<br>
+                                                                - درجة مؤشر الحضور = 90.9%<br>
+                                                                - التأثير على التقييم النهائي = 90.9% × 45% = 40.9%
+                                                            </small>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- الالتزام بالمواعيد -->
+                                                    <tr>
+                                                        <td class="text-success fw-bold">
+                                                            <i class="fas fa-clock me-1"></i> الالتزام بالمواعيد
+                                                        </td>
+                                                        <td>20% من التقييم الكلي</td>
+                                                        <td>
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>الحد المسموح للتأخير: 120 دقيقة شهرياً</li>
+                                                                <li>إذا كان التأخير أقل من أو يساوي 120 دقيقة، تكون الدرجة 100%</li>
+                                                                <li>إذا زاد التأخير عن 120 دقيقة، يتم خصم نقاط بنسبة التجاوز</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            يتم خصم نقاط من درجة الالتزام بالمواعيد في حالة:
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>تجاوز الحد المسموح للتأخير (120 دقيقة شهرياً)</li>
+                                                                <li>كل 120 دقيقة إضافية تؤدي لخصم 100% من الدرجة</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            <small>
+                                                                إذا تأخر الموظف 180 دقيقة خلال الشهر:<br>
+                                                                - تجاوز بمقدار 60 دقيقة (180 - 120)<br>
+                                                                - نسبة التجاوز = 60 ÷ 120 = 50%<br>
+                                                                - درجة مؤشر الالتزام = 100% - 50% = 50%<br>
+                                                                - التأثير على التقييم النهائي = 50% × 20% = 10%
+                                                            </small>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- ساعات العمل -->
+                                                    <tr>
+                                                        <td class="text-info fw-bold">
+                                                            <i class="fas fa-business-time me-1"></i> ساعات العمل
+                                                        </td>
+                                                        <td>20% من التقييم الكلي</td>
+                                                        <td>
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>المعيار: 8 ساعات يومياً</li>
+                                                                <li>متوسط ساعات العمل يقاس كنسبة من 8 ساعات</li>
+                                                                <li>يتم مراعاة نسبة الحضور في الاحتساب</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            يتم خصم نقاط من درجة ساعات العمل في حالة:
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>إذا كان متوسط ساعات العمل اليومية أقل من 8 ساعات</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            <small>
+                                                                إذا كان متوسط ساعات عمل الموظف 7 ساعات يومياً:<br>
+                                                                - نسبة ساعات العمل = 7 ÷ 8 = 87.5%<br>
+                                                                - درجة مؤشر ساعات العمل = 87.5%<br>
+                                                                - التأثير على التقييم النهائي = 87.5% × 20% = 17.5%
+                                                            </small>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- الأذونات -->
+                                                    <tr>
+                                                        <td class="text-warning fw-bold">
+                                                            <i class="fas fa-door-open me-1"></i> الأذونات
+                                                        </td>
+                                                        <td>لا يتم احتسابها حالياً</td>
+                                                        <td>
+                                                            <ul class="mb-0 ps-3">
+                                                                <li>الحد المسموح للأذونات: 180 دقيقة شهرياً</li>
+                                                                <li>لا يؤثر تجاوز الحد حالياً على التقييم النهائي</li>
+                                                            </ul>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-secondary">لا يتم خصم نقاط حالياً</span>
+                                                        </td>
+                                                        <td>
+                                                            <small>لا يؤثر على التقييم النهائي في الوقت الحالي</small>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div class="mt-3 p-3 bg-white rounded border">
+                                            <h6 class="fw-bold mb-2">كيفية حساب التقييم النهائي:</h6>
+                                            <div class="formula p-2 bg-light rounded">
+                                                <code dir="ltr">التقييم النهائي = (درجة الحضور × 45%) + (درجة الالتزام بالمواعيد × 20%) + (درجة ساعات العمل × 35%)</code>
+                                            </div>
+
+                                            <h6 class="fw-bold mt-3 mb-2">مستويات التقييم:</h6>
+                                            <div class="d-flex flex-wrap">
+                                                <div class="me-3 mb-2"><span class="badge bg-success me-1">90% - 100%</span> ممتاز</div>
+                                                <div class="me-3 mb-2"><span class="badge bg-primary me-1">80% - 89%</span> جيد جداً</div>
+                                                <div class="me-3 mb-2"><span class="badge bg-info me-1">70% - 79%</span> جيد</div>
+                                                <div class="me-3 mb-2"><span class="badge bg-warning me-1">60% - 69%</span> مقبول</div>
+                                                <div class="me-3 mb-2"><span class="badge bg-danger me-1">أقل من 60%</span> يحتاج إلى تحسين</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Filters -->
                 <div class="card-body">
                     <form method="GET" class="row g-3 mb-4">
@@ -356,16 +544,313 @@ use Carbon\Carbon;
                                                                     </div>
                                                                 </div>
 
-                                                                @if($employee->performance_metrics['trend'] != 0)
-                                                                <div class="trend-indicator mt-3">
-                                                                    <i class="fas fa-{{ $employee->performance_metrics['trend'] > 0 ? 'arrow-up text-success' : 'arrow-down text-danger' }} me-1"></i>
-                                                                    <span class="{{ $employee->performance_metrics['trend'] > 0 ? 'text-success' : 'text-danger' }}">
-                                                                        {{ abs($employee->performance_metrics['trend']) }}%
-                                                                        {{ $employee->performance_metrics['trend'] > 0 ? 'تحسن' : 'تراجع' }}
-                                                                        عن الفترة السابقة
-                                                                    </span>
+                                                                <!-- تفاصيل النقاط المخصومة -->
+                                                                <div class="mt-3">
+                                                                    <h5 class="card-title fw-bold">
+                                                                        <i class="fas fa-chart-line text-info me-2"></i>تفاصيل النقاط المخصومة
+                                                                    </h5>
+                                                                    <ul class="list-unstyled mb-0">
+                                                                        @if($employee->performance_metrics['attendance_score'] < 100)
+                                                                        <li class="mb-2">
+                                                                            <i class="fas fa-minus-circle text-danger me-1"></i>
+                                                                            <span>
+                                                                                خصم
+                                                                                <span class="badge bg-danger deduction-badge"
+                                                                                      data-bs-toggle="tooltip"
+                                                                                      data-bs-html="true"
+                                                                                      data-bs-placement="top"
+                                                                                      title="
+                                                                                      <div class='text-start'>
+                                                                                        <strong>تفاصيل الخصم:</strong><br>
+                                                                                        - نسبة الغياب: {{ round(100 - $employee->performance_metrics['attendance_score'], 1) }}%<br>
+                                                                                        - وزن مؤشر الحضور: 45% من التقييم الكلي<br>
+                                                                                        - حساب الخصم: {{ round(100 - $employee->performance_metrics['attendance_score'], 1) }}% × 45% = {{ round((100 - $employee->performance_metrics['attendance_score']) * 0.45, 1) }}%<br>
+                                                                                        - أيام الغياب: {{ $employee->absences }} {{ $employee->absences > 1 ? 'أيام' : 'يوم' }}<br>
+                                                                                        - الغياب يؤثر سلباً على أدائك الكلي!
+                                                                                      </div>
+                                                                                      ">
+                                                                                    {{ round((100 - $employee->performance_metrics['attendance_score']) * 0.45, 1) }}%
+                                                                                </span>
+                                                                                من التقييم النهائي بسبب الغياب
+                                                                            </span>
+                                                                        </li>
+                                                                        @endif
+
+                                                                        @if($employee->performance_metrics['punctuality_score'] < 100)
+                                                                        <li class="mb-2">
+                                                                            <i class="fas fa-minus-circle text-danger me-1"></i>
+                                                                            <span>
+                                                                                خصم
+                                                                                <span class="badge bg-danger deduction-badge"
+                                                                                      data-bs-toggle="tooltip"
+                                                                                      data-bs-html="true"
+                                                                                      data-bs-placement="top"
+                                                                                      title="
+                                                                                      <div class='text-start'>
+                                                                                        <strong>تفاصيل الخصم:</strong><br>
+                                                                                        - دقائق التأخير: {{ $employee->delays }} دقيقة<br>
+                                                                                        - الحد المسموح: 120 دقيقة شهرياً<br>
+                                                                                        - تجاوز الحد بـ: {{ max(0, $employee->delays - 120) }} دقيقة<br>
+                                                                                        - نسبة الخصم من مؤشر الالتزام: {{ round(100 - $employee->performance_metrics['punctuality_score'], 1) }}%<br>
+                                                                                        - وزن مؤشر الالتزام: 20% من التقييم الكلي<br>
+                                                                                        - حساب الخصم: {{ round(100 - $employee->performance_metrics['punctuality_score'], 1) }}% × 20% = {{ round((100 - $employee->performance_metrics['punctuality_score']) * 0.2, 1) }}%
+                                                                                      </div>
+                                                                                      ">
+                                                                                    {{ round((100 - $employee->performance_metrics['punctuality_score']) * 0.2, 1) }}%
+                                                                                </span>
+                                                                                من التقييم النهائي بسبب التأخير
+                                                                            </span>
+                                                                        </li>
+                                                                        @endif
+
+                                                                        @if($employee->performance_metrics['working_hours_score'] < 100)
+                                                                        <li class="mb-2">
+                                                                            <i class="fas fa-minus-circle text-danger me-1"></i>
+                                                                            <span>
+                                                                                خصم
+                                                                                <span class="badge bg-danger deduction-badge"
+                                                                                      data-bs-toggle="tooltip"
+                                                                                      data-bs-html="true"
+                                                                                      data-bs-placement="top"
+                                                                                      title="
+                                                                                      <div class='text-start'>
+                                                                                        <strong>تفاصيل الخصم:</strong><br>
+                                                                                        - متوسط ساعات العمل: {{ $employee->average_working_hours }} ساعة يومياً<br>
+                                                                                        - المطلوب: 8 ساعات يومياً<br>
+                                                                                        - نسبة النقص: {{ round((8 - $employee->average_working_hours) / 8 * 100, 1) }}%<br>
+                                                                                        - نسبة الخصم من مؤشر ساعات العمل: {{ round(100 - $employee->performance_metrics['working_hours_score'], 1) }}%<br>
+                                                                                        - وزن مؤشر ساعات العمل: 35% من التقييم الكلي<br>
+                                                                                        - حساب الخصم: {{ round(100 - $employee->performance_metrics['working_hours_score'], 1) }}% × 35% = {{ round((100 - $employee->performance_metrics['working_hours_score']) * 0.35, 1) }}%
+                                                                                      </div>
+                                                                                      ">
+                                                                                    {{ round((100 - $employee->performance_metrics['working_hours_score']) * 0.35, 1) }}%
+                                                                                </span>
+                                                                                من التقييم النهائي بسبب قلة ساعات العمل
+                                                                            </span>
+                                                                        </li>
+                                                                        @endif
+
+                                                                        @if($employee->performance_metrics['attendance_score'] == 100 &&
+                                                                            $employee->performance_metrics['punctuality_score'] == 100 &&
+                                                                            $employee->performance_metrics['working_hours_score'] == 100)
+                                                                        <li class="mb-1">
+                                                                            <i class="fas fa-check-circle text-success me-1"></i>
+                                                                            <span class="text-success">لا توجد نقاط مخصومة. مستوى الأداء ممتاز في جميع المؤشرات!</span>
+                                                                        </li>
+                                                                        @endif
+                                                                    </ul>
                                                                 </div>
-                                                                @endif
+
+                                                                <!-- معلومات فترات المقارنة -->
+                                                                <div class="mt-4">
+                                                                    <h5 class="card-title fw-bold">
+                                                                        <i class="fas fa-calendar-alt text-primary me-2"></i>فترات المقارنة للتقييم
+                                                                    </h5>
+                                                                    <div class="alert alert-info py-2">
+                                                                        <div class="row">
+                                                                            <div class="col-12 mb-2">
+                                                                                <span class="fw-bold">الفترة الحالية:</span>
+                                                                                {{ $employee->performance_predictions['current_period']['label'] ?? 'غير متوفر' }}
+                                                                            </div>
+                                                                            <div class="col-12 mb-2">
+                                                                                <span class="fw-bold">الفترة السابقة:</span>
+                                                                                {{ $employee->performance_predictions['previous_period']['label'] ?? 'غير متوفر' }}
+                                                                            </div>
+                                                                            <div class="col-12">
+                                                                                <span class="fw-bold">نسبة التحسن:</span>
+                                                                                @if(isset($employee->performance_predictions['improvement_percentage']))
+                                                                                    <span
+                                                                                        class="badge {{ $employee->performance_predictions['improvement_percentage'] > 0 ? 'bg-success' : ($employee->performance_predictions['improvement_percentage'] < 0 ? 'bg-danger' : 'bg-secondary') }}"
+                                                                                        data-bs-toggle="tooltip"
+                                                                                        data-bs-html="true"
+                                                                                        data-bs-placement="top"
+                                                                                        title="
+                                                                                        <div class='text-start'>
+                                                                                        <strong>تفاصيل الحساب:</strong><br>
+                                                                                        - التقييم الحالي: {{ $employee->performance_predictions['current_score'] }}%<br>
+                                                                                        - التقييم السابق: {{ $employee->performance_predictions['previous_score'] }}%<br>
+                                                                                        - الفرق: {{ $employee->performance_predictions['current_score'] - $employee->performance_predictions['previous_score'] }}%<br>
+                                                                                        - صيغة الحساب: (التقييم الحالي - التقييم السابق) ÷ التقييم السابق × 100<br>
+                                                                                        - الحساب: ({{ $employee->performance_predictions['current_score'] }} - {{ $employee->performance_predictions['previous_score'] }}) ÷ {{ $employee->performance_predictions['previous_score'] }} × 100 = {{ $employee->performance_predictions['improvement_percentage'] }}%
+                                                                                        </div>
+                                                                                        "
+                                                                                    >
+                                                                                        {{ abs($employee->performance_predictions['improvement_percentage']) }}%
+                                                                                        @if($employee->performance_predictions['improvement_percentage'] > 0)
+                                                                                            <i class="fas fa-arrow-up"></i> تحسن
+                                                                                        @elseif($employee->performance_predictions['improvement_percentage'] < 0)
+                                                                                            <i class="fas fa-arrow-down"></i> تراجع
+                                                                                        @else
+                                                                                            <i class="fas fa-minus"></i> ثابت
+                                                                                        @endif
+                                                                                    </span>
+                                                                                @else
+                                                                                    غير متوفر
+                                                                                @endif
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- تفاصيل التحسن في كل مؤشر -->
+                                                                <div class="mt-3">
+                                                                    <h5 class="card-title fw-bold">
+                                                                        <i class="fas fa-chart-line text-success me-2"></i>تفاصيل التحسن في كل مؤشر
+                                                                    </h5>
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-sm table-bordered">
+                                                                            <thead class="table-light">
+                                                                                <tr>
+                                                                                    <th>المؤشر</th>
+                                                                                    <th>الفترة السابقة</th>
+                                                                                    <th>الفترة الحالية</th>
+                                                                                    <th>التغيير</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <tr>
+                                                                                    <td>
+                                                                                        <i class="fas fa-user-check text-primary me-1"></i>الحضور
+                                                                                    </td>
+                                                                                    <td>{{ $employee->performance_predictions['metric_predictions']['attendance']['previous'] ?? 0 }}</td>
+                                                                                    <td>{{ $employee->performance_predictions['metric_predictions']['attendance']['current'] ?? 0 }}</td>
+                                                                                    <td>
+                                                                                        @if(isset($employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage']))
+                                                                                            <span
+                                                                                                class="badge {{ $employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage'] > 0 ? 'bg-success' : ($employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage'] < 0 ? 'bg-danger' : 'bg-secondary') }}"
+                                                                                                data-bs-toggle="tooltip"
+                                                                                                data-bs-html="true"
+                                                                                                data-bs-placement="top"
+                                                                                                title="
+                                                                                                <div class='text-start'>
+                                                                                                <strong>تفاصيل:</strong><br>
+                                                                                                - القيمة الحالية: {{ $employee->performance_predictions['metric_predictions']['attendance']['current'] }}%<br>
+                                                                                                - القيمة السابقة: {{ $employee->performance_predictions['metric_predictions']['attendance']['previous'] }}%<br>
+                                                                                                - الفرق: {{ $employee->performance_predictions['metric_predictions']['attendance']['improvement'] }}%<br>
+                                                                                                - نسبة التغيير: {{ $employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage'] }}%
+                                                                                                </div>
+                                                                                                "
+                                                                                            >
+                                                                                                {{ abs($employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage']) }}%
+                                                                                                @if($employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage'] > 0)
+                                                                                                    <i class="fas fa-arrow-up"></i>
+                                                                                                @elseif($employee->performance_predictions['metric_predictions']['attendance']['improvement_percentage'] < 0)
+                                                                                                    <i class="fas fa-arrow-down"></i>
+                                                                                                @endif
+                                                                                            </span>
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <tr>
+                                                                                    <td>
+                                                                                        <i class="fas fa-clock text-warning me-1"></i>الالتزام بالمواعيد
+                                                                                    </td>
+                                                                                    <td>{{ $employee->performance_predictions['metric_predictions']['punctuality']['previous'] ?? 0 }}</td>
+                                                                                    <td>{{ $employee->performance_predictions['metric_predictions']['punctuality']['current'] ?? 0 }}</td>
+                                                                                    <td>
+                                                                                        @if(isset($employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage']))
+                                                                                            <span
+                                                                                                class="badge {{ $employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage'] > 0 ? 'bg-success' : ($employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage'] < 0 ? 'bg-danger' : 'bg-secondary') }}"
+                                                                                                data-bs-toggle="tooltip"
+                                                                                                data-bs-html="true"
+                                                                                                data-bs-placement="top"
+                                                                                                title="
+                                                                                                <div class='text-start'>
+                                                                                                <strong>تفاصيل:</strong><br>
+                                                                                                - القيمة الحالية: {{ $employee->performance_predictions['metric_predictions']['punctuality']['current'] }}%<br>
+                                                                                                - القيمة السابقة: {{ $employee->performance_predictions['metric_predictions']['punctuality']['previous'] }}%<br>
+                                                                                                - الفرق: {{ $employee->performance_predictions['metric_predictions']['punctuality']['improvement'] }}%<br>
+                                                                                                - نسبة التغيير: {{ $employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage'] }}%
+                                                                                                </div>
+                                                                                                "
+                                                                                            >
+                                                                                                {{ abs($employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage']) }}%
+                                                                                                @if($employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage'] > 0)
+                                                                                                    <i class="fas fa-arrow-up"></i>
+                                                                                                @elseif($employee->performance_predictions['metric_predictions']['punctuality']['improvement_percentage'] < 0)
+                                                                                                    <i class="fas fa-arrow-down"></i>
+                                                                                                @endif
+                                                                                            </span>
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <tr>
+                                                                                    <td>
+                                                                                        <i class="fas fa-business-time text-info me-1"></i>ساعات العمل
+                                                                                    </td>
+                                                                                    <td>{{ $employee->performance_predictions['metric_predictions']['working_hours']['previous'] ?? 0 }}</td>
+                                                                                    <td>{{ $employee->performance_predictions['metric_predictions']['working_hours']['current'] ?? 0 }}</td>
+                                                                                    <td>
+                                                                                        @if(isset($employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage']))
+                                                                                            <span
+                                                                                                class="badge {{ $employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage'] > 0 ? 'bg-success' : ($employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage'] < 0 ? 'bg-danger' : 'bg-secondary') }}"
+                                                                                                data-bs-toggle="tooltip"
+                                                                                                data-bs-html="true"
+                                                                                                data-bs-placement="top"
+                                                                                                title="
+                                                                                                <div class='text-start'>
+                                                                                                <strong>تفاصيل:</strong><br>
+                                                                                                - القيمة الحالية: {{ $employee->performance_predictions['metric_predictions']['working_hours']['current'] }}%<br>
+                                                                                                - القيمة السابقة: {{ $employee->performance_predictions['metric_predictions']['working_hours']['previous'] }}%<br>
+                                                                                                - الفرق: {{ $employee->performance_predictions['metric_predictions']['working_hours']['improvement'] }}%<br>
+                                                                                                - نسبة التغيير: {{ $employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage'] }}%
+                                                                                                </div>
+                                                                                                "
+                                                                                            >
+                                                                                                {{ abs($employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage']) }}%
+                                                                                                @if($employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage'] > 0)
+                                                                                                    <i class="fas fa-arrow-up"></i>
+                                                                                                @elseif($employee->performance_predictions['metric_predictions']['working_hours']['improvement_percentage'] < 0)
+                                                                                                    <i class="fas fa-arrow-down"></i>
+                                                                                                @endif
+                                                                                            </span>
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <tr class="table-active">
+                                                                                    <td class="fw-bold">التقييم الإجمالي</td>
+                                                                                    <td>{{ $employee->performance_predictions['previous_score'] ?? 0 }}</td>
+                                                                                    <td>{{ $employee->performance_predictions['current_score'] ?? 0 }}</td>
+                                                                                    <td>
+                                                                                        @if(isset($employee->performance_predictions['improvement_percentage']))
+                                                                                            <span
+                                                                                                class="badge {{ $employee->performance_predictions['improvement_percentage'] > 0 ? 'bg-success' : ($employee->performance_predictions['improvement_percentage'] < 0 ? 'bg-danger' : 'bg-secondary') }}"
+                                                                                                data-bs-toggle="tooltip"
+                                                                                                data-bs-html="true"
+                                                                                                data-bs-placement="top"
+                                                                                                title="
+                                                                                                <div class='text-start'>
+                                                                                                <strong>تفاصيل الحساب:</strong><br>
+                                                                                                - التقييم الحالي: {{ $employee->performance_predictions['current_score'] }}%<br>
+                                                                                                - التقييم السابق: {{ $employee->performance_predictions['previous_score'] }}%<br>
+                                                                                                - الفرق: {{ $employee->performance_predictions['current_score'] - $employee->performance_predictions['previous_score'] }}%<br>
+                                                                                                - صيغة الحساب: (التقييم الحالي - التقييم السابق) ÷ التقييم السابق × 100<br>
+                                                                                                - الحساب: ({{ $employee->performance_predictions['current_score'] }} - {{ $employee->performance_predictions['previous_score'] }}) ÷ {{ $employee->performance_predictions['previous_score'] }} × 100 = {{ $employee->performance_predictions['improvement_percentage'] }}%
+                                                                                                </div>
+                                                                                                "
+                                                                                            >
+                                                                                                {{ abs($employee->performance_predictions['improvement_percentage']) }}%
+                                                                                                @if($employee->performance_predictions['improvement_percentage'] > 0)
+                                                                                                    <i class="fas fa-arrow-up"></i>
+                                                                                                @elseif($employee->performance_predictions['improvement_percentage'] < 0)
+                                                                                                    <i class="fas fa-arrow-down"></i>
+                                                                                                @endif
+                                                                                            </span>
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                </tr>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -373,6 +858,81 @@ use Carbon\Carbon;
                                                         <div class="col-md-6">
                                                             <div class="predictions-section p-4 bg-light rounded-3">
                                                                 <h6 class="fw-bold mb-4">التنبؤات والتوصيات</h6>
+
+                                                                <!-- الفترات الزمنية للتقييم والتنبؤ -->
+                                                                <div class="periods-info mb-4 p-3 border-start border-info border-3 bg-light">
+                                                                    <h6 class="mb-3">الفترات الزمنية</h6>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        <div class="period-item">
+                                                                            <div class="fw-bold text-muted">الفترة السابقة:</div>
+                                                                            <div>{{ $employee->performance_predictions['previous_period']['label'] }}</div>
+                                                                        </div>
+                                                                        <div class="period-item">
+                                                                            <div class="fw-bold text-muted">الفترة الحالية:</div>
+                                                                            <div>{{ $employee->performance_predictions['current_period']['label'] }}</div>
+                                                                        </div>
+                                                                        <div class="period-item">
+                                                                            <div class="fw-bold text-primary">التنبؤ للفترة:</div>
+                                                                            <div class="text-primary">{{ $employee->performance_predictions['prediction_period']['label'] }}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- إجمالي الفترتين -->
+                                                                <div class="total-periods mb-4 p-3 border rounded bg-light">
+                                                                    <h6 class="mb-3">إجمالي الفترتين (الحالية والسابقة)</h6>
+
+                                                                    <div class="row g-3">
+                                                                        <div class="col-6">
+                                                                            <div class="text-center">
+                                                                                <div class="text-muted mb-2">إجمالي أيام العمل</div>
+                                                                                <span class="badge bg-secondary">
+                                                                                    {{ $employee->total_periods_stats['total_working_days'] ?? 0 }} يوم
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="col-6">
+                                                                            <div class="text-center">
+                                                                                <div class="text-muted mb-2">إجمالي أيام الحضور</div>
+                                                                                <span class="badge bg-primary">
+                                                                                    {{ $employee->total_periods_stats['total_attendance_days'] ?? 0 }} يوم
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="col-12">
+                                                                            <div class="text-center">
+                                                                                <div class="text-muted mb-2">نسبة الحضور الإجمالية</div>
+                                                                                <div class="progress" style="height: 25px;">
+                                                                                    <div class="progress-bar {{ ($employee->total_periods_stats['total_attendance_percentage'] ?? 0) >= 90 ? 'bg-success' : (($employee->total_periods_stats['total_attendance_percentage'] ?? 0) >= 75 ? 'bg-warning' : 'bg-danger') }}"
+                                                                                    role="progressbar"
+                                                                                    style="width: {{ $employee->total_periods_stats['total_attendance_percentage'] ?? 0 }}%">
+                                                                                        {{ $employee->total_periods_stats['total_attendance_percentage'] ?? 0 }}%
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="col-6">
+                                                                            <div class="text-center">
+                                                                                <div class="text-muted mb-2">إجمالي دقائق التأخير</div>
+                                                                                <span class="badge {{ ($employee->total_periods_stats['total_delays'] ?? 0) <= 240 ? 'bg-success' : 'bg-danger' }}">
+                                                                                    {{ $employee->total_periods_stats['total_delays'] ?? 0 }} دقيقة
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="col-6">
+                                                                            <div class="text-center">
+                                                                                <div class="text-muted mb-2">متوسط ساعات العمل</div>
+                                                                                <span class="badge {{ ($employee->total_periods_stats['average_working_hours'] ?? 0) >= 7.5 ? 'bg-success' : (($employee->total_periods_stats['average_working_hours'] ?? 0) >= 6.5 ? 'bg-warning' : 'bg-danger') }}">
+                                                                                    {{ $employee->total_periods_stats['average_working_hours'] ?? 0 }} ساعة
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
 
                                                                 <div class="prediction-card mb-4 p-3 border rounded">
                                                                     <h6 class="mb-3">التنبؤ بالأداء للشهر القادم</h6>
@@ -388,6 +948,28 @@ use Carbon\Carbon;
                                                                                     ({{ $employee->performance_predictions['trend_percentage'] }}%)
                                                                                 @endif
                                                                             </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="prediction-info mt-3 small">
+                                                                        <div class="fw-bold mb-2">طريقة حساب التنبؤ:</div>
+                                                                        <p class="mb-1">
+                                                                            {{ $employee->performance_predictions['metric_predictions']['summary']['calculation_method']['description'] ?? 'تم الحساب بناءً على تحليل أداء الفترة الحالية مقارنة بالفترة السابقة' }}
+                                                                        </p>
+                                                                        <div class="mt-2">
+                                                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                                <span>الأداء الحالي:</span>
+                                                                                <span class="fw-bold">{{ $employee->performance_predictions['current_score'] }}%</span>
+                                                                            </div>
+                                                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                                <span>الأداء السابق:</span>
+                                                                                <span class="fw-bold">{{ $employee->performance_predictions['previous_score'] }}%</span>
+                                                                            </div>
+                                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                                <span>نسبة التغيير:</span>
+                                                                                <span class="fw-bold {{ $employee->performance_predictions['improvement_percentage'] > 0 ? 'text-success' : ($employee->performance_predictions['improvement_percentage'] < 0 ? 'text-danger' : '') }}">
+                                                                                    {{ $employee->performance_predictions['improvement_percentage'] > 0 ? '+' : '' }}{{ $employee->performance_predictions['improvement_percentage'] }}%
+                                                                                </span>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -472,6 +1054,45 @@ use Carbon\Carbon;
 
 @push('scripts')
 <script>
+    // سكريبت خاص بعرض وإخفاء قواعد التقييم
+    document.addEventListener('DOMContentLoaded', function() {
+        const rulesToggleBtn = document.getElementById('rulesToggleBtn');
+        const rulesCollapse = document.getElementById('rulesCollapse');
+        const rulesIcon = document.getElementById('rulesIcon');
+
+        if (rulesToggleBtn && rulesCollapse) {
+            rulesToggleBtn.addEventListener('click', function() {
+                // تبديل حالة العرض
+                if (rulesCollapse.style.display === 'none') {
+                    // عرض القواعد
+                    rulesCollapse.style.display = 'block';
+                    // إضافة تأثير حركي للعرض
+                    rulesCollapse.style.opacity = '0';
+                    rulesCollapse.style.transform = 'translateY(-10px)';
+                    setTimeout(function() {
+                        rulesCollapse.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        rulesCollapse.style.opacity = '1';
+                        rulesCollapse.style.transform = 'translateY(0)';
+                    }, 10);
+                    // تدوير الأيقونة
+                    rulesIcon.classList.remove('fa-chevron-down');
+                    rulesIcon.classList.add('fa-chevron-up');
+                } else {
+                    // إضافة تأثير حركي للإخفاء
+                    rulesCollapse.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    rulesCollapse.style.opacity = '0';
+                    rulesCollapse.style.transform = 'translateY(-10px)';
+                    setTimeout(function() {
+                        rulesCollapse.style.display = 'none';
+                    }, 300);
+                    // تدوير الأيقونة
+                    rulesIcon.classList.remove('fa-chevron-up');
+                    rulesIcon.classList.add('fa-chevron-down');
+                }
+            });
+        }
+    });
+
     function showDetails(employeeId) {
         const startDate = document.getElementById('start_date').value;
         const endDate = document.getElementById('end_date').value;
@@ -636,11 +1257,167 @@ use Carbon\Carbon;
                             `).join('')}
                         </div>
                     </div>
+
+                    <!-- تفاصيل النقاط المخصومة -->
+                    ${data.statistics.attendance_percentage < 100 || data.statistics.delays > 120 ? `
+                    <div class="mt-4">
+                        <h6 class="border-bottom pb-2">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>تفاصيل النقاط المخصومة
+                        </h6>
+
+                        <div class="card mt-3 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-3">تفاصيل تقييم الأداء</h6>
+
+                                <div class="row">
+                                    <!-- مؤشر الحضور -->
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 ${data.statistics.attendance_percentage < 80 ? 'border-danger' : (data.statistics.attendance_percentage < 90 ? 'border-warning' : 'border-success')}">
+                                            <div class="card-body p-3 text-center">
+                                                <h6 class="card-title mb-1">الحضور</h6>
+                                                <h3 class="mb-0 ${data.statistics.attendance_percentage < 80 ? 'text-danger' : (data.statistics.attendance_percentage < 90 ? 'text-warning' : 'text-success')}">
+                                                    ${data.statistics.attendance_percentage}%
+                                                </h3>
+                                                <small class="text-muted">الوزن: 40% من التقييم الكلي</small>
+
+                                                ${data.statistics.attendance_percentage < 100 ? `
+                                                <div class="alert alert-light mt-2 mb-0 p-2 text-start">
+                                                    <small>
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        تم خصم <strong>${100 - data.statistics.attendance_percentage}%</strong> بسبب
+                                                        الغياب لمدة <strong>${data.statistics.total_working_days - data.statistics.actual_attendance_days} أيام</strong>
+                                                    </small>
+                                                </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- مؤشر الانضباط -->
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 ${data.statistics.delays > 120 ? 'border-danger' : 'border-success'}">
+                                            <div class="card-body p-3 text-center">
+                                                <h6 class="card-title mb-1">الانضباط</h6>
+                                                <h3 class="mb-0 ${data.statistics.delays > 120 ? 'text-danger' : 'text-success'}">
+                                                    ${data.statistics.delays <= 120 ? '100%' : Math.max(0, Math.round(100 - ((data.statistics.delays - 120) / 120) * 100)) + '%'}
+                                                </h3>
+                                                <small class="text-muted">الوزن: 40% من التقييم الكلي</small>
+
+                                                ${data.statistics.delays > 120 ? `
+                                                <div class="alert alert-light mt-2 mb-0 p-2 text-start">
+                                                    <small>
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        تم خصم <strong>${Math.min(100, Math.round(((data.statistics.delays - 120) / 120) * 100))}%</strong> بسبب
+                                                        تجاوز التأخير <strong>${data.statistics.delays - 120} دقيقة</strong> عن الحد المسموح (120 دقيقة)
+                                                    </small>
+                                                </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- مؤشر ساعات العمل -->
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 border-info">
+                                            <div class="card-body p-3 text-center">
+                                                <h6 class="card-title mb-1">ساعات العمل</h6>
+                                                <h3 class="mb-0 text-info">
+                                                    ${typeof data.statistics.average_working_hours !== 'undefined' ?
+                                                    Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100)) + '%' :
+                                                    '-'}
+                                                </h3>
+                                                <small class="text-muted">الوزن: 20% من التقييم الكلي</small>
+
+                                                ${typeof data.statistics.average_working_hours !== 'undefined' && data.statistics.average_working_hours < 8 ? `
+                                                <div class="alert alert-light mt-2 mb-0 p-2 text-start">
+                                                    <small>
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        متوسط ساعات العمل <strong>${data.statistics.average_working_hours}</strong> من أصل <strong>8</strong> ساعات
+                                                    </small>
+                                                </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- تأثير النقاط المخصومة -->
+                                <div class="mt-3 pt-3 border-top">
+                                    <h6 class="mb-3">التأثير على النتيجة النهائية</h6>
+
+                                    <ul class="list-unstyled mb-0">
+                                        ${data.statistics.attendance_percentage < 100 ? `
+                                        <li class="mb-2">
+                                            <i class="fas fa-minus-circle text-danger me-1"></i>
+                                            خصم <strong>${Math.round((100 - data.statistics.attendance_percentage) * 0.4, 1)}%</strong>
+                                            من التقييم النهائي بسبب الغياب
+                                        </li>
+                                        ` : ''}
+
+                                        ${data.statistics.delays > 120 ? `
+                                        <li class="mb-2">
+                                            <i class="fas fa-minus-circle text-danger me-1"></i>
+                                            خصم <strong>${Math.round(Math.min(100, ((data.statistics.delays - 120) / 120) * 100) * 0.4, 1)}%</strong>
+                                            من التقييم النهائي بسبب التأخير
+                                        </li>
+                                        ` : ''}
+
+                                        ${typeof data.statistics.average_working_hours !== 'undefined' && data.statistics.average_working_hours < 8 ? `
+                                        <li class="mb-2">
+                                            <i class="fas fa-minus-circle text-danger me-1"></i>
+                                            خصم <strong>${Math.round((100 - Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100))) * 0.2, 1)}%</strong>
+                                            من التقييم النهائي بسبب قلة ساعات العمل
+                                        </li>
+                                        ` : ''}
+                                    </ul>
+                                </div>
+
+                                <!-- النتيجة النهائية -->
+                                <div class="mt-3 pt-3 border-top">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">النتيجة النهائية</h6>
+
+                                        <div class="text-center">
+                                            <span class="badge bg-${
+                                                calculateOverallScore(data) >= 90 ? 'success' :
+                                                (calculateOverallScore(data) >= 80 ? 'primary' :
+                                                (calculateOverallScore(data) >= 70 ? 'info' :
+                                                (calculateOverallScore(data) >= 60 ? 'warning' : 'danger')))
+                                            } p-2 fs-6">
+                                                ${calculateOverallScore(data)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                 `;
 
                 content.innerHTML = html;
                 new bootstrap.Modal(document.getElementById('detailsModal')).show();
             });
+    }
+
+    // دالة حساب النتيجة النهائية للأداء
+    function calculateOverallScore(data) {
+        let attendanceScore = data.statistics.attendance_percentage;
+
+        let punctualityScore = 100;
+        if (data.statistics.delays > 120) {
+            let excessDelays = data.statistics.delays - 120;
+            punctualityScore = Math.max(0, 100 - ((excessDelays / 120) * 100));
+        }
+
+        let workingHoursScore = 100;
+        if (typeof data.statistics.average_working_hours !== 'undefined') {
+            workingHoursScore = Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100));
+        }
+
+        // استخدام النسب الجديدة للتقييم (الحضور 45%، الانضباط 20%، ساعات العمل 35%)
+        let overallScore = Math.round((attendanceScore * 0.45) + (punctualityScore * 0.2) + (workingHoursScore * 0.35));
+        return overallScore;
     }
 
     // Animation for new rows
@@ -1050,6 +1827,8 @@ use Carbon\Carbon;
 
     // Charts initialization
     document.addEventListener('DOMContentLoaded', function() {
+        // تم استبدال كود تهيئة collapse بكود جديد أعلاه في السكريبت
+
         const employeesData = {!! json_encode($employees->items()) !!};
 
         if (employeesData.length === 0) return;
@@ -1172,6 +1951,21 @@ use Carbon\Carbon;
                 }
             }
         });
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // ... existing code ...
+
+        // تفعيل tooltips بشكل عام في الصفحة
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                html: true,
+                container: 'body'
+            });
+        });
+
+        // ... rest of existing code ...
     });
 </script>
 @endpush

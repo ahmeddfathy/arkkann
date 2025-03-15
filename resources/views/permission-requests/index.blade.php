@@ -238,7 +238,7 @@ use Carbon\Carbon;
                                                 <div class="p-2 bg-light border rounded mb-2">
                                                     <p class="m-0"><small>العداد غير ظاهر لأن:</small></p>
                                                     <p class="m-0"><small>قيمة returned_on_time: [{{ $request->returned_on_time === null ? 'null' : $request->returned_on_time }}]</small></p>
-                                                    <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'العودة مسجلة (لم يعد)' : '') }}</small></p>
+                                                    <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'لم يعد في الوقت المحدد' : 'غير محدد') }}</small></p>
                                                     <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->isSameDay($returnTime) ? 'ليس في نفس اليوم' : '' }}</small></p>
                                                     <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->lt(\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)) ? 'تجاوز نهاية يوم العمل' : '' }}</small></p>
                                                     <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time)) ? 'لم يبدأ وقت المغادرة بعد' : '' }}</small></p>
@@ -258,7 +258,7 @@ use Carbon\Carbon;
                                                 <!-- زر "لم يرجع" - يظهر فقط للمدراء وHR -->
                                                 @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
                                                 <button type="button"
-                                                    class="btn btn-danger btn-sm return-btn me-2"
+                                                    class="btn btn-danger btn-sm return-btn me-2 {{ ($request->returned_on_time === null || $request->returned_on_time === 0) ? 'mark-not-returned' : '' }}"
                                                     data-request-id="{{ $request->id }}"
                                                     data-status="2"
                                                     {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
@@ -542,7 +542,7 @@ use Carbon\Carbon;
                                                 <div class="p-2 bg-light border rounded mb-2">
                                                     <p class="m-0"><small>العداد غير ظاهر لأن:</small></p>
                                                     <p class="m-0"><small>قيمة returned_on_time: [{{ $request->returned_on_time === null ? 'null' : $request->returned_on_time }}]</small></p>
-                                                    <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'العودة مسجلة (لم يعد)' : '') }}</small></p>
+                                                    <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'لم يعد في الوقت المحدد' : 'غير محدد') }}</small></p>
                                                     <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->isSameDay($returnTime) ? 'ليس في نفس اليوم' : '' }}</small></p>
                                                     <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->lt(\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)) ? 'تجاوز نهاية يوم العمل' : '' }}</small></p>
                                                     <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time)) ? 'لم يبدأ وقت المغادرة بعد' : '' }}</small></p>
@@ -837,7 +837,7 @@ use Carbon\Carbon;
                                         <div class="p-2 bg-light border rounded mb-2">
                                             <p class="m-0"><small>العداد غير ظاهر لأن:</small></p>
                                             <p class="m-0"><small>قيمة returned_on_time: [{{ $request->returned_on_time === null ? 'null' : $request->returned_on_time }}]</small></p>
-                                            <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'العودة مسجلة (لم يعد)' : '') }}</small></p>
+                                            <p class="m-0"><small>{{ $request->returned_on_time == 1 ? 'العودة مسجلة (عاد)' : ($request->returned_on_time == 2 ? 'لم يعد في الوقت المحدد' : 'غير محدد') }}</small></p>
                                             <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->isSameDay($returnTime) ? 'ليس في نفس اليوم' : '' }}</small></p>
                                             <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->lt(\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0)) ? 'تجاوز نهاية يوم العمل' : '' }}</small></p>
                                             <p class="m-0"><small>{{ !\Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time)) ? 'لم يبدأ وقت المغادرة بعد' : '' }}</small></p>
@@ -2501,6 +2501,59 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     @endif
 });
+</script>
+@endpush
+
+@push('scripts')
+<script>
+    // ... existing code ...
+
+    // دالة للتحقق من طلبات الاستئذان وتسجيل عدم العودة تلقائيًا عند نهاية يوم العمل
+    function checkEndOfDayRequests() {
+        // الحصول على الوقت الحالي والتحقق ما إذا كان بعد نهاية يوم العمل (4:00 عصرًا)
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+
+        // تجميع جميع طلبات الاستئذان المعتمدة التي لم يتم تسجيل العودة فيها
+        const requestIds = [];
+        $('.mark-not-returned').each(function() {
+            requestIds.push($(this).data('request-id'));
+        });
+
+        if (requestIds.length > 0) {
+            // التحقق من كل طلب استئذان وتسجيل عدم العودة تلقائيًا إذا كان الوقت بعد نهاية يوم العمل
+            $.ajax({
+                url: '{{ route('permission-requests.check-end-of-day') }}',
+                type: 'POST',
+                data: {
+                    request_ids: requestIds,
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.updated_requests && response.updated_requests.length > 0) {
+                        // تحديث الصفحة إذا تم تسجيل عدم العودة لأي طلب
+                        location.reload();
+                    }
+                }
+            });
+        }
+    }
+
+    $(document).ready(function() {
+        $('.datatable').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+            }
+        });
+
+        $('.select2').select2({
+            dir: "rtl"
+        });
+
+        // تشغيل دالة التحقق من نهاية يوم العمل عند تحميل الصفحة
+        checkEndOfDayRequests();
+    });
 </script>
 @endpush
 

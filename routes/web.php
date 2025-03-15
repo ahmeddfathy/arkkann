@@ -213,6 +213,9 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/permission-requests/{permissionRequest}/return-status', [PermissionRequestController::class, 'updateReturnStatus'])
         ->name('permission-requests.return-status');
 
+    Route::post('/permission-requests/check-end-of-day', [PermissionRequestController::class, 'checkEndOfDay'])
+        ->name('permission-requests.check-end-of-day');
+
     Route::resource('/absence-requests', AbsenceRequestController::class)
         ->middleware(['permission:view_absence|create_absence|update_absence|delete_absence']);
 
