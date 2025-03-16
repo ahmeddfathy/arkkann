@@ -296,19 +296,25 @@ class PermissionRequestController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role !== 'manager') {
-            return redirect()->route('welcome')->with('error', 'Unauthorized action.');
+        // منع المستخدم من الرد على طلباته الخاصة
+        if ($user->id === $permissionRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك تعديل الرد على طلب الاستئذان الخاص بك');
         }
 
-        $validated = $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:255'
-        ]);
+        if ($request->has('status')) {
+            $status = $request->status;
+            $rejectionReason = $status === 'rejected' ? $request->rejection_reason : null;
 
-        $this->permissionRequestService->modifyResponse($permissionRequest, $validated);
+            if ($request->response_type === 'manager') {
+                $permissionRequest->updateManagerStatus($status, $rejectionReason);
+            } elseif ($request->response_type === 'hr') {
+                $permissionRequest->updateHrStatus($status, $rejectionReason);
+            }
 
-        return redirect()->route('permission-requests.index')
-            ->with('success', 'Response modified successfully.');
+            return redirect()->back()->with('success', 'تم تحديث الرد بنجاح');
+        }
+
+        return redirect()->back()->with('error', 'حدث خطأ أثناء تحديث الرد');
     }
 
     public function update(Request $request, PermissionRequest $permissionRequest)
@@ -391,10 +397,15 @@ class PermissionRequestController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان');
         }
 
+        // منع المستخدم من الرد على طلباته الخاصة
+        if ($user->id === $permissionRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك الرد على طلب الاستئذان الخاص بك');
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:approved,rejected',
-            'rejection_reason' => 'required_if:status,rejected',
-            'response_type' => 'required|in:manager,hr'
+            'response_type' => 'required|in:manager,hr',
+            'rejection_reason' => 'nullable|required_if:status,rejected|string|max:255',
         ]);
 
         if ($validated['response_type'] === 'manager' && $user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
@@ -569,6 +580,11 @@ class PermissionRequestController extends Controller
     {
         $user = Auth::user();
 
+        // منع المستخدم من الرد على طلباته الخاصة
+        if ($user->id === $permissionRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك تعديل الرد على طلب الاستئذان الخاص بك');
+        }
+
         if (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_permission_request')) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات الاستئذان');
         }
@@ -668,12 +684,15 @@ class PermissionRequestController extends Controller
 
     public function resetManagerStatus(PermissionRequest $permissionRequest)
     {
-        // التحقق من صلاحية الرد على الطلب كمدير
-        if (!auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
-            abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير');
-        }
-
         $user = Auth::user();
+
+        // منع المستخدم من الرد على طلباته الخاصة
+        if ($user->id === $permissionRequest->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكنك إعادة تعيين الرد على طلب الاستئذان الخاص بك'
+            ]);
+        }
 
         if (
             !$user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
@@ -681,8 +700,8 @@ class PermissionRequestController extends Controller
         ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized action.'
-            ], 403);
+                'message' => 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير'
+            ]);
         }
 
         try {
@@ -735,26 +754,49 @@ class PermissionRequestController extends Controller
      */
     public function checkEndOfDay(Request $request)
     {
-        $requestIds = $request->input('request_ids', []);
-        $updatedRequests = [];
-
         try {
-            foreach ($requestIds as $requestId) {
-                $permissionRequest = PermissionRequest::find($requestId);
+            $now = Carbon::now();
+            $updatedRequests = [];
 
-                if ($permissionRequest && $permissionRequest->isApproved()) {
-                    // استدعاء دالة التحقق من نهاية يوم العمل
-                    if ($permissionRequest->markAsNotReturnedAtEndOfShift()) {
-                        $updatedRequests[] = $requestId;
+            // فلترة الطلبات حسب المعايير التالية:
+            // 1. حالة الطلب معتمدة
+            // 2. تاريخ الطلب هو اليوم الحالي
+            // 3. حالة العودة غير محددة (null أو 0)
+            $requests = PermissionRequest::where('status', 'approved')
+                ->whereDate('departure_time', $now->toDateString())
+                ->where(function ($query) {
+                    $query->whereNull('returned_on_time')
+                        ->orWhere('returned_on_time', 0);
+                })->get();
 
-                        // إضافة مخالفة للموظف الذي لم يعد
-                        Violation::create([
-                            'user_id' => $permissionRequest->user_id,
-                            'permission_requests_id' => $permissionRequest->id,
-                            'reason' => 'عدم العودة من الاستئذان في الوقت المحدد (تسجيل تلقائي)',
-                            'manager_mistake' => false
-                        ]);
-                    }
+            Log::info('Checking end of day for permission requests', [
+                'now' => $now->format('Y-m-d H:i:s'),
+                'requests_count' => $requests->count()
+            ]);
+
+            foreach ($requests as $permissionRequest) {
+                // تحديث الدقائق المستخدمة وتسجيل عدم العودة تلقائياً
+                if ($permissionRequest->markAsNotReturnedAtEndOfShift()) {
+                    // إضافة معرف الطلب إلى قائمة الطلبات التي تم تحديثها
+                    $updatedRequests[] = [
+                        'id' => $permissionRequest->id,
+                        'user_name' => $permissionRequest->user->name,
+                        'departure_time' => $permissionRequest->departure_time->format('Y-m-d H:i:s'),
+                        'minutes_used' => $permissionRequest->minutes_used
+                    ];
+
+                    // إنشاء مخالفة للموظف الذي لم يعد
+                    Violation::create([
+                        'user_id' => $permissionRequest->user_id,
+                        'permission_requests_id' => $permissionRequest->id,
+                        'reason' => 'عدم العودة من الاستئذان في الوقت المحدد (تسجيل تلقائي)',
+                        'manager_mistake' => false
+                    ]);
+
+                    Log::info('Created violation for not returning from permission', [
+                        'request_id' => $permissionRequest->id,
+                        'user_id' => $permissionRequest->user_id
+                    ]);
                 }
             }
 
@@ -804,12 +846,12 @@ class PermissionRequestController extends Controller
                 'most_requested_employee' => null,
                 'highest_minutes_employee' => null,
                 'departments_stats' => [],
-                'daily_stats' => [],             // إحصائيات يومية
-                'weekly_stats' => [],            // إحصائيات أسبوعية
-                'return_status_stats' => [],     // إحصائيات حالة العودة
-                'busiest_days' => [],            // أكثر الأيام ازدحاماً
-                'busiest_hours' => [],           // أكثر الساعات ازدحاماً
-                'comparison_with_previous' => [] // مقارنة مع الفترة السابقة
+                'daily_stats' => [],
+                'weekly_stats' => [],
+                'return_status_stats' => [],
+                'busiest_days' => [],
+                'busiest_hours' => [],
+                'comparison_with_previous' => []
             ],
             'monthly_trend' => [],
         ];
@@ -903,7 +945,6 @@ class PermissionRequestController extends Controller
                     ->orderByDesc('total_minutes')
                     ->first();
 
-                // تفاصيل الموظفين المتجاوزين للحد في الفريق
                 $exceededEmployees = DB::table(function ($query) use ($teamMembers, $dateStart, $dateEnd) {
                     $query->from('permission_requests')
                         ->select('user_id', DB::raw('SUM(minutes_used) as total_minutes'))
@@ -943,7 +984,6 @@ class PermissionRequestController extends Controller
                     'team_name' => $team->name
                 ];
 
-                // اتجاه الطلبات الشهري
                 $monthlyTrend = PermissionRequest::whereIn('user_id', $teamMembers)
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->selectRaw('
@@ -965,16 +1005,13 @@ class PermissionRequestController extends Controller
             }
         }
 
-        // إحصائيات HR
         if ($user->hasRole('hr')) {
-            // استثناء المستخدمين الذين لديهم أدوار معينة
             $excludedRoles = ['company_manager', 'hr'];
 
             $allEmployees = User::whereDoesntHave('roles', function ($q) use ($excludedRoles) {
                 $q->whereIn('name', $excludedRoles);
             })->pluck('id')->toArray();
 
-            // الإحصائيات العامة
             $hrStats = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->selectRaw('
@@ -986,7 +1023,6 @@ class PermissionRequestController extends Controller
                 ')
                 ->first();
 
-            // الموظفين الذين تجاوزوا الحد
             $exceededLimit = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                 $query->from('permission_requests')
                     ->select('user_id', DB::raw('SUM(minutes_used) as total_minutes'))
@@ -998,7 +1034,6 @@ class PermissionRequestController extends Controller
                 ->where('total_minutes', '>', 180)
                 ->count();
 
-            // الموظف الأكثر طلباً للاستئذان
             $mostRequested = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                 $query->from('permission_requests')
                     ->select('user_id', DB::raw('COUNT(*) as request_count'))
@@ -1011,7 +1046,6 @@ class PermissionRequestController extends Controller
                     ->orderByDesc('request_count')
                     ->first();
 
-            // الموظف الأكثر استخداماً للدقائق
             $highestMinutes = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                 $query->from('permission_requests')
                     ->select('user_id', DB::raw('SUM(minutes_used) as total_minutes'))
@@ -1025,7 +1059,6 @@ class PermissionRequestController extends Controller
                     ->orderByDesc('total_minutes')
                     ->first();
 
-            // تفاصيل الموظفين المتجاوزين للحد
             $exceededEmployees = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                 $query->from('permission_requests')
                     ->select('user_id', DB::raw('SUM(minutes_used) as total_minutes'))
@@ -1046,7 +1079,6 @@ class PermissionRequestController extends Controller
                         ];
                     });
 
-            // إحصائيات الأقسام
             $departmentStats = DB::table('users')
                 ->leftJoin('permission_requests', function ($join) use ($dateStart, $dateEnd) {
                     $join->on('users.id', '=', 'permission_requests.user_id')
@@ -1077,7 +1109,6 @@ class PermissionRequestController extends Controller
                     ];
                 });
 
-            // إحصائيات يومية
             $dailyStats = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->selectRaw('
@@ -1100,7 +1131,6 @@ class PermissionRequestController extends Controller
                     ];
                 });
 
-            // إحصائيات أسبوعية
             $weeklyStats = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->selectRaw('
@@ -1128,7 +1158,6 @@ class PermissionRequestController extends Controller
                     ];
                 });
 
-            // أكثر الأيام ازدحاماً
             $busiestDays = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->selectRaw('
@@ -1147,7 +1176,6 @@ class PermissionRequestController extends Controller
                     ];
                 });
 
-            // أكثر الساعات ازدحاماً
             $busiestHours = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->selectRaw('
@@ -1167,7 +1195,6 @@ class PermissionRequestController extends Controller
                     ];
                 });
 
-            // إحصائيات حالة العودة
             $returnStatusStats = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->where('status', 'approved')
@@ -1179,7 +1206,6 @@ class PermissionRequestController extends Controller
                 ')
                 ->first();
 
-            // المقارنة مع الفترة السابقة
             $previousStart = (clone $dateStart)->subDays($dateEnd->diffInDays($dateStart) + 1);
             $previousEnd = (clone $dateStart)->subDay();
 
@@ -1256,7 +1282,6 @@ class PermissionRequestController extends Controller
                 'comparison_with_previous' => $comparisonStats
             ];
 
-            // اتجاه الطلبات الشهري لجميع الموظفين
             $monthlyTrend = PermissionRequest::whereIn('user_id', $allEmployees)
                 ->whereBetween('departure_time', [$dateStart, $dateEnd])
                 ->selectRaw('

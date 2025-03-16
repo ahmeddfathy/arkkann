@@ -397,48 +397,83 @@ class PermissionRequestService
     public function updateReturnStatus(PermissionRequest $request, int $returnStatus): array
     {
         try {
-            $now = Carbon::now();
+            $now = Carbon::now()->setTimezone('Africa/Cairo');
+            $departureTime = Carbon::parse($request->departure_time);
             $returnTime = Carbon::parse($request->return_time);
-            $workShiftEndTime = null;
 
+            // Get the specific shift end time for this user
             $user = User::find($request->user_id);
             if ($user && $user->workShift) {
-                $workShiftEndTime = Carbon::parse($user->workShift->check_out_time)->setDateFrom($returnTime);
+                $shiftEndTime = Carbon::parse($user->workShift->check_out_time)->setDateFrom($departureTime);
             } else {
-                $workShiftEndTime = Carbon::parse($request->return_time)->setTime(16, 0, 0);
+                // Use default if no work shift found (4:00 PM)
+                $shiftEndTime = Carbon::parse($departureTime)->setTime(16, 0, 0);
             }
 
-            if ($returnTime->format('H:i') === $workShiftEndTime->format('H:i')) {
+            // لا نقوم بتسجيل "لم يرجع" تلقائياً عند انتهاء الوردية
+            // بل فقط نتأكد من أن حساب الدقائق يكون حتى نهاية الوردية
+            // يجب أن يقوم المدير يدوياً بالضغط على زر "لم يرجع" لتسجيل مخالفة
+
+            // Handle different return status values
+            if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
+                // If return time is same as shift end, mark as returned
                 $request->returned_on_time = true;
             } else if ($returnStatus == 1) {
+                // Employee marked themselves as returned
                 $request->returned_on_time = true;
+
+                // تحديد وقت العودة الفعلي بالوقت الحالي أو نهاية الوردية أيهما أسبق
+                if ($now->gt($shiftEndTime)) {
+                    $request->actual_return_time = $shiftEndTime;
+                    Log::info('Employee returned after shift end time - using shift end time', [
+                        'request_id' => $request->id,
+                        'now' => $now->format('Y-m-d H:i:s'),
+                        'shift_end_time' => $shiftEndTime->format('Y-m-d H:i:s')
+                    ]);
+                } else {
+                    $request->actual_return_time = $now;
+                    Log::info('Employee returned before shift end time - using current time', [
+                        'request_id' => $request->id,
+                        'now' => $now->format('Y-m-d H:i:s')
+                    ]);
+                }
             } else if ($returnStatus == 0) {
+                // Reset status
                 $request->returned_on_time = false;
-            } else {
-                // Handle returnStatus == 2 (didn't return on time) as false in database but track it separately
-                $request->returned_on_time = false;
-            }
+                $request->actual_return_time = null;
+            } else if ($returnStatus == 2) {
+                // Not returned - explicit action by manager or employee
+                $request->returned_on_time = 2;
+                $request->actual_return_time = null;
 
-            if ($request->returned_on_time == true) {
-                $request->actual_return_time = now();
-                $request->updateActualMinutesUsed();
-            } elseif ($returnStatus == 2) { // Still use the original value for this check
-                $request->actual_return_time = now();
-                $request->updateActualMinutesUsed();
-
+                // Create violation record only when explicitly marked as not returned
                 $this->violationService->handleReturnViolation(
                     $request,
-                    $returnStatus // Pass the original value to the violation service
+                    $returnStatus
                 );
             }
 
+            // Update minutes used based on return status
+            $request->updateActualMinutesUsed();
+
             $request->save();
 
+            // Send notification
             $this->notificationService->notifyReturnStatus($request);
+
+            $message = 'تم تحديث حالة العودة بنجاح';
+            if ($returnStatus == 1) {
+                $message = 'تم تسجيل عودتك بنجاح';
+            } else if ($returnStatus == 2) {
+                $message = 'تم تسجيل عدم العودة';
+            } else if ($returnStatus == 0) {
+                $message = 'تم إعادة تعيين حالة العودة بنجاح';
+            }
 
             return [
                 'success' => true,
-                'message' => 'تم تحديث حالة العودة بنجاح'
+                'message' => $message,
+                'actual_minutes_used' => $request->minutes_used
             ];
         } catch (\Exception $e) {
             Log::error('Error updating return status: ' . $e->getMessage());

@@ -26,7 +26,6 @@ class OverTimeRequestsController extends Controller
 
     public function index(Request $request)
     {
-        // التحقق من صلاحية عرض طلبات العمل الإضافي
         if (!auth()->user()->hasPermissionTo('view_overtime')) {
             abort(403, 'ليس لديك صلاحية عرض طلبات العمل الإضافي');
         }
@@ -79,7 +78,6 @@ class OverTimeRequestsController extends Controller
         $teamStatistics = [];
 
         if ($user->hasRole('hr')) {
-            // طلبات الموظفين بدون فريق - لموظفي HR فقط
             $noTeamRequests = $this->overTimeRequestService->getNoTeamRequests(
                 $employeeName,
                 $status,
@@ -87,7 +85,6 @@ class OverTimeRequestsController extends Controller
                 $dateEnd
             );
 
-            // طلبات موظفي الشركه - لموظفي HR فقط
             $hrQuery = OverTimeRequests::with('user')
                 ->whereHas('user', function ($query) {
                     $query->whereDoesntHave('roles', function ($q) {
@@ -108,7 +105,6 @@ class OverTimeRequestsController extends Controller
 
             $users = User::select('id', 'name')->get();
 
-            // إضافة إحصائيات الفريق لموظف HR إذا كان لديه فريق
             if ($user->currentTeam) {
                 $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
 
@@ -127,7 +123,6 @@ class OverTimeRequestsController extends Controller
                 $pendingCount = $teamQuery->clone()->where('status', 'pending')->count();
                 $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
 
-                // إضافة إحصائيات الفريق
                 $teamStatistics = [
                     'total_requests' => OverTimeRequests::whereIn('user_id', $teamMembers)
                         ->whereBetween('overtime_date', [$dateStart, $dateEnd])
@@ -457,7 +452,6 @@ class OverTimeRequestsController extends Controller
 
     public function store(Request $request)
     {
-        // التحقق من صلاحية إنشاء طلب عمل إضافي
         if (!auth()->user()->hasPermissionTo('create_overtime')) {
             abort(403, 'ليس لديك صلاحية إنشاء طلب عمل إضافي');
         }
@@ -480,7 +474,6 @@ class OverTimeRequestsController extends Controller
 
     public function update(Request $request, $id)
     {
-        // التحقق من صلاحية تعديل طلب العمل الإضافي
         if (!auth()->user()->hasPermissionTo('update_overtime')) {
             abort(403, 'ليس لديك صلاحية تعديل طلب العمل الإضافي');
         }
@@ -503,7 +496,6 @@ class OverTimeRequestsController extends Controller
 
     public function destroy($id)
     {
-        // التحقق من صلاحية حذف طلب العمل الإضافي
         if (!auth()->user()->hasPermissionTo('delete_overtime')) {
             abort(403, 'ليس لديك صلاحية حذف طلب العمل الإضافي');
         }
@@ -526,7 +518,6 @@ class OverTimeRequestsController extends Controller
 
     public function updateManagerStatus(Request $request, $id)
     {
-        // التحقق من صلاحية الرد على الطلب كمدير
         if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
             abort(403, 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
@@ -547,7 +538,6 @@ class OverTimeRequestsController extends Controller
 
     public function updateHrStatus(Request $request, $id)
     {
-        // التحقق من صلاحية الرد على الطلب كـ HR
         if (!auth()->user()->hasPermissionTo('hr_respond_overtime_request')) {
             abort(403, 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كموارد بشرية');
         }
@@ -568,7 +558,6 @@ class OverTimeRequestsController extends Controller
 
     public function resetManagerStatus($id)
     {
-        // التحقق من صلاحية الرد على الطلب كمدير
         if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
             abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
         }
@@ -580,7 +569,6 @@ class OverTimeRequestsController extends Controller
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
 
-            // إرسال إشعار دائماً بعد إعادة تعيين الحالة
             $this->notificationService->notifyStatusReset($overtimeRequest, 'manager');
 
             return back()->with('success', 'Status reset successfully.');
@@ -591,7 +579,6 @@ class OverTimeRequestsController extends Controller
 
     public function resetHrStatus($id)
     {
-        // التحقق من صلاحية الرد على الطلب كـ HR
         if (!auth()->user()->hasPermissionTo('hr_respond_overtime_request')) {
             abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كموارد بشرية');
         }
@@ -603,7 +590,6 @@ class OverTimeRequestsController extends Controller
             $overtimeRequest->updateFinalStatus();
             $overtimeRequest->save();
 
-            // إرسال إشعار دائماً بعد إعادة تعيين الحالة
             $this->notificationService->notifyStatusReset($overtimeRequest, 'hr');
 
             return back()->with('success', 'Status reset successfully.');
@@ -614,7 +600,6 @@ class OverTimeRequestsController extends Controller
 
     public function modifyManagerStatus(Request $request, $id)
     {
-        // التحقق من صلاحية الرد على الطلب كمدير
         if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
             abort(403, 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
         }
