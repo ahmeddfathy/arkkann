@@ -1,0 +1,72 @@
+.trophy-card {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+    border-radius: 15px;
+    transition: transform 0.3s ease;
+}
+
+.trophy-card:hover {
+    transform: translateY(-5px);
+}
+
+.category-card {
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.employee-rank {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.rank-1 { background: #ffd700; color: #000; }
+.rank-2 { background: #c0c0c0; color: #000; }
+.rank-3 { background: #cd7f32; color: #fff; }
+
+.profile-photo {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.stats-badge {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.65rem;
+}
+
+.sort-button {
+    transition: all 0.3s ease;
+}
+
+.sort-button:hover, .sort-button.active {
+    background-color: #4a5568;
+    color: white;
+}
+
+.rules-card {
+    background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%);
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.rule-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.points-breakdown {
+    font-family: 'Courier New', monospace;
+    direction: ltr;
+}

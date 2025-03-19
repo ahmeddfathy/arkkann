@@ -6,9 +6,32 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class OverTimeRequests extends Model
+class OverTimeRequests extends Model implements Auditable
 {
+  use AuditableTrait;
+
+  protected $auditEvents = [
+    'created',
+    'updated',
+    'deleted',
+  ];
+
+  protected $auditInclude = [
+    'user_id',
+    'overtime_date',
+    'start_time',
+    'end_time',
+    'reason',
+    'manager_status',
+    'manager_rejection_reason',
+    'hr_status',
+    'hr_rejection_reason',
+    'status'
+  ];
+
   protected $fillable = [
     'user_id',
     'overtime_date',

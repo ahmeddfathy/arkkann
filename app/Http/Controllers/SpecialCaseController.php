@@ -18,7 +18,7 @@ class SpecialCaseController extends Controller
 
     public function index()
     {
-        $specialCases = SpecialCase::with('employee')->latest()->get();
+        $specialCases = SpecialCase::with(['employee.workShift'])->latest()->get();
         return view('special-cases.index', compact('specialCases'));
     }
 
@@ -67,6 +67,46 @@ class SpecialCaseController extends Controller
         }
     }
 
+    private function calculateLateMinutes($employee, $checkInTime)
+    {
+        $checkIn = Carbon::createFromTimeString($checkInTime);
+
+        // Get work start time from shift or use default
+        if ($employee->workShift) {
+            $workStart = Carbon::parse($employee->workShift->check_in_time)->format('H:i:s');
+        } else {
+            $workStart = self::WORK_START_TIME;
+        }
+
+        $workStart = Carbon::createFromTimeString($workStart);
+
+        if ($checkIn->gt($workStart)) {
+            return abs($checkIn->diffInMinutes($workStart));
+        }
+
+        return 0;
+    }
+
+    private function calculateEarlyLeaveMinutes($employee, $checkOutTime)
+    {
+        $checkOut = Carbon::createFromTimeString($checkOutTime);
+
+        // Get work end time from shift or use default
+        if ($employee->workShift) {
+            $workEnd = Carbon::parse($employee->workShift->check_out_time)->format('H:i:s');
+        } else {
+            $workEnd = self::WORK_END_TIME;
+        }
+
+        $workEnd = Carbon::createFromTimeString($workEnd);
+
+        if ($checkOut->lt($workEnd)) {
+            return abs($workEnd->diffInMinutes($checkOut));
+        }
+
+        return 0;
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -77,26 +117,27 @@ class SpecialCaseController extends Controller
             'reason' => 'required|string'
         ]);
 
-        if ($request->check_in) {
-            $checkIn = Carbon::createFromTimeString($request->check_in);
-            $workStart = Carbon::createFromTimeString(self::WORK_START_TIME);
+        // Check if a record already exists for this employee on this date
+        $existingRecord = SpecialCase::where('employee_id', $validated['employee_id'])
+            ->whereDate('date', $validated['date'])
+            ->first();
 
-            if ($checkIn->gt($workStart)) {
-                $lateMinutes = abs($checkIn->diffInMinutes($workStart));
-            } else {
-                $lateMinutes = 0;
-            }
+        if ($existingRecord) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'يوجد بالفعل سجل لهذا الموظف في هذا التاريخ');
+        }
+
+        $employee = User::where('employee_id', $validated['employee_id'])->first();
+        $lateMinutes = 0;
+        $earlyLeaveMinutes = 0;
+
+        if ($request->check_in) {
+            $lateMinutes = $this->calculateLateMinutes($employee, $request->check_in);
         }
 
         if ($request->check_out) {
-            $checkOut = Carbon::createFromTimeString($request->check_out);
-            $workEnd = Carbon::createFromTimeString(self::WORK_END_TIME);
-
-            if ($checkOut->lt($workEnd)) {
-                $earlyLeaveMinutes = abs($workEnd->diffInMinutes($checkOut));
-            } else {
-                $earlyLeaveMinutes = 0;
-            }
+            $earlyLeaveMinutes = $this->calculateEarlyLeaveMinutes($employee, $request->check_out);
         }
 
         $specialCase = SpecialCase::create([
@@ -104,8 +145,8 @@ class SpecialCaseController extends Controller
             'date' => $validated['date'],
             'check_in' => $validated['check_in'],
             'check_out' => $validated['check_out'],
-            'late_minutes' => $lateMinutes ?? 0,
-            'early_leave_minutes' => $earlyLeaveMinutes ?? 0,
+            'late_minutes' => $lateMinutes,
+            'early_leave_minutes' => $earlyLeaveMinutes,
             'reason' => $validated['reason']
         ]);
 
@@ -129,26 +170,28 @@ class SpecialCaseController extends Controller
             'reason' => 'required|string'
         ]);
 
-        if ($request->check_in) {
-            $checkIn = Carbon::createFromTimeString($request->check_in);
-            $workStart = Carbon::createFromTimeString(self::WORK_START_TIME);
+        // Check if a record already exists for this employee on this date (excluding current record)
+        $existingRecord = SpecialCase::where('employee_id', $validated['employee_id'])
+            ->whereDate('date', $validated['date'])
+            ->where('id', '!=', $specialCase->id)
+            ->first();
 
-            if ($checkIn->gt($workStart)) {
-                $lateMinutes = abs($checkIn->diffInMinutes($workStart));
-            } else {
-                $lateMinutes = 0;
-            }
+        if ($existingRecord) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'يوجد بالفعل سجل لهذا الموظف في هذا التاريخ');
+        }
+
+        $employee = User::where('employee_id', $validated['employee_id'])->first();
+        $lateMinutes = $specialCase->late_minutes;
+        $earlyLeaveMinutes = $specialCase->early_leave_minutes;
+
+        if ($request->check_in) {
+            $lateMinutes = $this->calculateLateMinutes($employee, $request->check_in);
         }
 
         if ($request->check_out) {
-            $checkOut = Carbon::createFromTimeString($request->check_out);
-            $workEnd = Carbon::createFromTimeString(self::WORK_END_TIME);
-
-            if ($checkOut->lt($workEnd)) {
-                $earlyLeaveMinutes = abs($workEnd->diffInMinutes($checkOut));
-            } else {
-                $earlyLeaveMinutes = 0;
-            }
+            $earlyLeaveMinutes = $this->calculateEarlyLeaveMinutes($employee, $request->check_out);
         }
 
         $specialCase->update([
@@ -156,8 +199,8 @@ class SpecialCaseController extends Controller
             'date' => $validated['date'],
             'check_in' => $validated['check_in'],
             'check_out' => $validated['check_out'],
-            'late_minutes' => $lateMinutes ?? $specialCase->late_minutes,
-            'early_leave_minutes' => $earlyLeaveMinutes ?? $specialCase->early_leave_minutes,
+            'late_minutes' => $lateMinutes,
+            'early_leave_minutes' => $earlyLeaveMinutes,
             'reason' => $validated['reason']
         ]);
 
@@ -167,8 +210,13 @@ class SpecialCaseController extends Controller
 
     public function destroy(SpecialCase $specialCase)
     {
-        $specialCase->delete();
-        return redirect()->route('special-cases.index')
-            ->with('success', 'تم حذف الحالة الخاصة بنجاح');
+        try {
+            $specialCase->delete();
+            return redirect()->route('special-cases.index')
+                ->with('success', 'تم حذف الحالة الخاصة بنجاح');
+        } catch (\Exception $e) {
+            return redirect()->route('special-cases.index')
+                ->with('error', 'حدث خطأ أثناء محاولة حذف السجل');
+        }
     }
 }

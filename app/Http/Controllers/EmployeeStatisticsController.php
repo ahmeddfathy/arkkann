@@ -7,6 +7,7 @@ use App\Models\AbsenceRequest;
 use App\Models\PermissionRequest;
 use App\Models\OverTimeRequests;
 use App\Models\AttendanceRecord;
+use App\Models\SpecialCase;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -153,30 +154,64 @@ class EmployeeStatisticsController extends Controller
                 $statsQuery = AttendanceRecord::where('employee_id', $employee->employee_id)
                     ->whereBetween('attendance_date', [$startDate, $endDate]);
 
+                // Get special cases for this period
+                $specialCases = SpecialCase::where('employee_id', $employee->employee_id)
+                    ->whereBetween('date', [$startDate, $endDate])
+                    ->get()
+                    ->mapWithKeys(function ($case) {
+                        return [Carbon::parse($case->date)->format('Y-m-d') => $case];
+                    })
+                    ->all();
+
                 $totalWorkDays = (clone $statsQuery)
                     ->where(function ($query) {
                         $query->where('status', 'حضـور')
                             ->orWhere('status', 'غيــاب');
                     })
                     ->count();
+
+                // Get all attendance records for the period
+                $attendanceRecords = (clone $statsQuery)->get();
+                $actualAttendanceDays = 0;
+                $totalDelayMinutes = 0;
+                $totalWorkingHours = 0;
+                $daysWithHours = 0;
+
+                foreach ($attendanceRecords as $record) {
+                    $date = Carbon::parse($record->attendance_date)->format('Y-m-d');
+
+                    if (isset($specialCases[$date])) {
+                        // If there's a special case, always count as present
+                        $specialCase = $specialCases[$date];
+                        $actualAttendanceDays++;
+                        $daysWithHours++;
+
+                        $totalDelayMinutes += $specialCase->late_minutes ?? 0;
+
+                        if ($specialCase->check_in && $specialCase->check_out) {
+                            $checkIn = Carbon::parse($specialCase->check_in);
+                            $checkOut = Carbon::parse($specialCase->check_out);
+                            $hours = $checkOut->diffInHours($checkIn);
+                            $totalWorkingHours += $hours;
+                        }
+                    } else {
+                        if ($record->status === 'حضـور' && $record->entry_time) {
+                            $actualAttendanceDays++;
+                            $totalDelayMinutes += $record->delay_minutes ?? 0;
+
+                            if ($record->working_hours) {
+                                $daysWithHours++;
+                                $totalWorkingHours += $record->working_hours;
+                            }
+                        }
+                    }
+                }
+
                 $employee->total_working_days = $totalWorkDays;
-
-                $actualAttendanceDays = (clone $statsQuery)
-                    ->where(function ($query) use ($approvedLeavesDates) {
-                        $query->where(function ($q) {
-                            $q->where('status', 'حضـور')
-                                ->whereNotNull('entry_time');
-                        })
-                        ->orWhereIn('attendance_date', $approvedLeavesDates);
-                    })
-                    ->count();
-
                 $employee->actual_attendance_days = $actualAttendanceDays;
 
-                $employee->absences = (clone $statsQuery)
-                    ->where('status', 'غيــاب')
-                    ->whereNotIn('attendance_date', $approvedLeavesDates)
-                    ->count();
+                // Calculate absences correctly
+                $employee->absences = max(0, $totalWorkDays - $actualAttendanceDays);
 
                 $employee->attendance_percentage = $totalWorkDays > 0
                     ? round(($actualAttendanceDays / $totalWorkDays) * 100, 1)
@@ -186,21 +221,11 @@ class EmployeeStatisticsController extends Controller
                     ->where('status', 'عطله إسبوعية')
                     ->count();
 
-                $lateRecords = (clone $statsQuery)
-                    ->where('delay_minutes', '>', 0)
-                    ->whereNotNull('entry_time')
-                    ->get();
+                $employee->delays = $totalDelayMinutes;
 
-                $employee->delays = $lateRecords->sum('delay_minutes');
-
-                $workingHoursRecords = (clone $statsQuery)
-                    ->where('status', 'حضـور')
-                    ->whereNotNull('working_hours')
-                    ->get();
-
-                $totalWorkingHours = $workingHoursRecords->sum('working_hours');
-                $daysWithHours = $workingHoursRecords->count();
-                $employee->average_working_hours = $daysWithHours > 0 ? round($totalWorkingHours / $daysWithHours, 2) : 0;
+                $employee->average_working_hours = $daysWithHours > 0
+                    ? round($totalWorkingHours / $daysWithHours, 2)
+                    : 0;
             } else {
                 $employee->total_working_days = 0;
                 $employee->actual_attendance_days = 0;
@@ -306,39 +331,91 @@ class EmployeeStatisticsController extends Controller
         $statsQuery = AttendanceRecord::where('employee_id', $employee_id)
             ->whereBetween('attendance_date', [$startDate, $endDate]);
 
+        // Get special cases for this period
+        $specialCases = SpecialCase::where('employee_id', $employee_id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get()
+            ->mapWithKeys(function ($case) {
+                return [Carbon::parse($case->date)->format('Y-m-d') => $case];
+            })
+            ->all();
+
+        // Get all attendance records
+        $attendanceRecords = $statsQuery->get();
+
+        $totalWorkDays = $attendanceRecords->filter(function ($record) {
+            return $record->status === 'حضـور' || $record->status === 'غيــاب';
+        })->count();
+
+        $actualAttendanceDays = 0;
+        $totalDelayMinutes = 0;
+        $totalWorkingHours = 0;
+        $daysWithHours = 0;
+
+        foreach ($attendanceRecords as $record) {
+            $date = Carbon::parse($record->attendance_date)->format('Y-m-d');
+
+            if (isset($specialCases[$date])) {
+                // Only count as present if there's an attendance record for this day
+                if ($record->status === 'حضـور' || $record->status === 'غيــاب') {
+                    $specialCase = $specialCases[$date];
+                    $actualAttendanceDays++;
+                    $daysWithHours++;
+
+                    $totalDelayMinutes += $specialCase->late_minutes ?? 0;
+
+                    if ($specialCase->check_in && $specialCase->check_out) {
+                        $checkIn = Carbon::parse($specialCase->check_in);
+                        $checkOut = Carbon::parse($specialCase->check_out);
+                        $hours = $checkOut->diffInHours($checkIn);
+                        $totalWorkingHours += $hours;
+                    }
+                }
+            } else {
+                if ($record->status === 'حضـور' && $record->entry_time) {
+                    $actualAttendanceDays++;
+                    $totalDelayMinutes += $record->delay_minutes ?? 0;
+
+                    if ($record->working_hours) {
+                        $daysWithHours++;
+                        $totalWorkingHours += $record->working_hours;
+                    }
+                }
+            }
+        }
+
         $statistics = [
-            'total_working_days' => (clone $statsQuery)
-                ->where(function ($query) {
-                    $query->where('status', 'حضـور')
-                        ->orWhere('status', 'غيــاب');
-                })
-                ->count(),
-
-            'actual_attendance_days' => (clone $statsQuery)
-                ->where('status', 'حضـور')
-                ->whereNotNull('entry_time')
-                ->count(),
-
-            'absences' => (clone $statsQuery)
-                ->where('status', 'غيــاب')
-                ->count(),
-
+            'total_working_days' => $totalWorkDays,
+            'actual_attendance_days' => $actualAttendanceDays,
+            'absences' => $totalWorkDays - $actualAttendanceDays,
             'permissions' => PermissionRequest::where('user_id', $employee->id)
                 ->where('status', 'approved')
                 ->whereBetween('departure_time', [$startDate, $endDate])
                 ->count(),
-
             'overtimes' => OverTimeRequests::where('user_id', $employee->id)
                 ->where('status', 'approved')
                 ->whereBetween('overtime_date', [$startDate, $endDate])
                 ->count(),
-
-            'delays' => (clone $statsQuery)
-                ->where('delay_minutes', '>', 0)
-                ->whereNotNull('entry_time')
-                ->sum('delay_minutes'),
-
-            'attendance' => $statsQuery->orderBy('attendance_date', 'desc')->get()
+            'delays' => $totalDelayMinutes,
+            'attendance' => $attendanceRecords->map(function($record) use ($specialCases) {
+                $date = Carbon::parse($record->attendance_date)->format('Y-m-d');
+                if (isset($specialCases[$date])) {
+                    $specialCase = $specialCases[$date];
+                    return [
+                        'attendance_date' => $date,
+                        'status' => 'حضـور', // Always mark as present for special cases
+                        'entry_time' => $specialCase->check_in,
+                        'exit_time' => $specialCase->check_out,
+                        'delay_minutes' => $specialCase->late_minutes,
+                        'early_leave_minutes' => $specialCase->early_leave_minutes,
+                        'working_hours' => $specialCase->check_in && $specialCase->check_out ?
+                            Carbon::parse($specialCase->check_out)->diffInHours(Carbon::parse($specialCase->check_in)) : null,
+                        'is_special_case' => true,
+                        'special_case_reason' => $specialCase->reason
+                    ];
+                }
+                return $record;
+            })
         ];
 
         $statistics['attendance_percentage'] = $statistics['total_working_days'] > 0
@@ -362,10 +439,8 @@ class EmployeeStatisticsController extends Controller
             ->pluck('absence_date')
             ->toArray();
 
-        $statistics['absences'] = (clone $statsQuery)
-            ->where('status', 'غيــاب')
-            ->whereNotIn('attendance_date', $approvedLeavesDates)
-            ->count();
+        // Recalculate absences excluding special cases and approved leaves
+        $statistics['absences'] = $totalWorkDays - $actualAttendanceDays;
 
         $statistics['current_month_leaves'] = AbsenceRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
@@ -624,8 +699,7 @@ class EmployeeStatisticsController extends Controller
             $attendanceRate = ($employee->actual_attendance_days ?? 0) / ($employee->total_working_days ?? 1);
 
             $statsQuery = AttendanceRecord::where('employee_id', $employee->employee_id)
-                ->whereBetween('attendance_date', [$startDate, $endDate])
-                ->where('status', 'حضـور');
+                ->whereBetween('attendance_date', [$startDate, $endDate]);
 
             $workingHoursRecords = (clone $statsQuery)->get();
             $totalWorkingHours = 0;
@@ -701,45 +775,75 @@ class EmployeeStatisticsController extends Controller
             ]
         ];
 
+        // Get special cases for previous period
+        $specialCases = SpecialCase::where('employee_id', $employee->employee_id)
+            ->whereBetween('date', [$previousStart, $previousEnd])
+            ->get()
+            ->mapWithKeys(function ($case) {
+                return [Carbon::parse($case->date)->format('Y-m-d') => $case];
+            })
+            ->all();
+
         $previousStats = AttendanceRecord::where('employee_id', $employee->employee_id)
             ->whereBetween('attendance_date', [$previousStart, $previousEnd])
             ->get();
 
-        $totalDays = $previousStats->count();
-        $presentDays = $previousStats->where('status', 'حضـور')->count();
+        $totalDays = $previousStats->filter(function ($record) {
+            return $record->status === 'حضـور' || $record->status === 'غيــاب';
+        })->count();
+
+        $presentDays = 0;
+        $totalDelayMinutes = 0;
+        $totalWorkingHours = 0;
+        $daysWithHours = 0;
+
+        foreach ($previousStats as $record) {
+            $date = Carbon::parse($record->attendance_date)->format('Y-m-d');
+
+            if (isset($specialCases[$date])) {
+                $specialCase = $specialCases[$date];
+
+                if ($record->status === 'حضـور' || $record->status === 'غيــاب') {
+                    $presentDays++;
+                    $daysWithHours++;
+
+                    $totalDelayMinutes += $specialCase->late_minutes ?? 0;
+
+                    if ($specialCase->check_in && $specialCase->check_out) {
+                        $checkIn = Carbon::parse($specialCase->check_in);
+                        $checkOut = Carbon::parse($specialCase->check_out);
+                        $hours = $checkOut->diffInHours($checkIn);
+                        $totalWorkingHours += $hours;
+                    }
+                }
+            } else {
+                if ($record->status === 'حضـور' && $record->entry_time) {
+                    $presentDays++;
+                    $totalDelayMinutes += $record->delay_minutes ?? 0;
+
+                    if ($record->working_hours) {
+                        $daysWithHours++;
+                        $totalWorkingHours += $record->working_hours;
+                    }
+                }
+            }
+        }
 
         $prevAttendanceScore = $totalDays > 0 ? ($presentDays / $totalDays) * 100 : 0;
 
         $maxAcceptableDelays = 120;
-        $prevDelays = $previousStats->sum('delay_minutes');
         $prevPunctualityScore = 100;
-        if ($prevDelays > $maxAcceptableDelays) {
-            $excessDelays = $prevDelays - $maxAcceptableDelays;
+        if ($totalDelayMinutes > $maxAcceptableDelays) {
+            $excessDelays = $totalDelayMinutes - $maxAcceptableDelays;
             $prevPunctualityScore = max(0, 100 - (($excessDelays / $maxAcceptableDelays) * 100));
         }
 
+        $prevWorkingHoursScore = 0;
         if ($totalDays > 0) {
             $attendanceRate = $presentDays / $totalDays;
-
-            $workRecords = $previousStats->where('status', 'حضـور');
-            $totalWorkingHours = 0;
-
-            foreach ($workRecords as $record) {
-                $delayMinutes = $record->delay_minutes ?? 0;
-                if ($delayMinutes <= $maxAcceptableDelays) {
-                    $totalWorkingHours += max($record->working_hours ?? 0, 8);
-                } else {
-                    $totalWorkingHours += $record->working_hours ?? 0;
-                }
-            }
-
-            $daysWithHours = $workRecords->count();
             $avgHours = $daysWithHours > 0 ? $totalWorkingHours / $daysWithHours : 0;
             $avgHoursRate = $avgHours / 8;
-
             $prevWorkingHoursScore = min(100, ($attendanceRate * $avgHoursRate * 100));
-        } else {
-            $prevWorkingHoursScore = 0;
         }
 
         $maxAcceptablePermissions = 180;
@@ -764,7 +868,7 @@ class EmployeeStatisticsController extends Controller
             'total_working_days' => $totalDays,
             'actual_attendance_days' => $presentDays,
             'attendance_percentage' => $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0,
-            'delays' => $prevDelays,
+            'delays' => $totalDelayMinutes,
             'average_working_hours' => $daysWithHours > 0 ? round($totalWorkingHours / $daysWithHours, 2) : 0
         ];
 
@@ -869,30 +973,28 @@ class EmployeeStatisticsController extends Controller
             (($employee->previous_scores['attendance_score'] * 0.45) +
              ($employee->previous_scores['punctuality_score'] * 0.2) +
              ($employee->previous_scores['working_hours_score'] * 0.35)) :
-            $this->calculatePreviousPeriodScore($employee, now()->format('Y-m-d'));
+            $this->calculatePreviousPeriodScore($employee, $startDate);
 
         $trend = $currentScore - $prevOverallScore;
 
         $improvementPercentage = 0;
         if ($prevOverallScore > 0) {
-            $improvementPercentage = round(($trend / $prevOverallScore) * 100, 1);
-        } elseif ($trend > 0) {
+            $improvementPercentage = round((($currentScore - $prevOverallScore) / $prevOverallScore) * 100, 1);
+        } elseif ($currentScore > 0) {
             $improvementPercentage = 100;
         }
 
         $predictedScore = $currentScore;
 
         if ($trend > 0) {
+            // If improving, allow moderate improvement
             $predictedImprovement = min(5, $trend * 0.3);
             $predictedScore = min(100, $currentScore + $predictedImprovement);
         }
         else if ($trend < 0) {
-            if ($currentScore >= 90) {
-                $predictedDecline = max(-2, $trend * 0.2);
-            } else {
-                $predictedDecline = max(-5, $trend * 0.3);
-            }
-            $predictedScore = max(50, $currentScore + $predictedDecline);
+            // If declining, predict continued decline but at a slower rate
+            $predictedDecline = $trend * 0.5; // Use 50% of the current decline rate
+            $predictedScore = max(0, $currentScore + $predictedDecline); // Remove minimum limit of 50
         }
 
         $predictedScore = round(min(100, max(0, $predictedScore)), 1);
@@ -965,9 +1067,8 @@ class EmployeeStatisticsController extends Controller
                     $currentMetrics['attendance_score'] ?? 0,
                     $prevAttendanceScore
                 ))),
-                'improvement' => ($currentMetrics['attendance_score'] ?? 0) - $prevAttendanceScore,
-                'improvement_percentage' => $prevAttendanceScore > 0 ?
-                    round((($currentMetrics['attendance_score'] ?? 0 - $prevAttendanceScore) / $prevAttendanceScore) * 100, 1) : 0
+                'improvement' => round(($currentMetrics['attendance_score'] ?? 0) - $prevAttendanceScore, 1),
+                'improvement_percentage' => round(($currentMetrics['attendance_score'] ?? 0) - $prevAttendanceScore, 1)
             ],
             'punctuality' => [
                 'current' => $currentMetrics['punctuality_score'] ?? 0,
@@ -976,9 +1077,8 @@ class EmployeeStatisticsController extends Controller
                     $currentMetrics['punctuality_score'] ?? 0,
                     $prevPunctualityScore
                 ))),
-                'improvement' => ($currentMetrics['punctuality_score'] ?? 0) - $prevPunctualityScore,
-                'improvement_percentage' => $prevPunctualityScore > 0 ?
-                    round((($currentMetrics['punctuality_score'] ?? 0 - $prevPunctualityScore) / $prevPunctualityScore) * 100, 1) : 0
+                'improvement' => round(($currentMetrics['punctuality_score'] ?? 0) - $prevPunctualityScore, 1),
+                'improvement_percentage' => round(($currentMetrics['punctuality_score'] ?? 0) - $prevPunctualityScore, 1)
             ],
             'working_hours' => [
                 'current' => $currentMetrics['working_hours_score'] ?? 0,
@@ -987,9 +1087,8 @@ class EmployeeStatisticsController extends Controller
                     $currentMetrics['working_hours_score'] ?? 0,
                     $prevWorkingHoursScore
                 ))),
-                'improvement' => ($currentMetrics['working_hours_score'] ?? 0) - $prevWorkingHoursScore,
-                'improvement_percentage' => $prevWorkingHoursScore > 0 ?
-                    round((($currentMetrics['working_hours_score'] ?? 0 - $prevWorkingHoursScore) / $prevWorkingHoursScore) * 100, 1) : 0
+                'improvement' => round(($currentMetrics['working_hours_score'] ?? 0) - $prevWorkingHoursScore, 1),
+                'improvement_percentage' => round(($currentMetrics['working_hours_score'] ?? 0) - $prevWorkingHoursScore, 1)
             ],
             'permissions' => [
                 'current' => $currentMetrics['permissions_score'] ?? 0,
@@ -1020,8 +1119,8 @@ class EmployeeStatisticsController extends Controller
         return [
             'predicted_attendance' => $predictedScore,
             'trend_direction' => $trend > 0 ? 'تحسن' : ($trend < 0 ? 'تراجع' : 'ثابت'),
-            'trend_percentage' => abs(round($trend, 1)),
-            'improvement_percentage' => $improvementPercentage,
+            'trend_percentage' => round(abs($currentScore - $prevOverallScore), 1),
+            'improvement_percentage' => round($currentScore - $prevOverallScore, 1),
             'current_period' => $periodsDetails['current_period'],
             'previous_period' => $periodsDetails['previous_period'],
             'prediction_period' => $periodsDetails['prediction_period'],

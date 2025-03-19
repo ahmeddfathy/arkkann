@@ -1,80 +1,7 @@
 @extends('layouts.app')
 
 @push('styles')
-<style>
-    .trophy-card {
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
-        border-radius: 15px;
-        transition: transform 0.3s ease;
-    }
-
-    .trophy-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .category-card {
-        border-radius: 15px;
-        transition: all 0.3s ease;
-    }
-
-    .category-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-
-    .employee-rank {
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-    }
-
-    .rank-1 { background: #ffd700; color: #000; }
-    .rank-2 { background: #c0c0c0; color: #000; }
-    .rank-3 { background: #cd7f32; color: #fff; }
-
-    .profile-photo {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-
-    .stats-badge {
-        font-size: 0.85rem;
-        padding: 0.35rem 0.65rem;
-    }
-
-    .sort-button {
-        transition: all 0.3s ease;
-    }
-
-    .sort-button:hover, .sort-button.active {
-        background-color: #4a5568;
-        color: white;
-    }
-
-    .rules-card {
-        background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%);
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-
-    .rule-item {
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 8px;
-        background-color: #f8f9fa;
-    }
-
-    .points-breakdown {
-        font-family: 'Courier New', monospace;
-        direction: ltr;
-    }
-</style>
+<link href="{{ asset('css/employee-competition.css') }}" rel="stylesheet">
 @endpush
 
 @section('content')
@@ -197,30 +124,30 @@
                 <div class="card-body">
                     <h3 class="text-center mb-4">🎯 التصنيفات</h3>
                     <div class="d-flex justify-content-center gap-2 flex-wrap mb-4">
-                        <button class="btn sort-button {{ $sortBy == 'points' ? 'active' : '' }}"
-                                onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort_by' => 'points']) }}'">
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'points']) }}"
+                           class="btn sort-button {{ $sortBy == 'points' ? 'active' : '' }}">
                             🏆 النقاط الإجمالية
-                        </button>
-                        <button class="btn sort-button {{ $sortBy == 'attendance' ? 'active' : '' }}"
-                                onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort_by' => 'attendance']) }}'">
+                        </a>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'attendance']) }}"
+                           class="btn sort-button {{ $sortBy == 'attendance' ? 'active' : '' }}">
                             ✅ نسبة الحضور
-                        </button>
-                        <button class="btn sort-button {{ $sortBy == 'early_minutes' ? 'active' : '' }}"
-                                onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort_by' => 'early_minutes']) }}'">
+                        </a>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'early_minutes']) }}"
+                           class="btn sort-button {{ $sortBy == 'early_minutes' ? 'active' : '' }}">
                             🌅 الحضور المبكر
-                        </button>
-                        <button class="btn sort-button {{ $sortBy == 'absences' ? 'active' : '' }}"
-                                onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort_by' => 'absences']) }}'">
+                        </a>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'absences']) }}"
+                           class="btn sort-button {{ $sortBy == 'absences' ? 'active' : '' }}">
                             ❌ الغياب
-                        </button>
-                        <button class="btn sort-button {{ $sortBy == 'permissions' ? 'active' : '' }}"
-                                onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort_by' => 'permissions']) }}'">
+                        </a>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'permissions']) }}"
+                           class="btn sort-button {{ $sortBy == 'permissions' ? 'active' : '' }}">
                             📝 الأذونات
-                        </button>
-                        <button class="btn sort-button {{ $sortBy == 'leaves' ? 'active' : '' }}"
-                                onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort_by' => 'leaves']) }}'">
+                        </a>
+                        <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'leaves']) }}"
+                           class="btn sort-button {{ $sortBy == 'leaves' ? 'active' : '' }}">
                             🏖️ الإجازات
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -244,6 +171,7 @@
                                     <th>الغياب</th>
                                     <th>الأذونات</th>
                                     <th>الإجازات</th>
+                                    <th>ساعات العمل</th>
                                     <th>النقاط</th>
                                 </tr>
                             </thead>
@@ -272,7 +200,7 @@
                                             <div class="progress mb-1" style="height: 20px;">
                                                 <div class="progress-bar {{ $employee['attendance_percentage'] >= 90 ? 'bg-success' : ($employee['attendance_percentage'] >= 75 ? 'bg-warning' : 'bg-danger') }}"
                                                     role="progressbar"
-                                                    style="width: {{ $employee['attendance_percentage'] }}%">
+                                                    style="width: {{$employee['attendance_percentage'].'%'}}">
                                                     {{ number_format($employee['attendance_percentage'], 1) }}٪
                                                 </div>
                                             </div>
@@ -302,6 +230,16 @@
                                         </span>
                                     </td>
                                     <td>
+                                        <div class="d-flex flex-column">
+                                            <span class="badge bg-primary stats-badge mb-1">
+                                                {{ number_format($employee['actual_working_hours'], 1) }} ساعة
+                                            </span>
+                                            <small class="text-muted">
+                                                من {{ number_format($employee['total_shift_hours'], 1) }} ساعة
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
                                         <div class="d-flex flex-column align-items-center">
                                             <span class="badge bg-success stats-badge mb-2">
                                                 {{ number_format($employee['points'], 1) }} نقطة
@@ -319,6 +257,10 @@
                                                             <div>خصم الغياب: {{ number_format(min($employee['absences'] * 5, 15), 1) }} من -١٥</div>
                                                             <div>خصم الأذونات: {{ number_format(min($employee['permissions_count'] * 2.5, 7.5), 1) }} من -٧.٥</div>
                                                             <div>خصم الإجازات: {{ number_format(min($employee['leaves_count'] * 2.5, 7.5), 1) }} من -٧.٥</div>
+                                                            <div class='mt-2'>
+                                                                <strong>ساعات العمل:</strong><br>
+                                                                {{ number_format($employee['actual_working_hours'], 1) }} من {{ number_format($employee['total_shift_hours'], 1) }} ساعة
+                                                            </div>
                                                         </div>
                                                     ">
                                                 <i class="fas fa-info-circle"></i>

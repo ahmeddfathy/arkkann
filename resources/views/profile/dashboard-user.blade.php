@@ -116,18 +116,18 @@
   <div class="action-cards">
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-file-alt text-white text-2xl"></i>
+        <i class="fas fa-file-alt text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">Overtime Requests</h3>
+      <h3 class="font-semibold mb-2">Overtime Requests</h3>
       <a href="{{ route('overtime-requests.index') }}" class="btn-dashboard">
         View Overtime Requests
       </a>
     </div>
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-user-clock text-white text-2xl"></i>
+        <i class="fas fa-user-clock text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">Permission Requests</h3>
+      <h3 class="font-semibold mb-2">Permission Requests</h3>
       <a href="{{ route('permission-requests.index') }}" class="btn-dashboard">
         Manage Permissions
       </a>
@@ -137,18 +137,18 @@
   <div class="action-cards">
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-user-minus text-white text-2xl"></i>
+        <i class="fas fa-user-minus text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">Absence Requests</h3>
+      <h3 class="font-semibold mb-2">Absence Requests</h3>
       <a href="{{ route('absence-requests.index') }}" class="btn-dashboard">
         Manage Absences
       </a>
     </div>
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-bell text-white text-2xl"></i>
+        <i class="fas fa-bell text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">Notifications</h3>
+      <h3 class="font-semibold mb-2">Notifications</h3>
       <a href="{{ route('notifications') }}" class="btn-dashboard">
         View Notifications
       </a>
@@ -158,9 +158,9 @@
   <div class="action-cards">
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-file-pdf text-white text-2xl"></i>
+        <i class="fas fa-file-pdf text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">تقرير الحضور</h3>
+      <h3 class="font-semibold mb-2">تقرير الحضور</h3>
       @if(Auth::user()->employee_id)
         <a href="{{ route('user.previewAttendance', Auth::user()->employee_id) }}" class="btn-dashboard">
           عرض التقرير
@@ -173,9 +173,9 @@
     </div>
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-envelope text-white text-2xl"></i>
+        <i class="fas fa-envelope text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">Chat</h3>
+      <h3 class="font-semibold mb-2">Chat</h3>
       <a href="{{ route('chat.index') }}" class="btn-dashboard">
         Open Chat
       </a>
@@ -185,18 +185,18 @@
   <div class="action-cards">
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-chart-line text-white text-2xl"></i>
+        <i class="fas fa-chart-line text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">إحصائيات الموظف</h3>
+      <h3 class="font-semibold mb-2">إحصائيات الموظف</h3>
       <a href="{{ route('employee-statistics.index') }}" class="btn-dashboard">
         عرض الإحصائيات
       </a>
     </div>
     <div class="action-card">
       <div class="action-icon">
-        <i class="fas fa-trophy text-white text-2xl"></i>
+        <i class="fas fa-trophy text-white text-xl"></i>
       </div>
-      <h3 class="text-xl font-semibold mb-3">المسابقة</h3>
+      <h3 class="font-semibold mb-2">المسابقة</h3>
       <a href="{{ route('employee-competition.index') }}" class="btn-dashboard">
          تابع المسابقه
       </a>

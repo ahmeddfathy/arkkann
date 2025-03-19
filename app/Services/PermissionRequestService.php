@@ -424,14 +424,12 @@ class PermissionRequestService
 
                 // تحديد وقت العودة الفعلي بالوقت الحالي أو نهاية الوردية أيهما أسبق
                 if ($now->gt($shiftEndTime)) {
-                    $request->actual_return_time = $shiftEndTime;
                     Log::info('Employee returned after shift end time - using shift end time', [
                         'request_id' => $request->id,
                         'now' => $now->format('Y-m-d H:i:s'),
                         'shift_end_time' => $shiftEndTime->format('Y-m-d H:i:s')
                     ]);
                 } else {
-                    $request->actual_return_time = $now;
                     Log::info('Employee returned before shift end time - using current time', [
                         'request_id' => $request->id,
                         'now' => $now->format('Y-m-d H:i:s')
@@ -440,11 +438,9 @@ class PermissionRequestService
             } else if ($returnStatus == 0) {
                 // Reset status
                 $request->returned_on_time = false;
-                $request->actual_return_time = null;
             } else if ($returnStatus == 2) {
                 // Not returned - explicit action by manager or employee
                 $request->returned_on_time = 2;
-                $request->actual_return_time = null;
 
                 // Create violation record only when explicitly marked as not returned
                 $this->violationService->handleReturnViolation(
@@ -592,9 +588,10 @@ class PermissionRequestService
         $requestedMinutes = $departureDateTime->diffInMinutes($returnDateTime);
 
         if ($requestedMinutes > $remainingMinutes) {
+            // تعديل: السماح بتجاوز الحد مع إظهار تنبيه
             return [
                 'valid' => true,
-                'message' => "لقد استنفدت الحد الأقصى المسموح به من الاستئذان الشهري. المتبقي: {$remainingMinutes} دقيقة.",
+                'message' => "تنبيه: لقد تجاوزت الحد المجاني للاستئذان الشهري المسموح به (180 دقيقة). المتبقي: {$remainingMinutes} دقيقة.",
                 'duration' => $duration,
                 'exceeded_limit' => true
             ];

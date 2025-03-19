@@ -363,26 +363,69 @@ class PermissionRequestController extends Controller
 
     public function destroy(PermissionRequest $permissionRequest)
     {
-        // التحقق من صلاحية حذف طلب الاستئذان
-        if (!auth()->user()->hasPermissionTo('delete_permission')) {
-            abort(403, 'ليس لديك صلاحية حذف طلب الاستئذان');
+        try {
+            // التحقق من صلاحية حذف طلب الاستئذان
+            if (!auth()->user()->hasPermissionTo('delete_permission')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية حذف طلب الاستئذان'
+                ], 403);
+            }
+
+            // التحقق من أن الطلب في حالة pending وأن المستخدم هو صاحب الطلب
+            if ($permissionRequest->status !== 'pending' || auth()->id() !== $permissionRequest->user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن حذف هذا الطلب'
+                ], 403);
+            }
+
+            $user = Auth::user();
+
+            // التحقق من حالة الموافقة من المدير أو HR
+            if ($permissionRequest->manager_status !== 'pending' || $permissionRequest->hr_status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن حذف الطلب لأنه تمت الموافقة عليه أو رفضه من قبل المدير أو HR'
+                ], 403);
+            }
+
+            try {
+                $this->permissionRequestService->deleteRequest($permissionRequest);
+
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'تم حذف الطلب بنجاح'
+                    ]);
+                }
+
+                return redirect()->route('permission-requests.index')
+                    ->with('success', 'تم حذف الطلب بنجاح');
+            } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage()
+                    ], 403);
+                }
+
+                return redirect()->route('permission-requests.index')
+                    ->with('error', $e->getMessage());
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error deleting permission request: ' . $e->getMessage());
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حدث خطأ أثناء حذف الطلب: ' . $e->getMessage()
+                ]);
+            }
+
+            return redirect()->route('permission-requests.index')
+                ->with('error', 'حدث خطأ أثناء حذف الطلب: ' . $e->getMessage());
         }
-
-        // التحقق من أن الطلب في حالة pending وأن المستخدم هو صاحب الطلب
-        if ($permissionRequest->status !== 'pending' || auth()->id() !== $permissionRequest->user_id) {
-            abort(403, 'لا يمكن حذف هذا الطلب');
-        }
-
-        $user = Auth::user();
-
-        if ($user->role !== 'manager' && $user->id !== $permissionRequest->user_id) {
-            return redirect()->route('welcome')->with('error', 'Unauthorized action.');
-        }
-
-        $this->permissionRequestService->deleteRequest($permissionRequest);
-
-        return redirect()->route('permission-requests.index')
-            ->with('success', 'Permission request deleted successfully.');
     }
 
     public function updateStatus(Request $request, PermissionRequest $permissionRequest)
@@ -428,6 +471,7 @@ class PermissionRequestController extends Controller
     {
         $user = Auth::user();
 
+        // تحقق من الصلاحيات
         if (
             !$user->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']) &&
             $user->id !== $permissionRequest->user_id
@@ -448,6 +492,9 @@ class PermissionRequestController extends Controller
             $maxReturnTime = $returnTime->copy();
             $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
+            // إذا كان المستخدم مدير أو HR، نسمح له بتسجيل العودة بغض النظر عن الوقت
+            $isManager = $user->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']);
+
             if ($returnTime->gte($endOfWorkDay)) {
                 $permissionRequest->returned_on_time = true;
                 $permissionRequest->updateActualMinutesUsed();
@@ -459,9 +506,8 @@ class PermissionRequestController extends Controller
                 ]);
             }
 
-            // معالجة إعادة التعيين (return_status = 0) أولاً
+            // معالجة إعادة التعيين (return_status = 0)
             if ($validated['return_status'] == 0) {
-                // إعادة تعيين حالة العودة إلى صفر بدلاً من null لتجنب خطأ قاعدة البيانات
                 $permissionRequest->returned_on_time = 0;
                 $permissionRequest->updateActualMinutesUsed();
                 $permissionRequest->save();
@@ -474,36 +520,27 @@ class PermissionRequestController extends Controller
             }
             // تسجيل العودة (return_status = 1)
             else if ($validated['return_status'] == 1) {
-                // التحقق من إمكانية تسجيل العودة
-                if (!$permissionRequest->canMarkAsReturned($user)) {
+                // تخطي التحقق من الوقت للمدراء وHR
+                if (!$isManager && !$permissionRequest->canMarkAsReturned($user)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'لقد تجاوزت الوقت المسموح به للعودة'
                     ]);
                 }
 
-                // السماح بتسجيل العودة حتى لو تجاوز الوقت المحدد
-                // لكن نسجل ما إذا كان الموظف عاد في الوقت المحدد أم متأخراً
                 $isOnTime = $now->lte($maxReturnTime);
                 $permissionRequest->returned_on_time = true;
-
-                // تحديث الدقائق المستخدمة الفعلية
                 $permissionRequest->updateActualMinutesUsed();
                 $permissionRequest->save();
 
-                // إذا كان متأخراً، نضيف مخالفة
-                if (!$isOnTime) {
+                // إضافة مخالفة فقط إذا كان متأخراً وليس مديراً
+                if (!$isOnTime && !$isManager) {
                     Violation::create([
                         'user_id' => $permissionRequest->user_id,
                         'permission_requests_id' => $permissionRequest->id,
                         'reason' => 'تسجيل العودة من الاستئذان بعد الموعد المحدد',
                         'manager_mistake' => false
                     ]);
-                } else {
-                    // إذا عاد في الوقت المحدد، نحذف أي مخالفات سابقة لهذا الطلب
-                    Violation::where('permission_requests_id', $permissionRequest->id)
-                            ->where('reason', 'تسجيل العودة من الاستئذان بعد الموعد المحدد')
-                            ->delete();
                 }
 
                 return response()->json([
@@ -749,71 +786,6 @@ class PermissionRequestController extends Controller
         }
     }
 
-    /**
-     * التحقق من نهاية يوم العمل وتسجيل عدم العودة تلقائيًا
-     */
-    public function checkEndOfDay(Request $request)
-    {
-        try {
-            $now = Carbon::now();
-            $updatedRequests = [];
-
-            // فلترة الطلبات حسب المعايير التالية:
-            // 1. حالة الطلب معتمدة
-            // 2. تاريخ الطلب هو اليوم الحالي
-            // 3. حالة العودة غير محددة (null أو 0)
-            $requests = PermissionRequest::where('status', 'approved')
-                ->whereDate('departure_time', $now->toDateString())
-                ->where(function ($query) {
-                    $query->whereNull('returned_on_time')
-                        ->orWhere('returned_on_time', 0);
-                })->get();
-
-            Log::info('Checking end of day for permission requests', [
-                'now' => $now->format('Y-m-d H:i:s'),
-                'requests_count' => $requests->count()
-            ]);
-
-            foreach ($requests as $permissionRequest) {
-                // تحديث الدقائق المستخدمة وتسجيل عدم العودة تلقائياً
-                if ($permissionRequest->markAsNotReturnedAtEndOfShift()) {
-                    // إضافة معرف الطلب إلى قائمة الطلبات التي تم تحديثها
-                    $updatedRequests[] = [
-                        'id' => $permissionRequest->id,
-                        'user_name' => $permissionRequest->user->name,
-                        'departure_time' => $permissionRequest->departure_time->format('Y-m-d H:i:s'),
-                        'minutes_used' => $permissionRequest->minutes_used
-                    ];
-
-                    // إنشاء مخالفة للموظف الذي لم يعد
-                    Violation::create([
-                        'user_id' => $permissionRequest->user_id,
-                        'permission_requests_id' => $permissionRequest->id,
-                        'reason' => 'عدم العودة من الاستئذان في الوقت المحدد (تسجيل تلقائي)',
-                        'manager_mistake' => false
-                    ]);
-
-                    Log::info('Created violation for not returning from permission', [
-                        'request_id' => $permissionRequest->id,
-                        'user_id' => $permissionRequest->user_id
-                    ]);
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'updated_requests' => $updatedRequests
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error in checkEndOfDay: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء التحقق من نهاية يوم العمل: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
     protected function getStatistics($user, $dateStart, $dateEnd)
     {
         $statistics = [
@@ -880,16 +852,13 @@ class PermissionRequestController extends Controller
         ];
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
-            ($user->hasRole('hr') && ($user->ownedTeams->count() > 0 || $user->teams()->wherePivot('role', 'admin')->exists()))
+            $user->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']) &&
+            ($user->currentTeam || $user->ownedTeams->count() > 0)
         ) {
-
             $teams = collect();
 
             if ($user->hasRole('hr')) {
-                $teams = $user->ownedTeams->merge(
-                    $user->teams()->wherePivot('role', 'admin')->get()
-                );
+                $teams = $user->ownedTeams;
             } else {
                 $teams = $user->currentTeam ? collect([$user->currentTeam]) : collect();
             }
@@ -1312,6 +1281,8 @@ class PermissionRequestController extends Controller
         } elseif ($user->hasRole('department_manager')) {
             return ['employee', 'team_leader'];
         } elseif ($user->hasRole('company_manager')) {
+            return ['employee', 'team_leader', 'department_manager'];
+        } elseif ($user->hasRole('hr')) {
             return ['employee', 'team_leader', 'department_manager'];
         }
         return [];

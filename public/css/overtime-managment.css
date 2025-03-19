@@ -584,3 +584,19 @@
     font-weight: 600;
     color: #333;
 }
+
+
+.statistics-card {
+    transition: all 0.3s ease;
+}
+
+.statistics-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+    position: relative;
+    height: 200px;
+    margin-top: 20px;
+}

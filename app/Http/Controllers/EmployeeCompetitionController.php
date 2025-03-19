@@ -7,6 +7,7 @@ use App\Models\AbsenceRequest;
 use App\Models\PermissionRequest;
 use App\Models\OverTimeRequests;
 use App\Models\AttendanceRecord;
+use App\Models\SpecialCase;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -60,6 +61,7 @@ class EmployeeCompetitionController extends Controller
             $attendanceStats = $this->getAttendanceStats($employee, $startDate, $endDate);
 
             // Calculate early minutes (الحضور المبكر)
+            // Only use regular attendance records for early minutes
             $earlyMinutes = AttendanceRecord::where('employee_id', $employee->employee_id)
                 ->whereBetween('attendance_date', [$startDate, $endDate])
                 ->where('early_minutes', '>', 0)
@@ -95,6 +97,8 @@ class EmployeeCompetitionController extends Controller
                 'attendance_percentage' => $attendanceStats['attendance_percentage'],
                 'total_working_days' => $attendanceStats['total_working_days'],
                 'actual_attendance_days' => $attendanceStats['actual_attendance_days'],
+                'total_shift_hours' => $attendanceStats['total_shift_hours'],
+                'actual_working_hours' => $attendanceStats['actual_working_hours'],
                 'early_minutes' => $earlyMinutes,
                 'absences' => $attendanceStats['absences'],
                 'permissions_count' => $permissionsCount,
@@ -139,21 +143,67 @@ class EmployeeCompetitionController extends Controller
         $statsQuery = AttendanceRecord::where('employee_id', $employee->employee_id)
             ->whereBetween('attendance_date', [$startDate, $endDate]);
 
-        $totalWorkDays = (clone $statsQuery)
+        // Get special cases for this period
+        $specialCases = SpecialCase::where('employee_id', $employee->employee_id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get()
+            ->mapWithKeys(function ($case) {
+                return [Carbon::parse($case->date)->format('Y-m-d') => $case];
+            })
+            ->all();
+
+        // Calculate total shift hours and working hours
+        $attendanceRecords = (clone $statsQuery)
             ->where(function ($query) {
                 $query->where('status', 'حضـور')
                     ->orWhere('status', 'غيــاب');
             })
+            ->get();
+
+        $totalShiftHours = 0;
+        $actualWorkingHours = 0;
+
+        foreach ($attendanceRecords as $record) {
+            $totalShiftHours += $record->shift_hours ?? 0;
+
+            if ($record->status === 'حضـور') {
+                // Use working hours, capped at shift hours
+                $workingHours = min($record->working_hours ?? 0, $record->shift_hours ?? 0);
+                $actualWorkingHours += $workingHours;
+            } elseif ($record->status === 'غيــاب') {
+                // Use shift hours for absences
+                $actualWorkingHours += $record->shift_hours ?? 0;
+            }
+        }
+
+        $totalWorkDays = $attendanceRecords->count();
+        $actualAttendanceDays = 0;
+
+        foreach ($attendanceRecords as $record) {
+            $date = Carbon::parse($record->attendance_date)->format('Y-m-d');
+
+            if (isset($specialCases[$date])) {
+                if ($record->status === 'حضـور' || $record->status === 'غيــاب') {
+                    $actualAttendanceDays++;
+                }
+            } else {
+                if ($record->status === 'حضـور' && $record->entry_time) {
+                    $actualAttendanceDays++;
+                }
+            }
+        }
+
+        // Calculate absences correctly
+        $absences = $totalWorkDays - $actualAttendanceDays;
+
+        // Check for approved leaves
+        $approvedLeaves = AbsenceRequest::where('user_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereBetween('absence_date', [$startDate, $endDate])
             ->count();
 
-        $actualAttendanceDays = (clone $statsQuery)
-            ->where('status', 'حضـور')
-            ->whereNotNull('entry_time')
-            ->count();
-
-        $absences = (clone $statsQuery)
-            ->where('status', 'غيــاب')
-            ->count();
+        // Absences should not include approved leaves
+        $absences = max(0, $absences - $approvedLeaves);
 
         return [
             'total_working_days' => $totalWorkDays,
@@ -161,7 +211,9 @@ class EmployeeCompetitionController extends Controller
             'attendance_percentage' => $totalWorkDays > 0
                 ? round(($actualAttendanceDays / $totalWorkDays) * 100, 1)
                 : 0,
-            'absences' => $absences
+            'absences' => $absences,
+            'total_shift_hours' => round($totalShiftHours, 2),
+            'actual_working_hours' => round($actualWorkingHours, 2)
         ];
     }
 

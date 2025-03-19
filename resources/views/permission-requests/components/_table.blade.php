@@ -1,4 +1,3 @@
-
 @php
 use App\Models\PermissionRequest;
 use Carbon\Carbon;
@@ -76,6 +75,27 @@ use Carbon\Carbon;
                             <td>{{ $request->getReturnStatusLabel() }}</td>
                             <td>
                                 <div class="action-buttons">
+                                    @if($request->status === 'pending' && Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending')
+                                        <!-- زر تعديل الطلب -->
+                                        <button type="button"
+                                            class="btn btn-warning btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editPermissionModal"
+                                            data-request-id="{{ $request->id }}"
+                                            data-departure-time="{{ $request->departure_time }}"
+                                            data-return-time="{{ $request->return_time }}"
+                                            data-reason="{{ $request->reason }}">
+                                            <i class="fas fa-edit"></i> تعديل
+                                        </button>
+
+                                        <!-- زر حذف الطلب -->
+                                        <button type="button"
+                                            class="btn btn-danger btn-sm delete-request"
+                                            data-request-id="{{ $request->id }}">
+                                            <i class="fas fa-trash"></i> حذف
+                                        </button>
+                                    @endif
+
                                     @if($request->status === 'approved')
                                     <div class="btn-group" role="group">
                                         @php
@@ -106,13 +126,41 @@ use Carbon\Carbon;
                                             </div>
                                             @endif
 
-                                            <!-- زر الرجوع - يظهر فقط لصاحب الطلب ويعمل فقط في الوقت المناسب -->
-                                            @if($request->canMarkAsReturned(Auth::user()))
-                                            <button type="button" class="btn btn-success btn-sm mark-return-btn"
+                                            @php
+                                            $hasStarted = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time));
+                                            @endphp
+
+                                            @if($hasStarted)
+                                            <button type="button"
+                                                class="btn btn-success btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
-                                                onclick="markAsReturned({{ $request->id }})">
-                                                <i class="fas fa-check-circle"></i> تسجيل العودة
+                                                data-status="1"
+                                                {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                                <i class="fas fa-check me-1"></i>رجع
                                             </button>
+
+                                            <!-- تعديل زر "لم يرجع" -->
+                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
+                                            <button type="button"
+                                                class="btn btn-danger btn-sm return-btn me-2"
+                                                data-request-id="{{ $request->id }}"
+                                                data-status="2"
+                                                {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                                <i class="fas fa-times me-1"></i>لم يرجع
+                                            </button>
+                                            @endif
+
+                                            <button type="button"
+                                                class="btn btn-secondary btn-sm reset-btn"
+                                                data-request-id="{{ $request->id }}"
+                                                data-status="0"
+                                                {{ $request->returned_on_time === false ? 'disabled' : '' }}>
+                                                <i class="fas fa-undo me-1"></i>إعادة تعيين
+                                            </button>
+                                            @else
+                                            <div class="alert alert-warning py-1 px-2 mb-0">
+                                                <small><i class="fas fa-exclamation-triangle me-1"></i> لم يبدأ وقت المغادرة بعد</small>
+                                            </div>
                                             @endif
                                         </div>
                                     </div>
@@ -297,6 +345,11 @@ use Carbon\Carbon;
                                             </div>
                                             @endif
 
+                                            @php
+                                            $hasStarted = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time));
+                                            @endphp
+
+                                            @if($hasStarted)
                                             <button type="button"
                                                 class="btn btn-success btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
@@ -323,6 +376,11 @@ use Carbon\Carbon;
                                                 {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                                 <i class="fas fa-undo me-1"></i>إعادة تعيين
                                             </button>
+                                            @else
+                                            <div class="alert alert-warning py-1 px-2 mb-0">
+                                                <small><i class="fas fa-exclamation-triangle me-1"></i> لم يبدأ وقت المغادرة بعد</small>
+                                            </div>
+                                            @endif
                                         </div>
                                     </div>
                                     @endif
@@ -596,6 +654,11 @@ use Carbon\Carbon;
                                     </div>
                                     @endif
 
+                                    @php
+                                    $hasStarted = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time));
+                                    @endphp
+
+                                    @if($hasStarted)
                                     <button type="button"
                                         class="btn btn-success btn-sm return-btn me-2"
                                         data-request-id="{{ $request->id }}"
@@ -622,6 +685,11 @@ use Carbon\Carbon;
                                         {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                         <i class="fas fa-undo me-1"></i>إعادة تعيين
                                     </button>
+                                    @else
+                                    <div class="alert alert-warning py-1 px-2 mb-0">
+                                        <small><i class="fas fa-exclamation-triangle me-1"></i> لم يبدأ وقت المغادرة بعد</small>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                             @endif

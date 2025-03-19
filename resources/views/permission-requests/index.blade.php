@@ -48,7 +48,7 @@
 
     @if(isset($statistics))
 <script>
-    window.permissionStatistics = @json($statistics);
+    window.permissionStatistics = {!! json_encode($statistics) !!};
 </script>
     @endif
 @endpush

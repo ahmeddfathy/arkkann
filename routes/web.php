@@ -2,8 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LeaveController;
-use App\Http\Controllers\AttendanceController;
+
 use App\Http\Controllers\AbsenceRequestController;
 use App\Http\Controllers\PermissionRequestController;
 use App\Http\Controllers\OverTimeRequestsController;
@@ -22,6 +21,7 @@ use App\Http\Controllers\EmployeeStatisticsController;
 use App\Http\Controllers\SpecialCaseController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\EmployeeCompetitionController;
+use App\Http\Controllers\EmployeeBirthdayController;
 
 
 Route::get('/send-mail', function () {
@@ -84,9 +84,6 @@ Route::middleware(['auth', 'role:manager'])->group(function () {
     Route::get('/attendance', [AttendanceRecordController::class, 'index'])->name('attendance.index');
     Route::post('/attendance/import', [AttendanceRecordController::class, 'import'])->name('attendance.import');
 
-    Route::resource('/attendances', AttendanceController::class);
-    Route::resource('/leaves', LeaveController::class);
-
     Route::resource('admin/notifications', AdminNotificationController::class, [
         'as' => 'admin'
     ]);
@@ -123,11 +120,7 @@ Route::middleware(['auth', 'role:manager,employee'])->group(function () {
     Route::get('/chat/messages/{receiver}', [ChatController::class, 'getMessages']);
     Route::post('/chat/send', [ChatController::class, 'sendMessage']);
     Route::post('/chat/mark-seen', [ChatController::class, 'markAsSeen']);
-    Route::post('/status/update', [OnlineStatusController::class, 'updateStatus']);
-    Route::get('/status/user/{userId}', [OnlineStatusController::class, 'getUserStatus']);
 
-    Route::get('/attendance/preview/{employee_id}', [AttendanceController::class, 'preview'])
-        ->name('attendance.preview');
 });
 
 Route::get('/salary-sheets', [SalarySheetController::class, 'index'])->name('salary-sheets.index');
@@ -213,9 +206,6 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/permission-requests/{permissionRequest}/return-status', [PermissionRequestController::class, 'updateReturnStatus'])
         ->name('permission-requests.return-status');
 
-    Route::post('/permission-requests/check-end-of-day', [PermissionRequestController::class, 'checkEndOfDay'])
-        ->name('permission-requests.check-end-of-day');
-
     Route::resource('/absence-requests', AbsenceRequestController::class)
         ->middleware(['permission:view_absence|create_absence|update_absence|delete_absence']);
 
@@ -261,5 +251,14 @@ Route::post('special-cases/import', [SpecialCaseController::class, 'import'])->n
 Route::post('/fcm-token', [App\Http\Controllers\FcmTokenController::class, 'update'])
     ->middleware('auth')
     ->name('fcm.token.update');
+
+// Employee Birthdays Route
+Route::get('/employee-birthdays', [EmployeeBirthdayController::class, 'index'])
+    ->name('employee-birthdays.index')
+    ->middleware(['auth']);
+
+Route::get('/audit-log', [App\Http\Controllers\AuditLogController::class, 'index'])
+    ->name('audit-log.index')
+    ->middleware(['auth', 'verified']);
 
 

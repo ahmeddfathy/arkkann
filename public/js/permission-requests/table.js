@@ -39,28 +39,6 @@ function handleReturnStatus() {
     });
 }
 
-function markAsReturned(requestId) {
-    fetch(`/permission-requests/${requestId}/mark-returned`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || 'حدث خطأ أثناء تسجيل العودة');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('حدث خطأ أثناء تسجيل العودة');
-    });
-}
-
 function resetStatus(requestId, type) {
     if (confirm('هل أنت متأكد من إعادة تعيين هذا الرد؟')) {
         fetch(`/permission-requests/${requestId}/reset-${type}-status`, {
@@ -94,34 +72,6 @@ function resetStatus(requestId, type) {
     }
 }
 
-function checkEndOfDay() {
-    const requests = document.querySelectorAll('.request-row');
-    const requestIds = Array.from(requests)
-        .filter(row => {
-            const statusBadge = row.querySelector('.badge');
-            return statusBadge && statusBadge.textContent.trim() === 'موافق';
-        })
-        .map(row => row.dataset.requestId)
-        .filter(Boolean);
-
-    if (requestIds.length > 0) {
-        fetch('/permission-requests/check-end-of-day', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({ request_ids: requestIds })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.updated_requests?.length > 0) {
-                location.reload();
-            }
-        });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     initializeCountdowns();
     handleReturnStatus();
@@ -136,29 +86,53 @@ document.addEventListener('DOMContentLoaded', function() {
         dir: "rtl"
     });
 
-    function checkEndOfDayRequests() {
-        const requestIds = [];
-        $('.mark-not-returned').each(function() {
-            requestIds.push($(this).data('request-id'));
-        });
-
-        if (requestIds.length > 0) {
-            $.ajax({
-                url: '/permission-requests/check-end-of-day',
-                type: 'POST',
-                data: {
-                    request_ids: requestIds,
-                    _token: document.querySelector('meta[name="csrf-token"]').content
-                },
-                success: function(response) {
-                    if (response.updated_requests && response.updated_requests.length > 0) {
-                        location.reload();
+    // حذف الطلب
+    document.querySelectorAll('.delete-request').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+                const requestId = this.dataset.requestId;
+                fetch(`/permission-requests/${requestId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     }
-                }
-            });
-        }
-    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'حدث خطأ أثناء حذف الطلب');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'حدث خطأ أثناء حذف الطلب');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert(error.message || 'حدث خطأ أثناء حذف الطلب');
+                });
+            }
+        });
+    });
 
-    checkEndOfDayRequests();
-    setInterval(checkEndOfDayRequests, 60000);
+    // تحميل بيانات الطلب في نموذج التعديل
+    document.querySelectorAll('[data-bs-target="#editPermissionModal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.querySelector('#editPermissionModal');
+            const form = modal.querySelector('form');
+
+            form.querySelector('[name="departure_time"]').value = this.dataset.departureTime;
+            form.querySelector('[name="return_time"]').value = this.dataset.returnTime;
+            form.querySelector('[name="reason"]').value = this.dataset.reason;
+            form.action = `/permission-requests/${this.dataset.requestId}`;
+        });
+    });
 });
+

@@ -48,13 +48,20 @@
           <tr>
             <td>{{ $case->employee->name }}</td>
             <td>{{ $case->date->format('Y-m-d') }}</td>
-            <td>{{ $case->check_in }}</td>
-            <td>{{ $case->check_out }}</td>
+            <td>{{ \Carbon\Carbon::parse($case->check_in)->format('H:i') }}</td>
+            <td>{{ \Carbon\Carbon::parse($case->check_out)->format('H:i') }}</td>
             <td>{{ $case->late_minutes }}</td>
             <td>{{ $case->early_leave_minutes }}</td>
             <td>{{ $case->reason }}</td>
             <td>
-              <a href="{{ route('special-cases.edit', $case) }}" class="btn btn-sm btn-primary">تعديل</a>
+              <div class="btn-group" role="group">
+                <a href="{{ route('special-cases.edit', $case) }}" class="btn btn-sm btn-primary">تعديل</a>
+                <form action="{{ route('special-cases.destroy', $case) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟');">
+                  @csrf
+                  @method('DELETE')
+                  <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                </form>
+              </div>
             </td>
           </tr>
           @endforeach

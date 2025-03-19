@@ -6,9 +6,34 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class PermissionRequest extends Model
+class PermissionRequest extends Model implements Auditable
 {
+  use AuditableTrait;
+
+  protected $auditEvents = [
+    'created',
+    'updated',
+    'deleted',
+  ];
+
+  protected $auditInclude = [
+    'user_id',
+    'departure_time',
+    'return_time',
+    'returned_on_time',
+    'minutes_used',
+    'remaining_minutes',
+    'reason',
+    'manager_status',
+    'manager_rejection_reason',
+    'hr_status',
+    'hr_rejection_reason',
+    'status'
+  ];
+
   protected $fillable = [
     'user_id',
     'departure_time',
@@ -224,41 +249,32 @@ class PermissionRequest extends Model
     $minutesUsed = 0;
 
     if ($this->returned_on_time === true || $this->returned_on_time === 1) {
-      if ($this->actual_return_time) {
-        $actualReturnTime = $this->actual_return_time;
-
-        if ($actualReturnTime->gt($shiftEndTime)) {
-          $actualReturnTime = $shiftEndTime;
-        }
-
-        $minutesUsed = $departure->diffInMinutes($actualReturnTime);
+      if ($now->lte($shiftEndTime)) {
+        $minutesUsed = abs($departure->diffInMinutes($now));
       } else {
-        if ($now->lte($shiftEndTime)) {
-          $minutesUsed = $departure->diffInMinutes($now);
-        } else {
-          $minutesUsed = $departure->diffInMinutes($shiftEndTime);
-        }
+        $minutesUsed = abs($departure->diffInMinutes($shiftEndTime));
       }
     }
     else if ($this->returned_on_time === 2) {
-      $minutesUsed = $departure->diffInMinutes($shiftEndTime);
+      $minutesUsed = abs($departure->diffInMinutes($shiftEndTime));
     }
     else if ($this->returned_on_time === null || $this->returned_on_time === 0) {
       if ($now->gt($scheduledReturn)) {
         if ($now->gt($shiftEndTime)) {
-          $minutesUsed = $departure->diffInMinutes($shiftEndTime);
+          $minutesUsed = abs($departure->diffInMinutes($shiftEndTime));
         } else {
-          $minutesUsed = $departure->diffInMinutes($now);
+          $minutesUsed = abs($departure->diffInMinutes($now));
         }
       } else {
-        $minutesUsed = $departure->diffInMinutes($scheduledReturn);
+        $minutesUsed = abs($departure->diffInMinutes($scheduledReturn));
       }
     }
     else {
-      $minutesUsed = $departure->diffInMinutes($scheduledReturn);
+      $minutesUsed = abs($departure->diffInMinutes($scheduledReturn));
     }
 
-    return $minutesUsed;
+    $maxPossibleMinutes = abs($departure->diffInMinutes($shiftEndTime));
+    return min($minutesUsed, $maxPossibleMinutes);
   }
 
   public function updateActualMinutesUsed(): void
@@ -351,23 +367,23 @@ class PermissionRequest extends Model
     $departureTime = \Carbon\Carbon::parse($this->departure_time);
     $returnTime = \Carbon\Carbon::parse($this->return_time);
 
+    if ($now->lt($departureTime)) {
+      return false;
+    }
+
     if (($this->returned_on_time === 0 || $this->returned_on_time === null) && $this->isApproved()) {
       if (request()->is('*check-end-of-day*') || request()->isMethod('post')) {
         $shiftEndTime = $this->getShiftEndTime()->setDateFrom($departureTime);
         $maxReturnTime = $returnTime->gt($shiftEndTime) ? $shiftEndTime : $returnTime;
 
-        if ($now->lt($departureTime)) {
-          return false;
-        }
-
         return $now->gte($departureTime);
       }
 
-      return true;
+      return $now->gte($departureTime);
     }
 
     if ($this->isApproved()) {
-      return true;
+      return $now->gte($departureTime);
     }
 
     return false;
@@ -404,23 +420,5 @@ class PermissionRequest extends Model
   {
     return $user->hasPermissionTo('hr_respond_permission_request') &&
            $this->hr_status !== 'pending';
-  }
-
-  public function markAsNotReturnedAtEndOfShift(): bool
-  {
-    $now = \Carbon\Carbon::now()->setTimezone('Africa/Cairo');
-    $shiftEndTime = $this->getShiftEndTime()->setDateFrom($this->departure_time);
-    $isToday = $now->isSameDay($this->departure_time);
-    $isEndOfDay = $now->gte($shiftEndTime);
-
-    if ($isToday && $isEndOfDay && ($this->returned_on_time === null || $this->returned_on_time === 0)) {
-      $this->returned_on_time = 2;
-      $this->updateActualMinutesUsed();
-      $this->save();
-
-      return true;
-    }
-
-    return false;
   }
 }

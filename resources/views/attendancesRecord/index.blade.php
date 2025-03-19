@@ -1,14 +1,9 @@
 @extends('layouts.app')
-<head>
-    <style>
-        .card{
-            opacity: 1 !important;
-        }
-    </style>
-</head>
+
 @section('content')
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="{{asset('css/user.css')}}">
+<link rel="stylesheet" href="{{asset('css/attendance.css')}}">
 
 <div class="container mt-5">
   @if(session('success'))
@@ -33,7 +28,7 @@
   <!-- Employee Filter -->
   <div class="card mb-4">
     <div class="card-body">
-      <form action="{{ route('attendance.index') }}" method="GET" class="form-inline">
+      <form action="{{ route('attendance.index') }}" method="GET" class="form-inline" id="filter-form">
         <div class="form-group mr-2">
           <label class="mr-2">الموظف:</label>
           <input type="text"
@@ -297,127 +292,11 @@
     </div>
   </div>
 </div>
-
-@push('styles')
-<style>
-  .duplicate-record-item {
-    font-size: 0.9rem;
-    background-color: #f8f9fa;
-    transition: background-color 0.2s;
-  }
-
-  .duplicate-record-item:hover {
-    background-color: #e9ecef;
-  }
-</style>
-@endpush
-
-@push('scripts')
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var duplicatesModal = new bootstrap.Modal(document.getElementById('duplicatesModal'));
-    duplicatesModal.show();
-  });
-</script>
-@endpush
 @endif
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script>
-  function updateEmployeeFilter(input) {
-    const datalist = document.getElementById('employees-list');
-    const options = datalist.getElementsByTagName('option');
-    const hiddenInput = document.getElementById('employee_filter');
-
-    for (let option of options) {
-      if (option.value === input.value) {
-        hiddenInput.value = option.getAttribute('data-value');
-        // Submit the form
-        document.getElementById('filter-form').submit();
-        break;
-      }
-    }
-
-    // Clear filter if input is empty
-    if (input.value === '') {
-      hiddenInput.value = '';
-      document.getElementById('filter-form').submit();
-    }
-  }
-</script>
-
-<style>
-  .statistics-section .card {
-    transition: transform 0.2s;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .statistics-section .card:hover {
-    transform: translateY(-5px);
-  }
-
-  .statistics-section .display-4 {
-    font-size: 2.5rem;
-    font-weight: 600;
-  }
-
-  .statistics-section .card-title {
-    font-size: 1.1rem;
-    font-weight: 500;
-  }
-
-  .statistics-section .text-muted {
-    font-size: 0.9rem;
-    margin-bottom: 0;
-  }
-
-  .badge {
-    padding: 5px 10px;
-    font-size: 0.9rem;
-  }
-
-  .badge-success {
-    background-color: #28a745;
-    color: white;
-  }
-
-  .badge-danger {
-    background-color: #dc3545;
-    color: white;
-  }
-
-  table th {
-    font-weight: 600;
-    background-color: #f8f9fa;
-  }
-
-  table td {
-    vertical-align: middle !important;
-  }
-
-  /* تحسين شكل المودال */
-  .modal-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .modal-footer {
-    background-color: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-  }
-
-
-  /* تحسين شكل الفلتر */
-  .form-control {
-    border-radius: 4px;
-  }
-
-  .btn {
-    border-radius: 4px;
-    padding: 8px 16px;
-  }
-</style>
+<script src="{{asset('js/attendance.js')}}"></script>
 
 @endsection

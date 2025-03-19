@@ -1,4 +1,3 @@
-
 <!-- Create Modal -->
 <div class="modal fade" id="createPermissionModal" tabindex="-1">
     <div class="modal-dialog">
@@ -75,45 +74,32 @@
 </div>
 
 <!-- Edit Modal -->
-<div class="modal fade" id="editPermissionModal" tabindex="-1">
+<div class="modal fade" id="editPermissionModal" tabindex="-1" aria-labelledby="editPermissionModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editPermissionForm" method="POST">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editPermissionModalLabel">تعديل طلب الاستئذان</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="">
                 @csrf
                 @method('PUT')
-                <div class="modal-header border-0">
-                    <h5 class="modal-title">تعديل طلب الاستئذان</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="edit_departure_time" class="form-label">وقت المغادرة</label>
-                        <input type="datetime-local"
-                            class="form-control"
-                            id="edit_departure_time"
-                            name="departure_time"
-                            required>
+                        <label for="departure_time" class="form-label">وقت المغادرة</label>
+                        <input type="datetime-local" class="form-control" id="departure_time" name="departure_time" required>
                     </div>
                     <div class="mb-3">
-                        <label for="edit_return_time" class="form-label">وقت العودة</label>
-                        <input type="datetime-local"
-                            class="form-control"
-                            id="edit_return_time"
-                            name="return_time"
-                            required>
+                        <label for="return_time" class="form-label">وقت العودة</label>
+                        <input type="datetime-local" class="form-control" id="return_time" name="return_time" required>
                     </div>
                     <div class="mb-3">
-                        <label for="edit_reason" class="form-label">السبب</label>
-                        <textarea class="form-control"
-                            id="edit_reason"
-                            name="reason"
-                            required
-                            rows="3"
-                            maxlength="255"></textarea>
+                        <label for="reason" class="form-label">السبب</label>
+                        <textarea class="form-control" id="reason" name="reason" required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                     <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
                 </div>
             </form>

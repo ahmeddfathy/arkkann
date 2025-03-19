@@ -6,9 +6,30 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 
-class AbsenceRequest extends Model
+class AbsenceRequest extends Model implements Auditable
 {
+  use AuditableTrait;
+
+  protected $auditEvents = [
+    'created',
+    'updated',
+    'deleted',
+  ];
+
+  protected $auditInclude = [
+    'user_id',
+    'absence_date',
+    'reason',
+    'status',
+    'manager_status',
+    'hr_status',
+    'manager_rejection_reason',
+    'hr_rejection_reason'
+  ];
+
   protected $fillable = [
     'user_id',
     'absence_date',

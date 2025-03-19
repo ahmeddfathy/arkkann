@@ -1,0 +1,384 @@
+/* Birthday Theme Styles - Arkan Colors */
+.birthday-container {
+    background: linear-gradient(135deg, #f0f9ff 0%, #ebf8ff 100%);
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 1s ease-in;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Arkan-inspired geometric pattern overlay */
+.birthday-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234db6e2' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.birthday-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #4db6e2, #70c4e6, #4db6e2, #3a9cc7, #4db6e2);
+    background-size: 200% 200%;
+    animation: gradientBorder 3s ease infinite;
+    z-index: 1;
+}
+
+@keyframes gradientBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.birthday-header {
+    position: relative;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    z-index: 1;
+    animation: pulseHeader 5s infinite alternate;
+}
+
+@keyframes pulseHeader {
+    0% { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+    100% { box-shadow: 0 8px 15px rgba(77, 182, 226, 0.2); }
+}
+
+.birthday-header h1 {
+    color: #333333;
+    position: relative;
+    display: inline-block;
+}
+
+.birthday-header h1::after {
+    content: "🎉";
+    position: absolute;
+    top: -15px;
+    right: -25px;
+    font-size: 0.8em;
+    animation: bounce 2s infinite;
+    opacity: 0.8;
+}
+
+/* Confetti animation */
+.confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    opacity: 0;
+    animation: confetti-fall 5s ease-in-out infinite;
+}
+
+@keyframes confetti-fall {
+    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+.confetti-1 { background-color: #4db6e2; left: 10%; animation-delay: 0s; }
+.confetti-2 { background-color: #ffd166; left: 20%; animation-delay: 0.5s; }
+.confetti-3 { background-color: #ef476f; left: 30%; animation-delay: 1s; }
+.confetti-4 { background-color: #06d6a0; left: 40%; animation-delay: 1.5s; }
+.confetti-5 { background-color: #118ab2; left: 50%; animation-delay: 2s; }
+.confetti-6 { background-color: #4db6e2; left: 60%; animation-delay: 2.5s; }
+.confetti-7 { background-color: #ffd166; left: 70%; animation-delay: 3s; }
+.confetti-8 { background-color: #ef476f; left: 80%; animation-delay: 3.5s; }
+.confetti-9 { background-color: #06d6a0; left: 90%; animation-delay: 4s; }
+
+.birthday-table {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    z-index: 1;
+    position: relative;
+    animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(40px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.birthday-table th {
+    background: linear-gradient(90deg, #4db6e2, #70c4e6);
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: none !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.birthday-table th::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    20% { left: 100%; }
+    100% { left: 100%; }
+}
+
+.birthday-table tr:hover:not(.birthday-week) {
+    background-color: rgba(240, 249, 255, 0.7);
+    transition: background-color 0.2s;
+}
+
+.birthday-week {
+    background: linear-gradient(90deg, #e8f7fc, #d0eef8);
+    position: relative;
+    overflow: hidden;
+    animation: highlightRow 2s infinite alternate;
+}
+
+@keyframes highlightRow {
+    0% { background: linear-gradient(90deg, #e8f7fc, #d0eef8); }
+    100% { background: linear-gradient(90deg, #d0eef8, #c1e8f7); }
+}
+
+.birthday-week::after {
+    content: "🎂";
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    opacity: 0.3;
+    animation: wobble 2.5s infinite;
+}
+
+@keyframes wobble {
+    0%, 100% { transform: translateY(-50%) rotate(0deg); }
+    25% { transform: translateY(-50%) rotate(-5deg); }
+    75% { transform: translateY(-50%) rotate(5deg); }
+}
+
+.birthday-icon {
+    display: inline-block;
+    margin-right: 5px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+.days-badge {
+    background: linear-gradient(45deg, #4db6e2, #3a9cc7);
+    color: white;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.days-badge:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(77, 182, 226, 0.5);
+}
+
+.days-badge::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.days-badge:hover::after {
+    opacity: 1;
+    animation: ripple 1s linear;
+}
+
+@keyframes ripple {
+    0% { transform: scale(0.5); opacity: 0.3; }
+    100% { transform: scale(1.2); opacity: 0; }
+}
+
+.upcoming-birthday {
+    color: #4db6e2;
+    font-weight: bold;
+    position: relative;
+    display: inline-block;
+}
+
+.upcoming-birthday::before {
+    content: "🎉";
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9em;
+    animation: popIn 0.6s ease-in-out;
+}
+
+@keyframes popIn {
+    0% { transform: translateY(-50%) scale(0); opacity: 0; }
+    70% { transform: translateY(-50%) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+/* Additional decorative elements for birthday theme */
+.birthday-decoration {
+    position: absolute;
+    font-size: 1.5rem;
+    opacity: 0.1;
+    z-index: 1;
+    animation: float 6s ease-in-out infinite;
+}
+
+.birthday-decoration:hover {
+    opacity: 0.6;
+    transform: scale(1.5);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+@keyframes float {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+}
+
+/* Bootstrap compatibility tweaks */
+.table-responsive {
+    position: relative;
+    z-index: 1;
+}
+
+/* Arabic RTL support */
+[dir="rtl"] .birthday-week::after {
+    left: auto;
+    right: 10px;
+}
+
+/* Snowflake animation for special decoration */
+@keyframes snowflake {
+    0% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(5px) rotate(10deg); }
+    50% { transform: translateY(0) rotate(45deg); }
+    75% { transform: translateY(-5px) rotate(20deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+}
+
+.snowflake-decoration {
+    position: absolute;
+    font-size: 1.8rem;
+    color: #4db6e2;
+    opacity: 0.2;
+    z-index: 1;
+    animation: snowflake 8s ease-in-out infinite;
+}
+
+.snowflake-decoration:hover {
+    opacity: 0.7;
+    transform: scale(1.2);
+    transition: all 0.3s;
+}
+
+/* Balloon animation */
+.balloon {
+    position: absolute;
+    font-size: 2rem;
+    animation: balloonFloat 15s ease-in-out infinite;
+    opacity: 0.2;
+    z-index: 1;
+}
+
+@keyframes balloonFloat {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-30px) rotate(5deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+}
+
+.balloon:hover {
+    opacity: 0.8;
+    transition: opacity 0.3s;
+}
+
+/* Gift box animation */
+.gift-box {
+    position: absolute;
+    font-size: 2rem;
+    animation: giftShake 3s ease-in-out infinite;
+    opacity: 0.2;
+    z-index: 1;
+}
+
+@keyframes giftShake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+}
+
+.gift-box:hover {
+    opacity: 0.8;
+    transform: scale(1.2);
+    transition: all 0.3s;
+}
+
+/* Footer animation */
+.birthday-footer {
+    animation: pulseFooter 3s infinite alternate;
+}
+
+@keyframes pulseFooter {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Cake animation */
+.cake-icon {
+    display: inline-block;
+    animation: cakeBounce 2s infinite;
+}
+
+@keyframes cakeBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}

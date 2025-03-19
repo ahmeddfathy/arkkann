@@ -1,0 +1,151 @@
+/* Audit Log Styling */
+
+/* Cards */
+.audit-filter-card {
+    background: linear-gradient(to right, #ffffff, #f8f9fa);
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+.audit-table-card {
+    background: #ffffff;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+/* Form Elements */
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.15);
+    border-color: #80bdff;
+}
+
+/* Buttons */
+.btn-filter {
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Badges */
+.audit-badge {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+/* Table Styling */
+.table thead th {
+    background: linear-gradient(to right, #f8f9fa, #ffffff);
+    border-bottom: 2px solid #dee2e6;
+    padding: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.table tbody td {
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+}
+
+/* Detail Button */
+.btn-details {
+    border-radius: 8px;
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.btn-details:hover {
+    transform: translateY(-2px);
+}
+
+/* Modal Styling */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    background: linear-gradient(to right, #f8f9fa, #ffffff);
+    border-radius: 15px 15px 0 0;
+    padding: 20px;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+/* Change Table */
+.change-table {
+    margin-top: 20px;
+}
+
+.change-table th {
+    background-color: #f8f9fa;
+    padding: 12px;
+}
+
+/* Filter Labels */
+.filter-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+/* Date Filter */
+.date-filter {
+    position: relative;
+}
+
+.date-filter:after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+}
+
+/* Status Badges */
+.status-badge-created {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-badge-updated {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-badge-deleted {
+    background-color: #dc3545;
+    color: white;
+}
