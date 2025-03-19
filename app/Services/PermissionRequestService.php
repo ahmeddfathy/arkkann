@@ -134,11 +134,16 @@ class PermissionRequestService
 
             $this->notificationService->createPermissionRequestNotification($request);
 
+            $usedMinutes = $this->getUsedMinutes($userId);
+            $remainingMinutes = $this->getRemainingMinutes($userId);
+
             return [
                 'success' => true,
                 'request_id' => $request->id,
                 'message' => 'تم إنشاء طلب الاستئذان بنجاح.',
-                'exceeded_limit' => $validation['exceeded_limit'] ?? false
+                'exceeded_limit' => $validation['exceeded_limit'] ?? false,
+                'used_minutes' => $usedMinutes,
+                'remaining_minutes' => $remainingMinutes
             ];
         } catch (\Exception $e) {
             Log::error('Error creating request: ' . $e->getMessage());
@@ -233,11 +238,16 @@ class PermissionRequestService
             // إرسال إشعار بغض النظر عن حالة الطلب
             $this->notificationService->createPermissionRequestNotification($request);
 
+            $usedMinutes = $this->getUsedMinutes($userId);
+            $remainingMinutes = $this->getRemainingMinutes($userId);
+
             return [
                 'success' => true,
                 'request_id' => $request->id,
                 'message' => 'تم إنشاء طلب الاستئذان بنجاح للموظف.',
-                'exceeded_limit' => $validation['exceeded_limit'] ?? false
+                'exceeded_limit' => $validation['exceeded_limit'] ?? false,
+                'used_minutes' => $usedMinutes,
+                'remaining_minutes' => $remainingMinutes
             ];
         } catch (\Exception $e) {
             Log::error('Error creating request for user: ' . $e->getMessage());
@@ -305,7 +315,15 @@ class PermissionRequestService
             // إضافة إشعار عند تعديل الطلب
             $this->notificationService->notifyPermissionModified($request);
 
-            return ['success' => true];
+            $usedMinutes = $this->getUsedMinutes($request->user_id);
+            $newRemainingMinutes = $this->getRemainingMinutes($request->user_id);
+
+            return [
+                'success' => true,
+                'used_minutes' => $usedMinutes,
+                'remaining_minutes' => $newRemainingMinutes,
+                'exceeded_limit' => $validation['exceeded_limit'] ?? false
+            ];
         } catch (\Exception $e) {
             Log::error('Error updating request: ' . $e->getMessage());
             throw $e;

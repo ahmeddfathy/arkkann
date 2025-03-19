@@ -130,12 +130,11 @@ use Carbon\Carbon;
                                             $hasStarted = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time));
                                             @endphp
 
-                                            @if($hasStarted)
+                                            @if($hasStarted && !in_array($request->returned_on_time, [1, 2]))
                                             <button type="button"
                                                 class="btn btn-success btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
-                                                data-status="1"
-                                                {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                                data-status="1">
                                                 <i class="fas fa-check me-1"></i>رجع
                                             </button>
 
@@ -144,10 +143,20 @@ use Carbon\Carbon;
                                             <button type="button"
                                                 class="btn btn-danger btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
-                                                data-status="2"
-                                                {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                                data-status="2">
                                                 <i class="fas fa-times me-1"></i>لم يرجع
                                             </button>
+                                            @endif
+                                            @else
+                                            <div class="alert alert-warning py-1 px-2 mb-0">
+                                                <small><i class="fas fa-exclamation-triangle me-1"></i>
+                                                @if(!$hasStarted)
+                                                    لم يبدأ وقت المغادرة بعد
+                                                @else
+                                                    تم تسجيل حالة العودة
+                                                @endif
+                                                </small>
+                                            </div>
                                             @endif
 
                                             <button type="button"
@@ -157,11 +166,6 @@ use Carbon\Carbon;
                                                 {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                                 <i class="fas fa-undo me-1"></i>إعادة تعيين
                                             </button>
-                                            @else
-                                            <div class="alert alert-warning py-1 px-2 mb-0">
-                                                <small><i class="fas fa-exclamation-triangle me-1"></i> لم يبدأ وقت المغادرة بعد</small>
-                                            </div>
-                                            @endif
                                         </div>
                                     </div>
                                     @endif
@@ -349,12 +353,11 @@ use Carbon\Carbon;
                                             $hasStarted = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time));
                                             @endphp
 
-                                            @if($hasStarted)
+                                            @if($hasStarted && !in_array($request->returned_on_time, [1, 2]))
                                             <button type="button"
                                                 class="btn btn-success btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
-                                                data-status="1"
-                                                {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                                data-status="1">
                                                 <i class="fas fa-check me-1"></i>رجع
                                             </button>
 
@@ -363,10 +366,10 @@ use Carbon\Carbon;
                                             <button type="button"
                                                 class="btn btn-danger btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
-                                                data-status="2"
-                                                {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                                data-status="2">
                                                 <i class="fas fa-times me-1"></i>لم يرجع
                                             </button>
+                                            @endif
                                             @endif
 
                                             <button type="button"
@@ -376,11 +379,6 @@ use Carbon\Carbon;
                                                 {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                                 <i class="fas fa-undo me-1"></i>إعادة تعيين
                                             </button>
-                                            @else
-                                            <div class="alert alert-warning py-1 px-2 mb-0">
-                                                <small><i class="fas fa-exclamation-triangle me-1"></i> لم يبدأ وقت المغادرة بعد</small>
-                                            </div>
-                                            @endif
                                         </div>
                                     </div>
                                     @endif
@@ -658,12 +656,11 @@ use Carbon\Carbon;
                                     $hasStarted = \Carbon\Carbon::now()->setTimezone('Africa/Cairo')->gte(\Carbon\Carbon::parse($request->departure_time));
                                     @endphp
 
-                                    @if($hasStarted)
+                                    @if($hasStarted && !in_array($request->returned_on_time, [1, 2]))
                                     <button type="button"
                                         class="btn btn-success btn-sm return-btn me-2"
                                         data-request-id="{{ $request->id }}"
-                                        data-status="1"
-                                        {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                        data-status="1">
                                         <i class="fas fa-check me-1"></i>رجع
                                     </button>
 
@@ -672,10 +669,10 @@ use Carbon\Carbon;
                                     <button type="button"
                                         class="btn btn-danger btn-sm return-btn me-2"
                                         data-request-id="{{ $request->id }}"
-                                        data-status="2"
-                                        {{ $request->returned_on_time === true || $request->returned_on_time == 2 ? 'disabled' : '' }}>
+                                        data-status="2">
                                         <i class="fas fa-times me-1"></i>لم يرجع
                                     </button>
+                                    @endif
                                     @endif
 
                                     <button type="button"
@@ -685,11 +682,6 @@ use Carbon\Carbon;
                                         {{ $request->returned_on_time === false ? 'disabled' : '' }}>
                                         <i class="fas fa-undo me-1"></i>إعادة تعيين
                                     </button>
-                                    @else
-                                    <div class="alert alert-warning py-1 px-2 mb-0">
-                                        <small><i class="fas fa-exclamation-triangle me-1"></i> لم يبدأ وقت المغادرة بعد</small>
-                                    </div>
-                                    @endif
                                 </div>
                             </div>
                             @endif

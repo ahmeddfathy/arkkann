@@ -271,8 +271,12 @@ class PermissionRequestController extends Controller
         $message = $result['message'] ?? 'تم إنشاء طلب الاستئذان بنجاح.';
 
         // إضافة معلومات الدقائق المستخدمة
-        if (isset($result['used_minutes']) && !isset($result['exceeded_limit'])) {
-            $message .= " إجمالي الدقائق المستخدمة هذا الشهر: {$result['used_minutes']} دقيقة.";
+        if (isset($result['used_minutes'])) {
+            if (isset($result['exceeded_limit']) && $result['exceeded_limit']) {
+                $message = "تنبيه: لقد تجاوزت الحد المجاني للاستئذان الشهري المسموح به (180 دقيقة). سيتم احتساب الدقائق الإضافية على حسابك.";
+            } else {
+                $message .= " إجمالي الدقائق المستخدمة هذا الشهر: {$result['used_minutes']} دقيقة.";
+            }
         }
 
         return redirect()->route('permission-requests.index')->with('success', $message);
@@ -349,11 +353,15 @@ class PermissionRequestController extends Controller
             return redirect()->back()->with('error', $result['message']);
         }
 
-        $message = 'Permission request updated successfully.';
+        $message = 'تم تحديث طلب الاستئذان بنجاح.';
         if (isset($result['used_minutes'])) {
-            $message .= " Total minutes used this month: {$result['used_minutes']} minutes.";
-            if (isset($result['remaining_minutes']) && $result['remaining_minutes'] > 0) {
-                $message .= " Remaining minutes: {$result['remaining_minutes']} minutes.";
+            if (isset($result['exceeded_limit']) && $result['exceeded_limit']) {
+                $message = "تنبيه: لقد تجاوزت الحد المجاني للاستئذان الشهري المسموح به (180 دقيقة). سيتم احتساب الدقائق الإضافية على حسابك.";
+            } else {
+                $message .= " إجمالي الدقائق المستخدمة هذا الشهر: {$result['used_minutes']} دقيقة.";
+                if (isset($result['remaining_minutes']) && $result['remaining_minutes'] > 0) {
+                    $message .= " الدقائق المتبقية: {$result['remaining_minutes']} دقيقة.";
+                }
             }
         }
 
