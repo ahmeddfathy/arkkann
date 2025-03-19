@@ -3,6 +3,17 @@
  * وظائف لجلب وعرض بيانات الموظفين من الخادم
  */
 
+// دالة لتنظيف البيانات لمنع هجمات XSS
+function sanitizeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // دالة عرض تفاصيل الموظف
 function showDetails(employeeId) {
     const startDate = document.getElementById('start_date').value;
@@ -14,9 +25,9 @@ function showDetails(employeeId) {
             const content = document.getElementById('modalContent');
             let html = `
                 <div class="text-center mb-4">
-                    <h4>${data.employee.name}</h4>
-                    <small class="text-muted">${data.employee.employee_id}</small>
-                    <div class="mt-2">${data.employee.department || 'غير محدد'}</div>
+                    <h4>${sanitizeHTML(data.employee.name)}</h4>
+                    <small class="text-muted">${sanitizeHTML(data.employee.employee_id)}</small>
+                    <div class="mt-2">${sanitizeHTML(data.employee.department || 'غير محدد')}</div>
                 </div>
 
                 <div class="row g-3">
@@ -24,7 +35,7 @@ function showDetails(employeeId) {
                         <div class="text-center">
                             <div class="text-muted mb-2">أيام العمل</div>
                             <span class="badge bg-secondary">
-                                ${data.statistics.total_working_days} يوم
+                                ${sanitizeHTML(data.statistics.total_working_days)} يوم
                             </span>
                         </div>
                     </div>
@@ -33,7 +44,7 @@ function showDetails(employeeId) {
                         <div class="text-center">
                             <div class="text-muted mb-2">أيام الحضور</div>
                             <span class="badge bg-primary">
-                                ${data.statistics.actual_attendance_days} يوم
+                                ${sanitizeHTML(data.statistics.actual_attendance_days)} يوم
                             </span>
                         </div>
                     </div>
@@ -47,8 +58,8 @@ function showDetails(employeeId) {
                                     (data.statistics.attendance_percentage >= 75 ? 'bg-warning' : 'bg-danger')
                                 }"
                                 role="progressbar"
-                                style="width: ${data.statistics.attendance_percentage}%">
-                                    ${data.statistics.attendance_percentage}%
+                                style="width: ${sanitizeHTML(data.statistics.attendance_percentage)}%">
+                                    ${sanitizeHTML(data.statistics.attendance_percentage)}%
                                 </div>
                             </div>
                         </div>
@@ -59,8 +70,8 @@ function showDetails(employeeId) {
                             <div class="text-muted mb-2">الغياب</div>
                             <span class="badge bg-${data.statistics.absences > 0 ? 'danger' : 'success'}"
                                 style="cursor: pointer;"
-                                onclick="showAbsenceDetails('${data.employee.employee_id}', '${startDate}', '${endDate}')">
-                                ${data.statistics.absences} أيام
+                                onclick="showAbsenceDetails('${sanitizeHTML(data.employee.employee_id)}', '${sanitizeHTML(startDate)}', '${sanitizeHTML(endDate)}')">
+                                ${sanitizeHTML(data.statistics.absences)} أيام
                             </span>
                         </div>
                     </div>
@@ -70,8 +81,8 @@ function showDetails(employeeId) {
                             <div class="text-muted mb-2">الأذونات</div>
                             <span class="badge bg-info"
                                 style="cursor: pointer;"
-                                onclick="showPermissionDetails('${data.employee.employee_id}', '${startDate}', '${endDate}')">
-                                ${data.statistics.permissions} مرات
+                                onclick="showPermissionDetails('${sanitizeHTML(data.employee.employee_id)}', '${sanitizeHTML(startDate)}', '${sanitizeHTML(endDate)}')">
+                                ${sanitizeHTML(data.statistics.permissions)} مرات
                             </span>
                         </div>
                     </div>
@@ -81,8 +92,8 @@ function showDetails(employeeId) {
                             <div class="text-muted mb-2">الوقت الإضافي</div>
                             <span class="badge bg-primary"
                                 style="cursor: pointer;"
-                                onclick="showOvertimeDetails('${data.employee.employee_id}', '${startDate}', '${endDate}')">
-                                ${data.statistics.overtimes} ساعات
+                                onclick="showOvertimeDetails('${sanitizeHTML(data.employee.employee_id)}', '${sanitizeHTML(startDate)}', '${sanitizeHTML(endDate)}')">
+                                ${sanitizeHTML(data.statistics.overtimes)} ساعات
                             </span>
                         </div>
                     </div>
@@ -91,7 +102,7 @@ function showDetails(employeeId) {
                         <div class="text-center">
                             <div class="text-muted mb-2">إجمالي التأخير</div>
                             <span class="badge bg-${data.statistics.delays > 0 ? 'warning' : 'success'}">
-                                ${data.statistics.delays} دقيقة
+                                ${sanitizeHTML(data.statistics.delays)} دقيقة
                             </span>
                         </div>
                     </div>
@@ -102,10 +113,10 @@ function showDetails(employeeId) {
                             <div>
                                 <span class="badge bg-info"
                                     style="cursor: pointer;"
-                                    onclick="showLeaveDetails('${data.employee.employee_id}', '${startDate}', '${endDate}')">
-                                    ${data.statistics.taken_leaves} يوم
+                                    onclick="showLeaveDetails('${sanitizeHTML(data.employee.employee_id)}', '${sanitizeHTML(startDate)}', '${sanitizeHTML(endDate)}')">
+                                    ${sanitizeHTML(data.statistics.taken_leaves)} يوم
                                 </span>
-                                <small class="text-muted d-block mt-1">من أصل ${data.employee.max_allowed_absence_days} يوم</small>
+                                <small class="text-muted d-block mt-1">من أصل ${sanitizeHTML(data.employee.max_allowed_absence_days)} يوم</small>
                             </div>
                         </div>
                     </div>
@@ -114,7 +125,7 @@ function showDetails(employeeId) {
                         <div class="text-center">
                             <div class="text-muted mb-2">الإجازات المتبقية</div>
                             <span class="badge ${data.statistics.remaining_leaves > 0 ? 'bg-success' : 'bg-danger'}">
-                                ${data.statistics.remaining_leaves} يوم
+                                ${sanitizeHTML(data.statistics.remaining_leaves)} يوم
                             </span>
                         </div>
                     </div>
@@ -125,8 +136,8 @@ function showDetails(employeeId) {
                             <div>
                                 <span class="badge bg-purple"
                                     style="cursor: pointer;"
-                                    onclick="showCurrentMonthLeaves('${data.employee.employee_id}', '${startDate}', '${endDate}')">
-                                    ${data.statistics.current_month_leaves} يوم
+                                    onclick="showCurrentMonthLeaves('${sanitizeHTML(data.employee.employee_id)}', '${sanitizeHTML(startDate)}', '${sanitizeHTML(endDate)}')">
+                                    ${sanitizeHTML(data.statistics.current_month_leaves)} يوم
                                 </span>
                                 <small class="text-muted d-block mt-1">
                                     ${new Date(startDate).toLocaleDateString('ar', { day: '2-digit', month: '2-digit' })} -
@@ -146,20 +157,20 @@ function showDetails(employeeId) {
                         ${data.statistics.attendance.map(record => `
                             <div class="list-group-item">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span>${record.attendance_date}</span>
+                                    <span>${sanitizeHTML(record.attendance_date)}</span>
                                     <span class="badge ${
                                         record.status === 'حضـور' ? 'bg-success' :
                                         record.status === 'غيــاب' ? 'bg-danger' :
                                         record.status === 'عطله إسبوعية' ? 'bg-info' : 'bg-secondary'
-                                    }">${record.status}</span>
+                                    }">${sanitizeHTML(record.status)}</span>
                                 </div>
                                 ${record.entry_time ? `
                                     <div class="small mt-1">
-                                        <span>الدخول: ${record.entry_time}</span>
-                                        ${record.exit_time ? `<span class="ms-2">الخروج: ${record.exit_time}</span>` : ''}
+                                        <span>الدخول: ${sanitizeHTML(record.entry_time)}</span>
+                                        ${record.exit_time ? `<span class="ms-2">الخروج: ${sanitizeHTML(record.exit_time)}</span>` : ''}
                                         ${record.delay_minutes > 0 ? `
                                             <span class="text-warning ms-2">
-                                                <i class="fas fa-clock"></i> تأخير: ${record.delay_minutes} دقيقة
+                                                <i class="fas fa-clock"></i> تأخير: ${sanitizeHTML(record.delay_minutes)} دقيقة
                                             </span>
                                         ` : ''}
                                     </div>
@@ -187,7 +198,7 @@ function showDetails(employeeId) {
                                         <div class="card-body p-3 text-center">
                                             <h6 class="card-title mb-1">الحضور</h6>
                                             <h3 class="mb-0 ${data.statistics.attendance_percentage < 80 ? 'text-danger' : (data.statistics.attendance_percentage < 90 ? 'text-warning' : 'text-success')}">
-                                                ${data.statistics.attendance_percentage}%
+                                                ${sanitizeHTML(data.statistics.attendance_percentage)}%
                                             </h3>
                                             <small class="text-muted">الوزن: 40% من التقييم الكلي</small>
 
@@ -195,8 +206,8 @@ function showDetails(employeeId) {
                                             <div class="alert alert-light mt-2 mb-0 p-2 text-start">
                                                 <small>
                                                     <i class="fas fa-info-circle me-1"></i>
-                                                    تم خصم <strong>${100 - data.statistics.attendance_percentage}%</strong> بسبب
-                                                    الغياب لمدة <strong>${data.statistics.total_working_days - data.statistics.actual_attendance_days} أيام</strong>
+                                                    تم خصم <strong>${sanitizeHTML(100 - data.statistics.attendance_percentage)}%</strong> بسبب
+                                                    الغياب لمدة <strong>${sanitizeHTML(data.statistics.total_working_days - data.statistics.actual_attendance_days)} أيام</strong>
                                                 </small>
                                             </div>
                                             ` : ''}
@@ -210,7 +221,7 @@ function showDetails(employeeId) {
                                         <div class="card-body p-3 text-center">
                                             <h6 class="card-title mb-1">الانضباط</h6>
                                             <h3 class="mb-0 ${data.statistics.delays > 120 ? 'text-danger' : 'text-success'}">
-                                                ${data.statistics.delays <= 120 ? '100%' : Math.max(0, Math.round(100 - ((data.statistics.delays - 120) / 120) * 100)) + '%'}
+                                                ${sanitizeHTML(data.statistics.delays <= 120 ? '100%' : Math.max(0, Math.round(100 - ((data.statistics.delays - 120) / 120) * 100)) + '%')}
                                             </h3>
                                             <small class="text-muted">الوزن: 40% من التقييم الكلي</small>
 
@@ -218,8 +229,8 @@ function showDetails(employeeId) {
                                             <div class="alert alert-light mt-2 mb-0 p-2 text-start">
                                                 <small>
                                                     <i class="fas fa-info-circle me-1"></i>
-                                                    تم خصم <strong>${Math.min(100, Math.round(((data.statistics.delays - 120) / 120) * 100))}%</strong> بسبب
-                                                    تجاوز التأخير <strong>${data.statistics.delays - 120} دقيقة</strong> عن الحد المسموح (120 دقيقة)
+                                                    تم خصم <strong>${sanitizeHTML(Math.min(100, Math.round(((data.statistics.delays - 120) / 120) * 100)))}%</strong> بسبب
+                                                    تجاوز التأخير <strong>${sanitizeHTML(data.statistics.delays - 120)} دقيقة</strong> عن الحد المسموح (120 دقيقة)
                                                 </small>
                                             </div>
                                             ` : ''}
@@ -234,7 +245,7 @@ function showDetails(employeeId) {
                                             <h6 class="card-title mb-1">ساعات العمل</h6>
                                             <h3 class="mb-0 text-info">
                                                 ${typeof data.statistics.average_working_hours !== 'undefined' ?
-                                                Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100)) + '%' :
+                                                sanitizeHTML(Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100)) + '%') :
                                                 '-'}
                                             </h3>
                                             <small class="text-muted">الوزن: 20% من التقييم الكلي</small>
@@ -243,7 +254,7 @@ function showDetails(employeeId) {
                                             <div class="alert alert-light mt-2 mb-0 p-2 text-start">
                                                 <small>
                                                     <i class="fas fa-info-circle me-1"></i>
-                                                    متوسط ساعات العمل <strong>${data.statistics.average_working_hours}</strong> من أصل <strong>8</strong> ساعات
+                                                    متوسط ساعات العمل <strong>${sanitizeHTML(data.statistics.average_working_hours)}</strong> من أصل <strong>8</strong> ساعات
                                                 </small>
                                             </div>
                                             ` : ''}
@@ -260,7 +271,7 @@ function showDetails(employeeId) {
                                     ${data.statistics.attendance_percentage < 100 ? `
                                     <li class="mb-2">
                                         <i class="fas fa-minus-circle text-danger me-1"></i>
-                                        خصم <strong>${Math.round((100 - data.statistics.attendance_percentage) * 0.4, 1)}%</strong>
+                                        خصم <strong>${sanitizeHTML(Math.round((100 - data.statistics.attendance_percentage) * 0.4, 1))}%</strong>
                                         من التقييم النهائي بسبب الغياب
                                     </li>
                                     ` : ''}
@@ -268,7 +279,7 @@ function showDetails(employeeId) {
                                     ${data.statistics.delays > 120 ? `
                                     <li class="mb-2">
                                         <i class="fas fa-minus-circle text-danger me-1"></i>
-                                        خصم <strong>${Math.round(Math.min(100, ((data.statistics.delays - 120) / 120) * 100) * 0.4, 1)}%</strong>
+                                        خصم <strong>${sanitizeHTML(Math.round(Math.min(100, ((data.statistics.delays - 120) / 120) * 100) * 0.4, 1))}%</strong>
                                         من التقييم النهائي بسبب التأخير
                                     </li>
                                     ` : ''}
@@ -276,7 +287,7 @@ function showDetails(employeeId) {
                                     ${typeof data.statistics.average_working_hours !== 'undefined' && data.statistics.average_working_hours < 8 ? `
                                     <li class="mb-2">
                                         <i class="fas fa-minus-circle text-danger me-1"></i>
-                                        خصم <strong>${Math.round((100 - Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100))) * 0.2, 1)}%</strong>
+                                        خصم <strong>${sanitizeHTML(Math.round((100 - Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100))) * 0.2, 1))}%</strong>
                                         من التقييم النهائي بسبب قلة ساعات العمل
                                     </li>
                                     ` : ''}
@@ -295,7 +306,7 @@ function showDetails(employeeId) {
                                             (calculateOverallScore(data) >= 70 ? 'info' :
                                             (calculateOverallScore(data) >= 60 ? 'warning' : 'danger')))
                                         } p-2 fs-6">
-                                            ${calculateOverallScore(data)}%
+                                            ${sanitizeHTML(calculateOverallScore(data))}%
                                         </span>
                                     </div>
                                 </div>
@@ -350,11 +361,11 @@ function showAbsenceDetails(employeeId, startDate, endDate) {
                             <tbody>
                                 ${data.map(record => `
                                     <tr>
-                                        <td>${record.date}</td>
-                                        <td>${record.reason}</td>
+                                        <td>${sanitizeHTML(record.date)}</td>
+                                        <td>${sanitizeHTML(record.reason)}</td>
                                         <td>
                                             <span class="badge bg-danger">
-                                                ${record.status}
+                                                ${sanitizeHTML(record.status)}
                                             </span>
                                         </td>
                                     </tr>
@@ -423,14 +434,14 @@ function showPermissionDetails(employeeId, startDate, endDate) {
                             <tbody>
                                 ${data.map(record => `
                                     <tr>
-                                        <td>${record.date}</td>
-                                        <td>${record.departure_time}</td>
-                                        <td>${record.return_time}</td>
-                                        <td>${record.minutes} دقيقة</td>
-                                        <td>${record.reason || 'غير محدد'}</td>
+                                        <td>${sanitizeHTML(record.date)}</td>
+                                        <td>${sanitizeHTML(record.departure_time)}</td>
+                                        <td>${sanitizeHTML(record.return_time)}</td>
+                                        <td>${sanitizeHTML(record.minutes)} دقيقة</td>
+                                        <td>${sanitizeHTML(record.reason || 'غير محدد')}</td>
                                         <td>
                                             <span class="badge bg-success">
-                                                ${record.status}
+                                                ${sanitizeHTML(record.status)}
                                             </span>
                                         </td>
                                     </tr>
@@ -499,14 +510,14 @@ function showOvertimeDetails(employeeId, startDate, endDate) {
                             <tbody>
                                 ${data.map(record => `
                                     <tr>
-                                        <td>${record.date}</td>
-                                        <td>${record.start_time}</td>
-                                        <td>${record.end_time}</td>
-                                        <td>${record.minutes} دقيقة</td>
-                                        <td>${record.reason || 'غير محدد'}</td>
+                                        <td>${sanitizeHTML(record.date)}</td>
+                                        <td>${sanitizeHTML(record.start_time)}</td>
+                                        <td>${sanitizeHTML(record.end_time)}</td>
+                                        <td>${sanitizeHTML(record.minutes)} دقيقة</td>
+                                        <td>${sanitizeHTML(record.reason || 'غير محدد')}</td>
                                         <td>
                                             <span class="badge bg-success">
-                                                ${record.status}
+                                                ${sanitizeHTML(record.status)}
                                             </span>
                                         </td>
                                     </tr>
@@ -570,11 +581,11 @@ function showLeaveDetails(employeeId, startDate, endDate) {
                             <tbody>
                                 ${data.map(record => `
                                     <tr>
-                                        <td>${record.date}</td>
-                                        <td>${record.reason || 'غير محدد'}</td>
+                                        <td>${sanitizeHTML(record.date)}</td>
+                                        <td>${sanitizeHTML(record.reason || 'غير محدد')}</td>
                                         <td>
                                             <span class="badge bg-success">
-                                                ${record.status}
+                                                ${sanitizeHTML(record.status)}
                                             </span>
                                         </td>
                                     </tr>
@@ -640,11 +651,11 @@ function showCurrentMonthLeaves(employeeId, startDate, endDate) {
                             <tbody>
                                 ${data.map(record => `
                                     <tr>
-                                        <td>${record.date}</td>
-                                        <td>${record.reason || 'غير محدد'}</td>
+                                        <td>${sanitizeHTML(record.date)}</td>
+                                        <td>${sanitizeHTML(record.reason || 'غير محدد')}</td>
                                         <td>
                                             <span class="badge bg-success">
-                                                ${record.status}
+                                                ${sanitizeHTML(record.status)}
                                             </span>
                                         </td>
                                     </tr>
