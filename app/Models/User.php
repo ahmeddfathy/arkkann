@@ -14,9 +14,8 @@ use Spatie\Permission\Traits\HasRoles;
 
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
   use HasApiTokens;
   use HasFactory;
@@ -119,6 +118,35 @@ class User extends Authenticatable implements MustVerifyEmail
 
     return $this->permissions->contains('name', $permissionName) ||
       $this->roles->flatMap->permissions->contains('name', $permissionName);
+  }
+
+  public function hasRole($roles, $guard = null): bool
+  {
+    // If roles is an array
+    if (is_array($roles)) {
+      foreach ($roles as $role) {
+        if ($this->roles->contains('name', $role)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // If roles is a string
+    return $this->roles->contains('name', $roles);
+  }
+
+  public function hasAnyRole($roles): bool
+  {
+    if (is_array($roles)) {
+      foreach ($roles as $role) {
+        if ($this->roles->contains('name', $role)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return $this->roles->contains('name', $roles);
   }
 
   public function overtimeRequests()

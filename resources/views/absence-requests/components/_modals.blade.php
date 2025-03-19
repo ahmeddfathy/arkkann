@@ -169,3 +169,57 @@
             </div>
         </div>
     </div>
+
+    <!-- Exceeded Limit Employees Modal -->
+    <div class="modal fade" id="exceededLimitModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">الموظفون الذين تجاوزوا الحد المسموح للغياب</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">اسم الموظف</th>
+                                    <th scope="col">العمر</th>
+                                    <th scope="col">الحد المسموح</th>
+                                    <th scope="col">أيام الغياب الفعلية</th>
+                                    <th scope="col">نسبة التجاوز</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if(isset($statistics['team']['exceeded_employees']) && count($statistics['team']['exceeded_employees']) > 0)
+                                    @foreach($statistics['team']['exceeded_employees'] as $index => $employee)
+                                    @php
+                                        $age = $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->age : null;
+                                        $maxDays = $age && $age >= 50 ? 45 : 21;
+                                        $excessPercentage = round(($employee->total_days / $maxDays) * 100 - 100, 1);
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ $employee->name }}</td>
+                                        <td>{{ $age ?? 'غير محدد' }}</td>
+                                        <td>{{ $maxDays }} يوم</td>
+                                        <td>{{ $employee->total_days }} يوم</td>
+                                        <td><span class="text-danger">+{{ $excessPercentage }}%</span></td>
+                                    </tr>
+                                    @endforeach
+                                @else
+                                    <tr>
+                                        <td colspan="6" class="text-center">لا يوجد موظفين تجاوزوا الحد المسموح للغياب</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>

@@ -40,7 +40,8 @@
         ->wherePivot('role', 'admin')
         ->withCount('users')
         ->having('users_count', '>', 1)
-        ->exists()
+        ->exists() ||
+        (Auth::user()->hasRole('department_manager') && isset($statistics['team']))
         ) &&
         isset($statistics['team'])
         )
@@ -174,7 +175,8 @@
         ->wherePivot('role', 'admin')
         ->withCount('users')
         ->having('users_count', '>', 1)
-        ->exists()
+        ->exists() ||
+        (Auth::user()->hasRole('department_manager') && isset($statistics['team']))
         ) &&
         isset($statistics['team'])
         )

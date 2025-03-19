@@ -49,6 +49,7 @@ class AbsenceRequestService
     public function createRequest(array $data)
     {
         $userId = Auth::id();
+        $user = Auth::user();
         $existingRequest = AbsenceRequest::where('user_id', $userId)
             ->where('absence_date', $data['absence_date'])
             ->first();
@@ -57,12 +58,23 @@ class AbsenceRequestService
             return redirect()->back()->withErrors(['absence_date' => 'You have already requested this day off.']);
         }
 
+        // Auto-approve HR status if the requester is an HR
+        $hrStatus = 'pending';
+        if ($user->hasRole('hr')) {
+            $hrStatus = 'approved';
+        }
+
         $request = AbsenceRequest::create([
             'user_id' => $userId,
             'absence_date' => $data['absence_date'],
             'reason' => $data['reason'],
-            'status' => 'pending'
+            'status' => 'pending',
+            'hr_status' => $hrStatus
         ]);
+
+        // Update the final status based on the new HR approval
+        $request->updateFinalStatus();
+        $request->save();
 
         $this->notificationService->createLeaveRequestNotification($request);
 
@@ -92,12 +104,48 @@ class AbsenceRequestService
             return redirect()->back()->withErrors(['absence_date' => 'This employee already has a request for this day off.']);
         }
 
+        // Get target user data
+        $targetUser = \App\Models\User::find($userId);
+
+        // التحقق مما إذا كان الموظف لديه فريق
+        $hasTeam = DB::table('team_user')->where('user_id', $userId)->exists();
+
+        // تحديد حالة الطلب بناءً على وجود الفريق ودور المستخدم الحالي
+        if (!$hasTeam) {
+            // إذا لم يكن لدى الموظف فريق
+            if ($currentUser->hasRole('hr')) {
+                // إذا كان المستخدم الحالي HR، يتم الموافقة تلقائياً
+                $hrStatus = 'approved';
+            } else {
+                // إذا كان المستخدم الحالي ليس HR، نترك حالة HR معلقة
+                $hrStatus = 'pending';
+            }
+            $managerStatus = 'pending';
+        } else {
+            // إذا كان الموظف لديه فريق
+            if ($currentUser->hasRole('hr')) {
+                // إذا كان المستخدم الحالي HR، يتم الموافقة تلقائياً من ناحية HR
+                $hrStatus = 'approved';
+            } else {
+                // إذا كان المستخدم الحالي ليس HR، نترك حالة HR معلقة
+                $hrStatus = 'pending';
+            }
+
+            // المدير موافق دائماً عند إنشاء الطلب بواسطة مدير
+            $managerStatus = 'approved';
+        }
+
+        // Auto-approve HR status if the target user is an HR
+        if ($targetUser && $targetUser->hasRole('hr')) {
+            $hrStatus = 'approved';
+        }
+
         $request = AbsenceRequest::create([
             'user_id' => $userId,
             'absence_date' => $data['absence_date'],
             'reason' => $data['reason'],
-            'manager_status' => 'approved',
-            'hr_status' => 'pending',
+            'manager_status' => $managerStatus,
+            'hr_status' => $hrStatus,
             'status' => 'pending'
         ]);
 
@@ -111,6 +159,7 @@ class AbsenceRequestService
 
     public function updateRequest(AbsenceRequest $request, array $data)
     {
+        $user = Auth::user();
         $existingRequest = AbsenceRequest::where('user_id', $request->user_id)
             ->where('absence_date', $data['absence_date'])
             ->where('id', '!=', $request->id)
@@ -120,10 +169,25 @@ class AbsenceRequestService
             return redirect()->back()->withErrors(['absence_date' => 'You have already requested this day off.']);
         }
 
+        // Store the current status values
+        $currentHrStatus = $request->hr_status;
+        $currentManagerStatus = $request->manager_status;
+
+        // Update basic information
         $request->update([
             'absence_date' => $data['absence_date'],
             'reason' => $data['reason']
         ]);
+
+        // If the user is HR and the HR status was already approved, keep it approved
+        if ($user->hasRole('hr') && $currentHrStatus === 'approved') {
+            $request->hr_status = 'approved';
+            $request->save();
+        }
+
+        // Update the final status
+        $request->updateFinalStatus();
+        $request->save();
 
         $this->notificationService->notifyRequestModified($request);
 

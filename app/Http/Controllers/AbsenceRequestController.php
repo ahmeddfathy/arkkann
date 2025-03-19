@@ -527,6 +527,73 @@ class AbsenceRequestController extends Controller
                                 'count' => $mostAbsent->absence_count
                             ] : null,
                             'exceeded_employees' => $exceededEmployees,
+                            'team_name' => $user->currentTeam->name
+                        ];
+                    }
+                } else if ($user->hasRole('department_manager')) {
+                    // Special handling for department managers who might not have a team with multiple members
+                    // Get all teams under this department manager
+                    $managedTeams = $user->ownedTeams;
+                    $allTeamMembers = [];
+
+                    foreach ($managedTeams as $team) {
+                        $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
+                        $allTeamMembers = array_merge($allTeamMembers, $teamMembers);
+                    }
+
+                    // Remove duplicates
+                    $allTeamMembers = array_unique($allTeamMembers);
+
+                    if (!empty($allTeamMembers)) {
+                        $teamStats = AbsenceRequest::whereIn('user_id', $allTeamMembers)
+                            ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                            ->selectRaw('
+                                COUNT(*) as total,
+                                SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved,
+                                SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected,
+                                SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending,
+                                SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as total_days
+                            ')
+                            ->first();
+
+                        $exceededEmployees = DB::table(function ($query) use ($allTeamMembers, $dateStart, $dateEnd) {
+                            $query->from('absence_requests')
+                                ->select('user_id', DB::raw('COUNT(*) as total_days'))
+                                ->whereIn('user_id', $allTeamMembers)
+                                ->where('status', 'approved')
+                                ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                                ->groupBy('user_id');
+                        }, 'exceeded_users')
+                            ->join('users', 'users.id', '=', 'exceeded_users.user_id')
+                            ->select('users.name', 'users.date_of_birth', 'exceeded_users.total_days')
+                            ->get()
+                            ->filter(function ($employee) {
+                                $maxDays = $employee->date_of_birth && Carbon::parse($employee->date_of_birth)->age >= 50 ? 45 : 21;
+                                return $employee->total_days > $maxDays;
+                            });
+
+                        $mostAbsent = DB::table('absence_requests')
+                            ->join('users', 'users.id', '=', 'absence_requests.user_id')
+                            ->whereIn('user_id', $allTeamMembers)
+                            ->whereBetween('absence_date', [$dateStart, $dateEnd])
+                            ->groupBy('user_id', 'users.name')
+                            ->select('users.name', DB::raw('COUNT(*) as absence_count'))
+                            ->orderByDesc('absence_count')
+                            ->first();
+
+                        $statistics['team'] = [
+                            'total_requests' => $teamStats->total ?? 0,
+                            'approved_requests' => $teamStats->approved ?? 0,
+                            'rejected_requests' => $teamStats->rejected ?? 0,
+                            'pending_requests' => $teamStats->pending ?? 0,
+                            'total_days' => $teamStats->total_days ?? 0,
+                            'employees_exceeded_limit' => $exceededEmployees->count(),
+                            'most_absent_employee' => $mostAbsent ? [
+                                'name' => $mostAbsent->name,
+                                'count' => $mostAbsent->absence_count
+                            ] : null,
+                            'exceeded_employees' => $exceededEmployees,
+                            'team_name' => 'جميع الفرق المدارة'
                         ];
                     }
                 }

@@ -88,6 +88,13 @@ class AbsenceRequest extends Model implements Auditable
     if (!$user->hasPermissionTo('update_absence')) {
       return false;
     }
+
+    // Allow HR to update their own requests if HR status is approved
+    if ($user->id === $this->user_id && $user->hasRole('hr') && $this->hr_status === 'approved') {
+      return true;
+    }
+
+    // Regular case - user can update their pending requests
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
@@ -96,6 +103,13 @@ class AbsenceRequest extends Model implements Auditable
     if (!$user->hasPermissionTo('delete_absence')) {
       return false;
     }
+
+    // Allow HR to delete their own requests if HR status is approved
+    if ($user->id === $this->user_id && $user->hasRole('hr') && $this->hr_status === 'approved') {
+      return true;
+    }
+
+    // Regular case - user can delete their pending requests
     return $user->id === $this->user_id && $this->status === 'pending';
   }
 
@@ -173,12 +187,30 @@ class AbsenceRequest extends Model implements Auditable
       return;
     }
 
-    if ($this->manager_status === 'approved' && $this->hr_status === 'approved') {
-      $this->status = 'approved';
-      return;
+    // إذا كان للمستخدم فريق، نحتاج موافقة المدير و HR
+    $hasTeam = DB::table('team_user')->where('user_id', $this->user_id)->exists();
+
+    if (!$hasTeam) {
+      // إذا كان المستخدم بدون فريق، فقط نحتاج موافقة HR
+      if ($this->hr_status === 'approved') {
+        $this->status = 'approved';
+        return;
+      }
+    } else {
+      // إذا كان للمستخدم فريق، نحتاج موافقة المدير و HR
+      if ($this->manager_status === 'approved' && $this->hr_status === 'approved') {
+        $this->status = 'approved';
+        return;
+      }
     }
 
     $this->status = 'pending';
+  }
+
+  // دالة جديدة للتحقق إذا كان المستخدم لديه فريق
+  public function userHasTeam(): bool
+  {
+    return DB::table('team_user')->where('user_id', $this->user_id)->exists();
   }
 
   public function hasExceededLimit(): bool

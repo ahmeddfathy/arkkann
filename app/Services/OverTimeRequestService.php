@@ -151,6 +151,7 @@ class OverTimeRequestService
             );
 
             $managerStatus = 'pending';
+            $hrStatus = 'pending';
 
             if ($userId != $currentUser->id) {
                 $isTeamOwner = false;
@@ -172,8 +173,38 @@ class OverTimeRequestService
                 if ($isTeamOwner && $isTeamMember) {
                     $managerStatus = 'approved';
                 }
+
+                // Check if current user is HR and the request user has no team
+                if ($currentUser->roles->contains('name', 'hr')) {
+                    if ($requestUser && !$requestUser->teams()->exists()) {
+                        $hrStatus = 'approved';
+                    }
+                }
+            } else {
+                // If HR user creates request for themselves, auto-approve HR status
+                if ($currentUser->roles->contains('name', 'hr')) {
+                    $hrStatus = 'approved';
+                }
             }
 
+            // Create request with initial values
+            $request = new OverTimeRequests([
+                'user_id' => $userId,
+                'overtime_date' => $data['overtime_date'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+                'reason' => $data['reason'],
+                'manager_status' => $managerStatus,
+                'hr_status' => $hrStatus,
+            ]);
+
+            // Set user relation for proper status calculation
+            $request->user = User::find($userId);
+
+            // Calculate final status using model's logic
+            $request->updateFinalStatus();
+
+            // Now create the actual database record
             $request = OverTimeRequests::create([
                 'user_id' => $userId,
                 'overtime_date' => $data['overtime_date'],
@@ -181,8 +212,8 @@ class OverTimeRequestService
                 'end_time' => $data['end_time'],
                 'reason' => $data['reason'],
                 'manager_status' => $managerStatus,
-                'hr_status' => 'pending',
-                'status' => 'pending'
+                'hr_status' => $hrStatus,
+                'status' => $request->status
             ]);
 
             $this->notificationService->createOvertimeRequestNotification($request);

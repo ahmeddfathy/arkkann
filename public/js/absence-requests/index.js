@@ -64,12 +64,17 @@ function normalizeStatisticsData(data) {
             total: data.team.total_requests || 0,
             days: data.team.total_days || 0,
             exceeded: data.team.employees_exceeded_limit || 0,
-            team_name: data.team.team_name
+            team_name: data.team.team_name || null
         };
 
         // نسخ بيانات الموظفين إن وجدت
         if (data.team.team_employees) {
             normalized.team.team_employees = data.team.team_employees;
+        }
+
+        // نسخ بيانات الموظفين الذين تجاوزوا الحد المسموح
+        if (data.team.exceeded_employees) {
+            normalized.team.exceeded_employees = data.team.exceeded_employees;
         }
     }
 
