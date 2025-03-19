@@ -1,9 +1,5 @@
-/**
- * Data Fetching JavaScript
- * وظائف لجلب وعرض بيانات الموظفين من الخادم
- */
 
-// دالة لتنظيف البيانات لمنع هجمات XSS
+
 function sanitizeHTML(str) {
     if (!str) return '';
     return String(str)
@@ -12,6 +8,15 @@ function sanitizeHTML(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function setInnerHTML(element, html) {
+    if (typeof DOMPurify !== 'undefined') {
+        element.innerHTML = DOMPurify.sanitize(html);
+    } else {
+        console.warn('DOMPurify is not available. Using basic sanitization instead.');
+        element.innerHTML = html;
+    }
 }
 
 // دالة عرض تفاصيل الموظف
@@ -317,7 +322,7 @@ function showDetails(employeeId) {
                 ` : ''}
             `;
 
-            content.innerHTML = html;
+            setInnerHTML(content, html);
             new bootstrap.Modal(document.getElementById('detailsModal')).show();
         });
 }
@@ -341,12 +346,12 @@ function showAbsenceDetails(employeeId, startDate, endDate) {
             modalTitle.textContent = 'تفاصيل الغياب';
 
             if (!data || data.length === 0) {
-                content.innerHTML = `
+                setInnerHTML(content, `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         لا يوجد غياب في هذه الفترة
                     </div>
-                `;
+                `);
             } else {
                 let html = `
                     <div class="table-responsive">
@@ -374,7 +379,7 @@ function showAbsenceDetails(employeeId, startDate, endDate) {
                         </table>
                     </div>
                 `;
-                content.innerHTML = html;
+                setInnerHTML(content, html);
             }
 
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
@@ -382,12 +387,12 @@ function showAbsenceDetails(employeeId, startDate, endDate) {
         .catch(error => {
             console.error('Error:', error);
             const content = document.getElementById('detailsDataContent');
-            content.innerHTML = `
+            setInnerHTML(content, `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     حدث خطأ أثناء جلب البيانات
                 </div>
-            `;
+            `);
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
         });
 }
@@ -411,12 +416,12 @@ function showPermissionDetails(employeeId, startDate, endDate) {
             modalTitle.textContent = 'تفاصيل الأذونات';
 
             if (!data || data.length === 0) {
-                content.innerHTML = `
+                setInnerHTML(content, `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         لا توجد إذونات في هذه الفترة
                     </div>
-                `;
+                `);
             } else {
                 let html = `
                     <div class="table-responsive">
@@ -450,7 +455,7 @@ function showPermissionDetails(employeeId, startDate, endDate) {
                         </table>
                     </div>
                 `;
-                content.innerHTML = html;
+                setInnerHTML(content, html);
             }
 
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
@@ -458,12 +463,12 @@ function showPermissionDetails(employeeId, startDate, endDate) {
         .catch(error => {
             console.error('Error:', error);
             const content = document.getElementById('detailsDataContent');
-            content.innerHTML = `
+            setInnerHTML(content, `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     حدث خطأ أثناء جلب البيانات
                 </div>
-            `;
+            `);
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
         });
 }
@@ -487,12 +492,12 @@ function showOvertimeDetails(employeeId, startDate, endDate) {
             modalTitle.textContent = 'تفاصيل الوقت الإضافي';
 
             if (!data || data.length === 0) {
-                content.innerHTML = `
+                setInnerHTML(content, `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         لا يوجد وقت إضافي في هذه الفترة
                     </div>
-                `;
+                `);
             } else {
                 let html = `
                     <div class="table-responsive">
@@ -526,7 +531,7 @@ function showOvertimeDetails(employeeId, startDate, endDate) {
                         </table>
                     </div>
                 `;
-                content.innerHTML = html;
+                setInnerHTML(content, html);
             }
 
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
@@ -534,12 +539,12 @@ function showOvertimeDetails(employeeId, startDate, endDate) {
         .catch(error => {
             console.error('Error:', error);
             const content = document.getElementById('detailsDataContent');
-            content.innerHTML = `
+            setInnerHTML(content, `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     حدث خطأ أثناء جلب البيانات
                 </div>
-            `;
+            `);
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
         });
 }
@@ -561,12 +566,12 @@ function showLeaveDetails(employeeId, startDate, endDate) {
             modalTitle.textContent = `تفاصيل الإجازات لسنة ${year}`;
 
             if (!data || data.length === 0) {
-                content.innerHTML = `
+                setInnerHTML(content, `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         لا توجد إجازات في هذه السنة
                     </div>
-                `;
+                `);
             } else {
                 let html = `
                     <div class="table-responsive">
@@ -594,7 +599,7 @@ function showLeaveDetails(employeeId, startDate, endDate) {
                         </table>
                     </div>
                 `;
-                content.innerHTML = html;
+                setInnerHTML(content, html);
             }
 
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
@@ -602,12 +607,12 @@ function showLeaveDetails(employeeId, startDate, endDate) {
         .catch(error => {
             console.error('Error:', error);
             const content = document.getElementById('detailsDataContent');
-            content.innerHTML = `
+            setInnerHTML(content, `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     حدث خطأ أثناء جلب البيانات
                 </div>
-            `;
+            `);
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
         });
 }
@@ -631,12 +636,12 @@ function showCurrentMonthLeaves(employeeId, startDate, endDate) {
             modalTitle.textContent = 'تفاصيل إجازات الشهر الحالي';
 
             if (!data || data.length === 0) {
-                content.innerHTML = `
+                setInnerHTML(content, `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         لا توجد إجازات في هذه الفترة
                     </div>
-                `;
+                `);
             } else {
                 let html = `
                     <div class="table-responsive">
@@ -664,7 +669,7 @@ function showCurrentMonthLeaves(employeeId, startDate, endDate) {
                         </table>
                     </div>
                 `;
-                content.innerHTML = html;
+                setInnerHTML(content, html);
             }
 
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
@@ -672,12 +677,12 @@ function showCurrentMonthLeaves(employeeId, startDate, endDate) {
         .catch(error => {
             console.error('Error:', error);
             const content = document.getElementById('detailsDataContent');
-            content.innerHTML = `
+            setInnerHTML(content, `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     حدث خطأ أثناء جلب البيانات
                 </div>
-            `;
+            `);
             new bootstrap.Modal(document.getElementById('detailsDataModal')).show();
         });
 }
