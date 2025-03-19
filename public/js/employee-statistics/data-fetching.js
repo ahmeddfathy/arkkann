@@ -1,5 +1,3 @@
-
-
 function sanitizeHTML(str) {
     if (!str) return '';
     return String(str)
@@ -15,11 +13,15 @@ function setInnerHTML(element, html) {
         element.innerHTML = DOMPurify.sanitize(html);
     } else {
         console.warn('DOMPurify is not available. Using basic sanitization instead.');
-        element.innerHTML = html;
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+        element.textContent = "Content cannot be displayed safely without DOMPurify. Please check your console.";
+        console.error("Raw content could not be displayed safely:", html);
     }
 }
 
-// دالة عرض تفاصيل الموظف
 function showDetails(employeeId) {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
@@ -327,7 +329,7 @@ function showDetails(employeeId) {
         });
 }
 
-// دالة عرض تفاصيل الغياب
+
 function showAbsenceDetails(employeeId, startDate, endDate) {
     console.log('Fetching absences:', { employeeId, startDate, endDate });
 
@@ -549,7 +551,6 @@ function showOvertimeDetails(employeeId, startDate, endDate) {
         });
 }
 
-// دالة عرض تفاصيل الإجازات
 function showLeaveDetails(employeeId, startDate, endDate) {
     fetch(`/employee-statistics/leaves/${employeeId}?start_date=${startDate}&end_date=${endDate}`)
         .then(response => {
