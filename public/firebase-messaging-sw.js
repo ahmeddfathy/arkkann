@@ -2,12 +2,12 @@ importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
 const firebaseConfig = {
-    apiKey: "AIzaSyACtBQgmlxnNEFbQv92apHYUGTjVpjHq0w",
-    authDomain: "hr-system-46dda.firebaseapp.com",
-    projectId: "hr-system-46dda",
-    storageBucket: "hr-system-46dda.firebasestorage.app",
-    messagingSenderId: "266829467806",
-    appId: "1:266829467806:web:22d996fa2b7b283033ab8f"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 if (!firebase.apps.length) {
