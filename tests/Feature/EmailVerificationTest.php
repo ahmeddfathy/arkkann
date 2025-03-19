@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,7 +42,7 @@ class EmailVerificationTest extends TestCase
             now()->addMinutes(60),
             [
                 'id' => $user->id,
-                'hash' => VerifyEmailController::generateVerificationHash($user->email)
+                'hash' => sha1($user->email)
             ]
         );
 
@@ -68,7 +67,7 @@ class EmailVerificationTest extends TestCase
             now()->addMinutes(60),
             [
                 'id' => $user->id,
-                'hash' => VerifyEmailController::generateVerificationHash('wrong-email')
+                'hash' => sha1('wrong-email')
             ]
         );
 
