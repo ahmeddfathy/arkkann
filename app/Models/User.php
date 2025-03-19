@@ -14,8 +14,10 @@ use Spatie\Permission\Traits\HasRoles;
 
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
+use App\Notifications\Auth\VerifyEmailNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
   use HasApiTokens;
   use HasFactory;
@@ -140,5 +142,13 @@ class User extends Authenticatable
   public function workShift()
   {
     return $this->belongsTo(WorkShift::class);
+  }
+
+  /**
+   * Send the email verification notification.
+   */
+  public function sendEmailVerificationNotification(): void
+  {
+    $this->notify(new VerifyEmailNotification());
   }
 }

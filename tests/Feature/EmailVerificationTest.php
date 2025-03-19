@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,7 +41,10 @@ class EmailVerificationTest extends TestCase
         $verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1($user->email)]
+            [
+                'id' => $user->id,
+                'hash' => VerifyEmailController::generateVerificationHash($user->email)
+            ]
         );
 
         $response = $this->actingAs($user)->get($verificationUrl);
@@ -62,7 +66,10 @@ class EmailVerificationTest extends TestCase
         $verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
             now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1('wrong-email')]
+            [
+                'id' => $user->id,
+                'hash' => VerifyEmailController::generateVerificationHash('wrong-email')
+            ]
         );
 
         $this->actingAs($user)->get($verificationUrl);
