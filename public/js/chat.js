@@ -1,3 +1,24 @@
+
+function sanitizeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+
+function setInnerHTML(element, html) {
+    if (typeof DOMPurify !== 'undefined') {
+        element.innerHTML = DOMPurify.sanitize(html);
+    } else {
+        console.warn('DOMPurify is not available. Using basic sanitization instead.');
+        element.innerHTML = sanitizeHTML(html);
+    }
+}
+
 let currentChatId = null;
 let chatConfig = {};
 
@@ -6,7 +27,7 @@ function loadChat(userId, userName) {
     currentChatId = userId;
     $('#no-chat-selected').addClass('d-none');
     $('#chat-area').removeClass('d-none');
-    $('#contact-name').text(userName);
+    $('#contact-name').text(sanitizeHTML(userName));
 
     fetchMessages();
     startMessagePolling();
@@ -32,9 +53,9 @@ function renderMessages(messages) {
         const messageDate = new Date(message.created_at).toLocaleDateString();
 
         if (messageDate !== currentDate) {
-            container.append(`
+            setInnerHTML(container[0], `
                 <div class="message-date-divider">
-                    <span>${messageDate}</span>
+                    <span>${sanitizeHTML(messageDate)}</span>
                 </div>
             `);
             currentDate = messageDate;
@@ -46,12 +67,12 @@ function renderMessages(messages) {
             minute: '2-digit'
         });
 
-        container.append(`
+        const messageHTML = `
             <div class="message ${isOwn ? 'message-own' : 'message-other'}">
                 <div class="message-content">
-                    <p>${message.content}</p>
+                    <p>${sanitizeHTML(message.content)}</p>
                     <div class="message-meta">
-                        <span class="message-time">${time}</span>
+                        <span class="message-time">${sanitizeHTML(time)}</span>
                         ${isOwn ? `
                             <span class="message-status">
                                 ${message.is_seen ?
@@ -62,7 +83,8 @@ function renderMessages(messages) {
                     </div>
                 </div>
             </div>
-        `);
+        `;
+        setInnerHTML(container[0], messageHTML);
     });
 }
 
@@ -82,7 +104,7 @@ function updateUserStatus(userId) {
         $.get(`/status/user/${userId}`, function(response) {
             const statusText = response.is_online ? 'Online' : 'Last seen ' +
                 new Date(response.last_seen_at).toLocaleString();
-            $('#contact-status').text(statusText);
+            $('#contact-status').text(sanitizeHTML(statusText));
         });
     }
 

@@ -34,7 +34,7 @@
                                         </div>
                                     </div>
 
-<!-- Modal التفاصيل -->ثح
+<!-- Modal التفاصيل -->
 
 
 @include('employee-statistics.components.modals')
