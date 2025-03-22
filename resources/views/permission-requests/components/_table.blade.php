@@ -75,7 +75,7 @@ use Carbon\Carbon;
                             <td>{{ $request->getReturnStatusLabel() }}</td>
                             <td>
                                 <div class="action-buttons">
-                                    @if($request->status === 'pending' && Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending')
+                                    @if(($request->status === 'pending' && Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending') || (Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_permission_request')))
                                         <!-- زر تعديل الطلب -->
                                         <button type="button"
                                             class="btn btn-warning btn-sm"
