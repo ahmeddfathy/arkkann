@@ -41,7 +41,8 @@
         ->withCount('users')
         ->having('users_count', '>', 1)
         ->exists() ||
-        (Auth::user()->hasRole(['department_manager', 'project_manager']) && isset($statistics['team']))
+        (Auth::user()->hasRole(['department_manager', 'project_manager']) && isset($statistics['team'])) ||
+        Auth::user()->hasRole('company_manager')
         ) &&
         isset($statistics['team'])
         )
@@ -176,7 +177,8 @@
         ->withCount('users')
         ->having('users_count', '>', 1)
         ->exists() ||
-        (Auth::user()->hasRole(['department_manager', 'project_manager']) && isset($statistics['team']))
+        (Auth::user()->hasRole(['department_manager', 'project_manager']) && isset($statistics['team'])) ||
+        Auth::user()->hasRole('company_manager')
         ) &&
         isset($statistics['team'])
         )

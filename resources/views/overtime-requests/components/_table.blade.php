@@ -1,4 +1,110 @@
-    <!-- Team requests table -->
+
+    <!-- My requests table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-clock"></i> طلبات العمل الإضافي الخاصة بي
+            </h5>
+            @if($canCreateOvertime && Auth::user()->hasPermissionTo('create_overtime'))
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createOvertimeModal">
+                <i class="fas fa-plus"></i> طلب جديد
+            </button>
+            @endif
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الوقت</th>
+                            <th>المدة</th>
+                            <th>السبب</th>
+                            <th>رد المدير</th>
+                            <th>سبب رفض المدير</th>
+                            <th>رد HR</th>
+                            <th>سبب رفض HR</th>
+                            <th>الحالة النهائية</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($myRequests as $request)
+                        <tr>
+                            <td>{{ $request->overtime_date->format('Y-m-d') }}</td>
+                            <td>
+                                {{ Carbon\Carbon::parse($request->start_time)->format('H:i') }} -
+                                {{ Carbon\Carbon::parse($request->end_time)->format('H:i') }}
+                            </td>
+                            <td>{{ $request->getFormattedDuration() }}</td>
+                            <td>{{ Str::limit($request->reason, 30) }}</td>
+                            <td>
+                                <span class="badge bg-{{ $request->manager_status === 'approved' ? 'success' : ($request->manager_status === 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ ucfirst($request->manager_status) }}
+                                </span>
+                            </td>
+                            <td>{{ Str::limit($request->manager_rejection_reason, 30) }}</td>
+                            <td>
+                                <span class="badge bg-{{ $request->hr_status === 'approved' ? 'success' : ($request->hr_status === 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ ucfirst($request->hr_status) }}
+                                </span>
+                            </td>
+                            <td>{{ Str::limit($request->hr_rejection_reason, 30) }}</td>
+                            <td>
+                                <span class="badge bg-{{ $request->status === 'approved' ? 'success' : ($request->status === 'rejected' ? 'danger' : 'warning') }}">
+                                    {{ ucfirst($request->status) }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    @if((Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_overtime_request')) ||
+                                        (Auth::user()->hasRole('hr') && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('update_overtime')) ||
+                                        ($request->canUpdate(Auth::user()) && $request->hr_status === 'pending' && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('update_overtime')))
+                                    <button type="button" class="btn btn-primary edit-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editOvertimeModal"
+                                        data-request="{{ json_encode([
+                                            'id' => $request->id,
+                                            'overtime_date' => $request->overtime_date->format('Y-m-d'),
+                                            'start_time' => \Carbon\Carbon::parse($request->start_time)->format('H:i'),
+                                            'end_time' => \Carbon\Carbon::parse($request->end_time)->format('H:i'),
+                                            'reason' => $request->reason
+                                        ]) }}">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </button>
+                                    @endif
+
+                                    @if((Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_overtime_request')) ||
+                                        (Auth::user()->hasRole('hr') && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('delete_overtime')) ||
+                                        ($request->canDelete(Auth::user()) && $request->hr_status === 'pending' && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('delete_overtime')))
+                                    <form action="{{ route('overtime-requests.destroy', $request->id) }}"
+                                        method="POST"
+                                        class="d-inline delete-form">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> حذف
+                                        </button>
+                                    </form>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center">No overtime requests found</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-center mt-4">
+                {{ $myRequests->links() }}
+            </div>
+        </div>
+    </div>
+
+<!-- Team requests table -->
     @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -65,7 +171,7 @@
                                         data-bs-target="#editOvertimeModal"
                                         data-request="{{ json_encode([
                                             'id' => $request->id,
-                                            'overtime_date' => $request->overtime_date,
+                                            'overtime_date' => $request->overtime_date->format('Y-m-d'),
                                             'start_time' => \Carbon\Carbon::parse($request->start_time)->format('H:i'),
                                             'end_time' => \Carbon\Carbon::parse($request->end_time)->format('H:i'),
                                             'reason' => $request->reason
@@ -93,7 +199,7 @@
                                         data-bs-target="#respondOvertimeModal"
                                         data-request-id="{{ $request->id }}"
                                         data-response-type="manager">
-                                        <i class="fas fa-reply"></i> رد المدير
+                                        <i class="fas fa-reply"></i> <strong>رد المدير</strong>
                                     </button>
                                     @else
                                     <button type="button" class="btn btn-warning modify-response-btn"
@@ -103,11 +209,11 @@
                                         data-response-type="manager"
                                         data-current-status="{{ $request->manager_status }}"
                                         data-current-reason="{{ $request->manager_rejection_reason }}">
-                                        <i class="fas fa-edit"></i> تعديل الرد
+                                        <i class="fas fa-edit"></i> <strong>تعديل رد المدير</strong>
                                     </button>
                                     <button type="button" class="btn btn-secondary reset-btn"
                                         onclick="resetStatus('{{ $request->id }}', 'manager')">
-                                        <i class="fas fa-undo"></i> إعادة تعيين
+                                        <i class="fas fa-undo"></i> <strong>إعادة تعيين المدير</strong>
                                     </button>
                                     @endif
                                     @endif
@@ -120,7 +226,7 @@
                                         data-bs-target="#respondOvertimeModal"
                                         data-request-id="{{ $request->id }}"
                                         data-response-type="manager">
-                                        <i class="fas fa-reply"></i> رد المدير
+                                        <i class="fas fa-reply"></i> <strong>رد المدير</strong>
                                     </button>
                                     @else
                                     <button type="button" class="btn btn-warning modify-response-btn"
@@ -130,23 +236,23 @@
                                         data-response-type="manager"
                                         data-current-status="{{ $request->manager_status }}"
                                         data-current-reason="{{ $request->manager_rejection_reason }}">
-                                        <i class="fas fa-edit"></i> تعديل الرد
+                                        <i class="fas fa-edit"></i> <strong>تعديل رد المدير</strong>
                                     </button>
                                     <button type="button" class="btn btn-secondary reset-btn"
                                         onclick="resetStatus('{{ $request->id }}', 'manager')">
-                                        <i class="fas fa-undo"></i> إعادة تعيين
+                                        <i class="fas fa-undo"></i> <strong>إعادة تعيين المدير</strong>
                                     </button>
                                     @endif
                                     @endif
 
                                     @if($canRespondAsHR && Auth::user()->hasPermissionTo('hr_respond_overtime_request'))
                                     @if($request->hr_status === 'pending')
-                                    <button type="button" class="btn btn-info respond-btn"
+                                    <button type="button" class="btn btn-success respond-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#respondOvertimeModal"
                                         data-request-id="{{ $request->id }}"
                                         data-response-type="hr">
-                                        <i class="fas fa-reply"></i> رد HR
+                                        <i class="fas fa-reply"></i> <strong>رد HR</strong>
                                     </button>
                                     @elseif($request->hr_status !== 'pending')
                                     <button type="button" class="btn btn-sm btn-warning modify-response-btn"
@@ -156,11 +262,11 @@
                                         data-response-type="hr"
                                         data-current-status="{{ $request->hr_status }}"
                                         data-current-reason="{{ $request->hr_rejection_reason }}">
-                                        <i class="fas fa-edit"></i> تعديل الرد
+                                        <i class="fas fa-edit"></i> <strong>تعديل رد HR</strong>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-secondary reset-btn"
                                         onclick="resetStatus('{{ $request->id }}', 'hr')">
-                                        <i class="fas fa-undo"></i> إعادة تعيين
+                                        <i class="fas fa-undo"></i> <strong>إعادة تعيين HR</strong>
                                     </button>
                                     @endif
                                     @endif
@@ -184,106 +290,7 @@
         </div>
     </div>
     @endif
-    <!-- My requests table -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="fas fa-clock"></i> طلبات العمل الإضافي الخاصة بي
-            </h5>
-            @if($canCreateOvertime && Auth::user()->hasPermissionTo('create_overtime'))
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createOvertimeModal">
-                <i class="fas fa-plus"></i> طلب جديد
-            </button>
-            @endif
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>التاريخ</th>
-                            <th>الوقت</th>
-                            <th>المدة</th>
-                            <th>السبب</th>
-                            <th>رد المدير</th>
-                            <th>سبب رفض المدير</th>
-                            <th>رد HR</th>
-                            <th>سبب رفض HR</th>
-                            <th>الحالة النهائية</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($myRequests as $request)
-                        <tr>
-                            <td>{{ $request->overtime_date->format('Y-m-d') }}</td>
-                            <td>
-                                {{ Carbon\Carbon::parse($request->start_time)->format('H:i') }} -
-                                {{ Carbon\Carbon::parse($request->end_time)->format('H:i') }}
-                            </td>
-                            <td>{{ $request->getFormattedDuration() }}</td>
-                            <td>{{ Str::limit($request->reason, 30) }}</td>
-                            <td>
-                                <span class="badge bg-{{ $request->manager_status === 'approved' ? 'success' : ($request->manager_status === 'rejected' ? 'danger' : 'warning') }}">
-                                    {{ ucfirst($request->manager_status) }}
-                                </span>
-                            </td>
-                            <td>{{ Str::limit($request->manager_rejection_reason, 30) }}</td>
-                            <td>
-                                <span class="badge bg-{{ $request->hr_status === 'approved' ? 'success' : ($request->hr_status === 'rejected' ? 'danger' : 'warning') }}">
-                                    {{ ucfirst($request->hr_status) }}
-                                </span>
-                            </td>
-                            <td>{{ Str::limit($request->hr_rejection_reason, 30) }}</td>
-                            <td>
-                                <span class="badge bg-{{ $request->status === 'approved' ? 'success' : ($request->status === 'rejected' ? 'danger' : 'warning') }}">
-                                    {{ ucfirst($request->status) }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    @if($request->canUpdate(Auth::user()) && $request->hr_status === 'pending' && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('update_overtime'))
-                                    <button type="button" class="btn btn-primary edit-btn"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#editOvertimeModal"
-                                        data-request="{{ json_encode([
-                                            'id' => $request->id,
-                                            'overtime_date' => $request->overtime_date,
-                                            'start_time' => \Carbon\Carbon::parse($request->start_time)->format('H:i'),
-                                            'end_time' => \Carbon\Carbon::parse($request->end_time)->format('H:i'),
-                                            'reason' => $request->reason
-                                        ]) }}">
-                                        <i class="fas fa-edit"></i> تعديل
-                                    </button>
-                                    @endif
 
-                                    @if($request->canDelete(Auth::user()) && $request->hr_status === 'pending' && $request->manager_status == 'pending' && Auth::user()->hasPermissionTo('delete_overtime'))
-                                    <form action="{{ route('overtime-requests.destroy', $request->id) }}"
-                                        method="POST"
-                                        class="d-inline delete-form">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="fas fa-trash"></i> حذف
-                                        </button>
-                                    </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="10" class="text-center">No overtime requests found</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="d-flex justify-content-center mt-4">
-                {{ $myRequests->links() }}
-            </div>
-        </div>
-    </div>
 
     <!-- Company employees requests table (Visible only to HR) -->
     @if(Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('hr_respond_overtime_request'))
@@ -336,12 +343,12 @@
                             </td>
                             <td>
                                 @if($canRespondAsHR && $request->hr_status === 'pending')
-                                <button class="btn btn-sm btn-primary respond-btn"
+                                <button class="btn btn-sm btn-success respond-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#respondOvertimeModal"
                                     data-request-id="{{ $request->id }}"
                                     data-response-type="hr">
-                                    <i class="fas fa-reply"></i> رد HR
+                                    <i class="fas fa-reply"></i> <strong>رد HR</strong>
                                 </button>
                                 @elseif($canRespondAsHR && $request->hr_status !== 'pending')
                                 <button type="button" class="btn btn-sm btn-warning modify-response-btn"
@@ -351,11 +358,11 @@
                                     data-response-type="hr"
                                     data-current-status="{{ $request->hr_status }}"
                                     data-current-reason="{{ $request->hr_rejection_reason }}">
-                                    <i class="fas fa-edit"></i> تعديل الرد
+                                    <i class="fas fa-edit"></i> <strong>تعديل رد HR</strong>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-secondary reset-btn"
                                     onclick="resetStatus('{{ $request->id }}', 'hr')">
-                                    <i class="fas fa-undo"></i> إعادة تعيين
+                                    <i class="fas fa-undo"></i> <strong>إعادة تعيين HR</strong>
                                 </button>
                                 @endif
                             </td>
@@ -429,12 +436,12 @@
                                 <div class="btn-group btn-group-sm">
                                     @if($canRespondAsHR)
                                         @if($request->hr_status === 'pending')
-                                            <button type="button" class="btn btn-info respond-btn"
+                                            <button type="button" class="btn btn-success respond-btn"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#respondOvertimeModal"
                                                 data-request-id="{{ $request->id }}"
                                                 data-response-type="hr">
-                                                <i class="fas fa-reply"></i> رد HR
+                                                <i class="fas fa-reply"></i> <strong>رد HR</strong>
                                             </button>
                                         @else
                                             <button type="button" class="btn btn-warning modify-response-btn"
@@ -444,11 +451,11 @@
                                                 data-response-type="hr"
                                                 data-current-status="{{ $request->hr_status }}"
                                                 data-current-reason="{{ $request->hr_rejection_reason }}">
-                                                <i class="fas fa-edit"></i> تعديل الرد
+                                                <i class="fas fa-edit"></i> <strong>تعديل رد HR</strong>
                                             </button>
                                             <button type="button" class="btn btn-secondary reset-btn"
                                                 onclick="resetStatus('{{ $request->id }}', 'hr')">
-                                                <i class="fas fa-undo"></i> إعادة تعيين
+                                                <i class="fas fa-undo"></i> <strong>إعادة تعيين HR</strong>
                                             </button>
                                         @endif
                                     @endif

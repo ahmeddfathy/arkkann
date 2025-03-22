@@ -101,6 +101,21 @@ class OverTimeRequestsController extends Controller
                     $query->where('status', $status);
                 });
 
+            // Exclude users who are in team requests and users without teams
+            $teamMemberIds = collect([]);
+            if ($user->currentTeam) {
+                $teamMemberIds = $user->currentTeam->users->pluck('id');
+            }
+
+            // Get IDs of users without teams
+            $noTeamUserIds = User::whereDoesntHave('teams')->pluck('id');
+
+            // Exclude both team members and users without teams from HR company requests
+            $hrQuery->whereHas('user', function ($query) use ($teamMemberIds, $noTeamUserIds) {
+                $query->whereNotIn('id', $teamMemberIds)
+                      ->whereNotIn('id', $noTeamUserIds);
+            });
+
             $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
 
             $users = User::select('id', 'name')->get();
@@ -459,7 +474,7 @@ class OverTimeRequestsController extends Controller
         }
 
         $request->validate([
-            'overtime_date' => 'required|date|after:today',
+            'overtime_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'reason' => 'required|string|max:255',

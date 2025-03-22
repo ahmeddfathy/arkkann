@@ -15,8 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
             form.action = `/overtime-requests/${request.id}`;
 
             // Format the date to YYYY-MM-DD
-            const overtimeDate = new Date(request.overtime_date);
-            const formattedDate = overtimeDate.toISOString().split('T')[0];
+            const formattedDate = request.overtime_date.split('T')[0];
             document.getElementById('edit_overtime_date').value = formattedDate;
 
             // Get the original time values (assuming they are in HH:mm format)
@@ -48,6 +47,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
             form.action = `/overtime-requests/${requestId}/${responseType}-status`;
             document.getElementById('response_type').value = responseType;
+
+            // Reset the form
+            document.getElementById('response_status').value = 'approved';
+            document.getElementById('rejection_reason_container').style.display = 'none';
+            document.getElementById('rejection_reason').value = '';
+            document.getElementById('rejection_reason').required = false;
+
+            // Add event listener to the select to show/hide reason field
+            document.getElementById('response_status').addEventListener('change', function() {
+                if (this.value === 'approved') {
+                    document.getElementById('rejection_reason_container').style.display = 'none';
+                    document.getElementById('rejection_reason').required = false;
+                } else {
+                    document.getElementById('rejection_reason_container').style.display = 'block';
+                    document.getElementById('rejection_reason').required = true;
+                }
+            });
         });
     });
 
@@ -105,16 +121,29 @@ document.addEventListener('DOMContentLoaded', function() {
             form.action = `/overtime-requests/${requestId}/modify-${responseType}-status`;
             document.getElementById('modify_response_type').value = responseType;
 
+            // Set the select box value based on current status
+            document.getElementById('modify_status').value = currentStatus;
+
+            // Show/hide rejection reason based on selection
             if (currentStatus === 'approved') {
-                document.getElementById('modify_approve').checked = true;
-                document.getElementById('modify_rejection_reason_container').classList.add('d-none');
+                document.getElementById('modify_rejection_reason_container').style.display = 'none';
                 document.getElementById('modify_rejection_reason').required = false;
             } else {
-                document.getElementById('modify_reject').checked = true;
-                document.getElementById('modify_rejection_reason_container').classList.remove('d-none');
+                document.getElementById('modify_rejection_reason_container').style.display = 'block';
                 document.getElementById('modify_rejection_reason').value = currentReason;
                 document.getElementById('modify_rejection_reason').required = true;
             }
+
+            // Add event listener to the select to show/hide reason field
+            document.getElementById('modify_status').addEventListener('change', function() {
+                if (this.value === 'approved') {
+                    document.getElementById('modify_rejection_reason_container').style.display = 'none';
+                    document.getElementById('modify_rejection_reason').required = false;
+                } else {
+                    document.getElementById('modify_rejection_reason_container').style.display = 'block';
+                    document.getElementById('modify_rejection_reason').required = true;
+                }
+            });
         });
     });
 

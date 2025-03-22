@@ -109,34 +109,55 @@ class PermissionRequestController extends Controller
                 $hrQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
             }
 
+            // استعلام المستخدمين بدون فريق
+            $noTeamUserIds = User::whereDoesntHave('teams')->pluck('id');
+
+            // الحصول على أعضاء الفريق
+            $teamMemberIds = collect([]);
+            if ($user->currentTeam) {
+                $teamMemberIds = $user->currentTeam->users->pluck('id');
+            }
+
+            // استبعاد أعضاء الفريق والمستخدمين بدون فريق من جدول طلبات موظفي الشركة
+            $hrQuery->whereHas('user', function ($query) use ($teamMemberIds, $noTeamUserIds) {
+                $query->whereNotIn('id', $teamMemberIds)
+                      ->whereNotIn('id', $noTeamUserIds);
+            });
+
             $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
 
             // إستعلام طلبات الفريق - للفريق الذي يديره المستخدم فقط
+            $teamMemberIds = collect([]);
             if ($user->currentTeam) {
-                $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
+                $teamMemberIds = $user->currentTeam->users->pluck('id');
+            }
 
-                $teamQuery = PermissionRequest::with(['user', 'violations'])
-                    ->whereIn('user_id', $teamMembers);
+            // استعلام المستخدمين بدون فريق
+            $noTeamUserIds = User::whereDoesntHave('teams')->pluck('id');
 
-                if ($employeeName) {
-                    $teamQuery->whereHas('user', function ($q) use ($employeeName) {
-                        $q->where('name', 'like', "%{$employeeName}%");
-                    });
-                }
+            // استبعاد أعضاء الفريق والمستخدمين بدون فريق من جدول طلبات موظفي الشركة
+            $teamQuery = PermissionRequest::with(['user', 'violations'])
+                ->whereIn('user_id', $teamMemberIds);
 
-                if ($status) {
-                    $teamQuery->where('status', $status);
-                }
+            if ($employeeName) {
+                $teamQuery->whereHas('user', function ($q) use ($employeeName) {
+                    $q->where('name', 'like', "%{$employeeName}%");
+                });
+            }
 
-                if ($fromDate && $toDate) {
-                    $teamQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
-                }
+            if ($status) {
+                $teamQuery->where('status', $status);
+            }
 
-                $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
+            if ($fromDate && $toDate) {
+                $teamQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
+            }
 
-                foreach ($teamMembers as $userId) {
-                    $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
-                }
+            $teamRequests = $teamQuery->latest()->paginate(10, ['*'], 'team_page');
+
+            $teamUserIds = $teamRequests->pluck('user_id')->unique();
+            foreach ($teamUserIds as $userId) {
+                $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
             }
 
             // إستعلام طلبات الموظفين بدون فريق - لموظفي الـ HR فقط
@@ -156,16 +177,7 @@ class PermissionRequestController extends Controller
                 $noTeamQuery->where('status', $status);
             }
 
-            if ($fromDate && $toDate) {
-                $noTeamQuery->whereBetween('departure_time', [$dateStart, $dateEnd]);
-            }
-
             $noTeamRequests = $noTeamQuery->latest()->paginate(10);
-
-            $teamUserIds = $teamRequests->pluck('user_id')->unique();
-            foreach ($teamUserIds as $userId) {
-                $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
-            }
         } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {

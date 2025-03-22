@@ -69,10 +69,6 @@ class AbsenceRequestService
             $managerStatus = 'approved';
         }
 
-        if ($user->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
-            $managerStatus = 'approved';
-        }
-
         $request = AbsenceRequest::create([
             'user_id' => $userId,
             'absence_date' => $data['absence_date'],

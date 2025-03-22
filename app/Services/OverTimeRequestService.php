@@ -136,7 +136,6 @@ class OverTimeRequestService
     {
         return OverTimeRequests::where('status', 'pending')->count();
     }
-
     public function createRequest(array $data): OverTimeRequests
     {
         return DB::transaction(function () use ($data) {
@@ -153,21 +152,75 @@ class OverTimeRequestService
             $managerStatus = 'pending';
             $hrStatus = 'pending';
 
-            // إذا كان المستخدم الحالي HR لديه صلاحية الرد كمدير
+            $isRequestForSelf = $userId == $currentUser->id;
+
             if ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
-                $managerStatus = 'approved';
-                $hrStatus = 'approved';
+                $isInHrOwnedTeam = false;
+                if ($currentUser->currentTeam && $currentUser->teams()->whereHas('users', function($q) {
+                    $q->whereHas('roles', function($r) {
+                        $r->where('name', 'hr');
+                    });
+                })->exists()) {
+                    $isInHrOwnedTeam = true;
+                }
+
+                if ($isRequestForSelf && $isInHrOwnedTeam) {
+                    $managerStatus = 'approved';
+                    $hrStatus = 'approved';
+                }
+                elseif (!$isRequestForSelf) {
+                    $hrStatus = 'approved';
+
+                    $requestUser = User::find($userId);
+                    $isRequestUserInCurrentTeam = false;
+
+                    if ($requestUser && $currentUser->currentTeam) {
+                        $isRequestUserInCurrentTeam = DB::table('team_user')
+                            ->where('team_id', $currentUser->currentTeam->id)
+                            ->where('user_id', $userId)
+                            ->exists();
+                    }
+
+                    if ($isRequestUserInCurrentTeam) {
+                        $managerStatus = 'approved';
+                    }
+                }
             }
-            // إذا كان المستخدم الحالي مدير
-            elseif ($currentUser->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
-                $managerStatus = 'approved';
+            elseif ($currentUser->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) && !$isRequestForSelf && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
+                $requestUser = User::find($userId);
+                $isRequestUserInCurrentTeam = false;
+
+                if ($requestUser && $currentUser->currentTeam) {
+                    $isRequestUserInCurrentTeam = DB::table('team_user')
+                        ->where('team_id', $currentUser->currentTeam->id)
+                        ->where('user_id', $userId)
+                        ->exists();
+                }
+
+                if ($isRequestUserInCurrentTeam) {
+                    $managerStatus = 'approved';
+                }
             }
-            // إذا كان المستخدم الحالي HR عادي
             elseif ($currentUser->hasRole('hr')) {
                 $hrStatus = 'approved';
+
+                if (!$isRequestForSelf) {
+                    $requestUser = User::find($userId);
+                    $isRequestUserInCurrentTeam = false;
+
+                    if ($requestUser && $currentUser->currentTeam) {
+                        $isRequestUserInCurrentTeam = DB::table('team_user')
+                            ->where('team_id', $currentUser->currentTeam->id)
+                            ->where('user_id', $userId)
+                            ->exists();
+                    }
+
+                    if ($isRequestUserInCurrentTeam && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
+                        $managerStatus = 'approved';
+                    }
+                }
             }
-            // إذا كان المستخدم يضيف طلب لشخص آخر
-            elseif ($userId != $currentUser->id) {
+            elseif (!$isRequestForSelf) {
                 $isTeamOwner = false;
 
                 if ($currentUser->currentTeam && $currentUser->currentTeam->user_id == $currentUser->id) {
@@ -184,11 +237,10 @@ class OverTimeRequestService
                         ->exists();
                 }
 
-                if ($isTeamOwner && $isTeamMember) {
+                if ($isTeamOwner && $isTeamMember && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
                     $managerStatus = 'approved';
                 }
 
-                // Check if current user is HR and the request user has no team
                 if ($currentUser->hasRole('hr')) {
                     if ($requestUser && !$requestUser->teams()->exists()) {
                         $hrStatus = 'approved';
@@ -196,7 +248,6 @@ class OverTimeRequestService
                 }
             }
 
-            // Create request with initial values
             $request = new OverTimeRequests([
                 'user_id' => $userId,
                 'overtime_date' => $data['overtime_date'],
@@ -207,13 +258,10 @@ class OverTimeRequestService
                 'hr_status' => $hrStatus,
             ]);
 
-            // Set user relation for proper status calculation
             $request->user = User::find($userId);
 
-            // Calculate final status using model's logic
             $request->updateFinalStatus();
 
-            // Now create the actual database record
             $request = OverTimeRequests::create([
                 'user_id' => $userId,
                 'overtime_date' => $data['overtime_date'],

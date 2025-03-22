@@ -86,14 +86,16 @@ class PermissionRequestService
 
             if ($currentUser->hasRole('hr')) {
                 $hrStatus = 'approved';
+
+                // HR يوافق كمدير فقط إذا كان لديه صلاحية رد المدير
+                if ($currentUser->hasPermissionTo('manager_respond_permission_request')) {
+                    $managerStatus = 'approved';
+                }
             }
 
-            if ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_permission_request')) {
-                $managerStatus = 'approved';
-            }
-
+            // إذا كان المستخدم مدير، يبقى رد المدير معلق لأنه لا يمكنه الموافقة على طلبه الخاص
             if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
-                $managerStatus = 'approved';
+                // لا نغير حالة رد المدير هنا - تبقى معلقة
             }
 
             $returnTime = Carbon::parse($data['return_time']);
@@ -176,28 +178,40 @@ class PermissionRequestService
                 ];
             }
 
-            $user = Auth::user();
-
+            // Current user is HR creating request for another user
+            $currentUser = Auth::user();
+            $targetUser = User::find($userId);
             $remainingMinutes = $this->getRemainingMinutes($userId);
 
             $managerStatus = 'pending';
             $hrStatus = 'pending';
             $status = 'pending';
 
-            if ($user->hasRole('hr')) {
+            // HR always approves as HR
+            if ($currentUser->hasRole('hr')) {
                 $hrStatus = 'approved';
+
+                // Check if target user is in the HR's team
+                $isTargetInHrTeam = false;
+                if ($currentUser->currentTeam && $targetUser) {
+                    $isTargetInHrTeam = DB::table('team_user')
+                        ->where('team_id', $currentUser->currentTeam->id)
+                        ->where('user_id', $userId)
+                        ->exists();
+                }
+
+                // Only auto-approve as manager if HR has permission and target is in their team
+                if ($currentUser->hasPermissionTo('manager_respond_permission_request') && $isTargetInHrTeam) {
+                    $managerStatus = 'approved';
+                }
             }
 
-            if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request')) {
+            // If manager roles, they auto-approve as manager
+            if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
                 $managerStatus = 'approved';
             }
 
-            if ($user->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
-                $managerStatus = 'approved';
-            }
-
-            $targetUser = User::find($userId);
-
+            // Determine final status
             if ($targetUser && (!$targetUser->teams()->exists() || $targetUser->teams()->where('name', 'HR')->exists())) {
                 if ($hrStatus === 'approved') {
                     $status = 'approved';

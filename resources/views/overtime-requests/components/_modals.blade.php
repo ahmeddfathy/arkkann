@@ -184,30 +184,23 @@
                     <input type="hidden" id="response_type" name="response_type">
 
                     <div class="mb-3">
-                        <label class="form-label d-block">الرد</label>
-                        <div class="btn-group" role="group">
-                            <input type="radio" class="btn-check" name="status" id="approve" value="approved" required>
-                            <label class="btn btn-outline-success" for="approve">
-                                <i class="fas fa-check"></i> موافقة
-                            </label>
-
-                            <input type="radio" class="btn-check" name="status" id="reject" value="rejected" required>
-                            <label class="btn btn-outline-danger" for="reject">
-                                <i class="fas fa-times"></i> رفض
-                            </label>
-                        </div>
+                        <label for="response_status" class="form-label">الحالة</label>
+                        <select class="form-select" id="response_status" name="status" required>
+                            <option value="approved">موافق</option>
+                            <option value="rejected">مرفوض</option>
+                        </select>
                         <div class="invalid-feedback">الرجاء اختيار الرد.</div>
                     </div>
 
-                    <div class="mb-3 d-none" id="rejection_reason_container">
+                    <div class="mb-3" id="rejection_reason_container" style="display: none;">
                         <label for="rejection_reason" class="form-label">سبب الرفض</label>
-                        <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3"></textarea>
+                        <textarea class="form-control" id="rejection_reason" name="rejection_reason" maxlength="255"></textarea>
                         <div class="invalid-feedback">الرجاء كتابة سبب الرفض.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="submit" class="btn btn-primary">إرسال الرد</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ الرد</button>
                 </div>
             </form>
         </div>
@@ -228,30 +221,23 @@
                     <input type="hidden" id="modify_response_type" name="response_type">
 
                     <div class="mb-3">
-                        <label class="form-label d-block">الرد الجديد</label>
-                        <div class="btn-group" role="group">
-                            <input type="radio" class="btn-check" name="status" id="modify_approve" value="approved" required>
-                            <label class="btn btn-outline-success" for="modify_approve">
-                                <i class="fas fa-check"></i> موافقة
-                            </label>
-
-                            <input type="radio" class="btn-check" name="status" id="modify_reject" value="rejected" required>
-                            <label class="btn btn-outline-danger" for="modify_reject">
-                                <i class="fas fa-times"></i> رفض
-                            </label>
-                        </div>
+                        <label for="modify_status" class="form-label">الحالة</label>
+                        <select class="form-select" id="modify_status" name="status" required>
+                            <option value="approved">موافق</option>
+                            <option value="rejected">مرفوض</option>
+                        </select>
                         <div class="invalid-feedback">الرجاء اختيار الرد.</div>
                     </div>
 
-                    <div class="mb-3 d-none" id="modify_rejection_reason_container">
+                    <div class="mb-3" id="modify_rejection_reason_container" style="display: none;">
                         <label for="modify_rejection_reason" class="form-label">سبب الرفض</label>
-                        <textarea class="form-control" id="modify_rejection_reason" name="rejection_reason" rows="3"></textarea>
+                        <textarea class="form-control" id="modify_rejection_reason" name="rejection_reason" maxlength="255"></textarea>
                         <div class="invalid-feedback">الرجاء كتابة سبب الرفض.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="submit" class="btn btn-primary">تحديث الرد</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
                 </div>
             </form>
         </div>

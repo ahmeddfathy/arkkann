@@ -19,6 +19,9 @@ class AbsenceRequestController extends Controller
         $this->absenceRequestService = $absenceRequestService;
     }
 
+    /**
+     * Display absence requests index page.
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -54,7 +57,7 @@ class AbsenceRequestController extends Controller
                 $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
                 if (!empty($teamMembers)) {
                     $users = $users->concat(User::whereIn('id', $teamMembers)->get());
-            }
+                }
             }
             $users = $users->unique('id');
         } elseif ($user->hasRole('hr')) {
@@ -86,17 +89,20 @@ class AbsenceRequestController extends Controller
         $hrRequests = collect();
 
         if ($user->hasRole('hr')) {
-            // طلبات موظفي الشركه - لموظفي HR فقط
+            $teamMembersIds = [];
+            if ($user->currentTeam) {
+                $teamMembersIds = $user->currentTeam->users->pluck('id')->toArray();
+            }
+
             $hrRequests = (clone $baseQuery)
-                ->where(function ($query) use ($user) {
-                    $query->whereHas('user', function ($q) use ($user) {
-                        $q->whereHas('teams');
-                    })
-                        ->orWhereHas('user', function ($q) use ($user) {
-                        $q->whereDoesntHave('roles', function ($q) {
-                                    $q->whereIn('name', ['hr', 'company_manager']);
-                                });
-                        });
+                ->where(function ($query) use ($user, $teamMembersIds) {
+                    $query->whereHas('user', function ($q) use ($user, $teamMembersIds) {
+                        $q->whereHas('teams')
+                            ->whereNotIn('users.id', $teamMembersIds)
+                            ->whereDoesntHave('roles', function ($q) {
+                                $q->whereIn('name', ['hr', 'company_manager']);
+                            });
+                    });
                 })
                 ->latest()
                 ->paginate(10, ['*'], 'hr_page');
@@ -111,7 +117,6 @@ class AbsenceRequestController extends Controller
                 ->latest()
                 ->paginate(10, ['*'], 'no_team_page');
 
-            // طلبات الفريق - للفريق الذي يديره المستخدم (إذا كان لديه فريق)
             if ($user->currentTeam) {
                 $teamMembers = $user->currentTeam->users->pluck('id')->toArray();
 
@@ -210,6 +215,9 @@ class AbsenceRequestController extends Controller
         ));
     }
 
+    /**
+     * Store a new absence request.
+     */
     public function store(Request $request)
     {
         if (!Auth::user()->hasPermissionTo('create_absence')) {
@@ -239,6 +247,9 @@ class AbsenceRequestController extends Controller
         }
     }
 
+    /**
+     * Update an existing absence request.
+     */
     public function update(Request $request, AbsenceRequest $absenceRequest)
     {
         $user = Auth::user();
@@ -258,6 +269,9 @@ class AbsenceRequestController extends Controller
             ->with('success', 'Absence request updated successfully.');
     }
 
+    /**
+     * Delete an absence request.
+     */
     public function destroy(AbsenceRequest $absenceRequest)
     {
         $user = Auth::user();
@@ -272,14 +286,15 @@ class AbsenceRequestController extends Controller
             ->with('success', 'Absence request deleted successfully.');
     }
 
+    /**
+     * Update the status of an absence request.
+     */
     public function updateStatus(Request $request, AbsenceRequest $absenceRequest)
     {
         $user = Auth::user();
         $responseType = $request->input('response_type');
 
-        // التحقق من صلاحيات الرد كمدير
         if ($responseType === 'manager') {
-            // حالة خاصة: مستخدم HR لديه صلاحية الرد كمدير ويملك فريقًا يكون صاحب الطلب عضوًا فيه
             $canRespondAsManager = false;
 
             if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_absence_request')) {
@@ -289,8 +304,10 @@ class AbsenceRequestController extends Controller
                         break;
                     }
                 }
-            } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-                    $user->hasPermissionTo('manager_respond_absence_request')) {
+            } elseif (
+                $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+                $user->hasPermissionTo('manager_respond_absence_request')
+            ) {
                 $canRespondAsManager = true;
             }
 
@@ -299,7 +316,6 @@ class AbsenceRequestController extends Controller
             }
         }
 
-        // التحقق من صلاحيات الرد كـ HR
         if ($responseType === 'hr' && (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_absence_request'))) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الغياب كـ HR');
         }
@@ -315,6 +331,9 @@ class AbsenceRequestController extends Controller
         return redirect()->back()->with('success', 'تم تحديث حالة الطلب بنجاح');
     }
 
+    /**
+     * Modify the response of an absence request.
+     */
     public function modifyResponse(Request $request, $id)
     {
         $user = Auth::user();
@@ -335,6 +354,9 @@ class AbsenceRequestController extends Controller
         return redirect()->back()->with('success', 'تم تعديل الرد بنجاح');
     }
 
+    /**
+     * Reset the status of an absence request.
+     */
     public function resetStatus(AbsenceRequest $absenceRequest)
     {
         $user = Auth::user();
@@ -412,6 +434,9 @@ class AbsenceRequestController extends Controller
         return redirect()->back()->with('success', 'تم إعادة تعيين الحالة بنجاح');
     }
 
+    /**
+     * Get statistics for absence requests.
+     */
     protected function getStatistics($user, $dateStart, $dateEnd)
     {
         $statistics = [
@@ -495,10 +520,10 @@ class AbsenceRequestController extends Controller
                     ->having('users_count', '>', 1)
                     ->exists();
 
-                if ($hasTeamWithMultipleMembers && $user->currentTeam) {
+                if (($hasTeamWithMultipleMembers && $user->currentTeam) || $user->hasRole('company_manager')) {
                     $teamMembers = $this->getTeamMembers($user->currentTeam, $this->getAllowedRoles($user));
 
-                    if (!empty($teamMembers)) {
+                    if (!empty($teamMembers) || $user->hasRole('company_manager')) {
                         $teamStats = AbsenceRequest::whereIn('user_id', $teamMembers)
                             ->whereBetween('absence_date', [$dateStart, $dateEnd])
                             ->selectRaw('
@@ -551,8 +576,6 @@ class AbsenceRequestController extends Controller
                         ];
                     }
                 } else if ($user->hasRole('department_manager') || $user->hasRole('project_manager') || $user->hasRole('company_manager')) {
-                    // Special handling for department managers who might not have a team with multiple members
-                    // Get all teams under this department manager
                     $managedTeams = $user->ownedTeams;
                     $allTeamMembers = [];
 
@@ -561,7 +584,6 @@ class AbsenceRequestController extends Controller
                         $allTeamMembers = array_merge($allTeamMembers, $teamMembers);
                     }
 
-                    // Remove duplicates
                     $allTeamMembers = array_unique($allTeamMembers);
 
                     if (!empty($allTeamMembers)) {
@@ -674,7 +696,7 @@ class AbsenceRequestController extends Controller
                     'exceeded_employees' => $exceededEmployees
                 ];
 
-                // Monthly Statistics
+                // HR Dashboard Charts Data
                 $monthlyStats = DB::table('absence_requests')
                     ->whereIn('user_id', $allEmployees)
                     ->whereBetween('absence_date', [$dateStart, $dateEnd])
@@ -689,13 +711,12 @@ class AbsenceRequestController extends Controller
                     ->orderBy('month')
                     ->get();
 
-                // Department Statistics
                 $departmentStats = DB::table('users')
                     ->select('department')
                     ->whereNotNull('department')
                     ->distinct()
                     ->get()
-                    ->map(function($dept) use ($dateStart, $dateEnd, $allEmployees) {
+                    ->map(function ($dept) use ($dateStart, $dateEnd, $allEmployees) {
                         $stats = DB::table('absence_requests')
                             ->join('users', 'users.id', '=', 'absence_requests.user_id')
                             ->where('users.department', $dept->department)
@@ -720,7 +741,6 @@ class AbsenceRequestController extends Controller
                     ->sortByDesc('request_count')
                     ->values();
 
-                // Reasons Statistics
                 $reasonsStats = DB::table('absence_requests')
                     ->whereIn('user_id', $allEmployees)
                     ->whereBetween('absence_date', [$dateStart, $dateEnd])
@@ -730,7 +750,6 @@ class AbsenceRequestController extends Controller
                     ->limit(5)
                     ->get();
 
-                // Weekday Statistics
                 $weekdayStats = DB::table('absence_requests')
                     ->whereIn('user_id', $allEmployees)
                     ->whereBetween('absence_date', [$dateStart, $dateEnd])
@@ -742,7 +761,6 @@ class AbsenceRequestController extends Controller
                     ->orderBy(DB::raw('DAYOFWEEK(absence_date)'))
                     ->get();
 
-                // Age Group Statistics
                 $ageStats = DB::table('absence_requests')
                     ->join('users', 'users.id', '=', 'absence_requests.user_id')
                     ->whereIn('absence_requests.user_id', $allEmployees)
@@ -778,6 +796,9 @@ class AbsenceRequestController extends Controller
         }
     }
 
+    /**
+     * Get allowed roles for team members based on user role.
+     */
     private function getAllowedRoles($user)
     {
         if ($user->hasRole('team_leader')) {
@@ -794,6 +815,9 @@ class AbsenceRequestController extends Controller
         return [];
     }
 
+    /**
+     * Get team members based on team and allowed roles.
+     */
     private function getTeamMembers($team, $allowedRoles)
     {
         if (!$team) {

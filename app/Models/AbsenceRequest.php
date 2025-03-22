@@ -207,22 +207,33 @@ class AbsenceRequest extends Model implements Auditable
 
   public function updateFinalStatus(): void
   {
+    // إذا كان أي من الحالتين مرفوض، الحالة النهائية مرفوضة
     if ($this->manager_status === 'rejected' || $this->hr_status === 'rejected') {
       $this->status = 'rejected';
       return;
     }
 
-    // إذا كان للمستخدم فريق، نحتاج موافقة المدير و HR
+    // تحقق ما إذا كان المستخدم لديه فريق
     $hasTeam = DB::table('team_user')->where('user_id', $this->user_id)->exists();
 
-    if (!$hasTeam) {
-      // إذا كان المستخدم بدون فريق، فقط نحتاج موافقة HR
+    // تحقق ما إذا كان المستخدم من HR
+    $isHrUser = DB::table('model_has_roles')
+      ->where('model_id', $this->user_id)
+      ->whereIn('role_id', function($query) {
+          $query->select('id')
+                ->from('roles')
+                ->where('name', 'hr');
+      })
+      ->exists();
+
+    if (!$hasTeam && !$isHrUser) {
+      // الموظفون العاديون بدون فريق يحتاجون فقط موافقة HR
       if ($this->hr_status === 'approved') {
         $this->status = 'approved';
         return;
       }
     } else {
-      // إذا كان للمستخدم فريق، نحتاج موافقة المدير و HR
+      // الموظفون في فرق أو موظفو HR يحتاجون موافقة المدير و HR معًا
       if ($this->manager_status === 'approved' && $this->hr_status === 'approved') {
         $this->status = 'approved';
         return;
