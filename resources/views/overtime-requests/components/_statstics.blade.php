@@ -50,7 +50,7 @@
     </div>
 
     <!-- Team Statistics for Managers -->
-    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
+    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">

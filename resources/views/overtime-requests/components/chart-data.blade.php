@@ -9,7 +9,7 @@ $personalData = json_encode([
 
 // Team statistics
 $teamData = '';
-if (Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']) && !empty($teamStatistics)) {
+if (Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']) && !empty($teamStatistics)) {
     $teamData = json_encode([
         'total_requests' => $teamStatistics['total_requests'] ?? 0,
         'approved_requests' => $teamStatistics['approved_requests'] ?? 0,

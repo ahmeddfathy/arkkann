@@ -139,7 +139,7 @@ use Carbon\Carbon;
                                             </button>
 
                                             <!-- تعديل زر "لم يرجع" -->
-                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
+                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
                                             <button type="button"
                                                 class="btn btn-danger btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
@@ -186,7 +186,7 @@ use Carbon\Carbon;
 
 
 <!-- Table for team requests -->
-@if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']))
+@if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
 <div class="row justify-content-center">
     <div class="col-md-12">
         <div class="card shadow-sm">
@@ -318,6 +318,17 @@ use Carbon\Carbon;
                                     @endif
                                     @endif
 
+                                    <!-- الحالة الخاصة: إذا كان مستخدم HR لديه صلاحية الاستجابة كمدير -->
+                                    @if(Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_permission_request') && $request->manager_status === 'pending' && !$request->canRespondAsManager(Auth::user()))
+                                    <button class="btn btn-sm btn-info respond-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#respondModal"
+                                        data-request-id="{{ $request->id }}"
+                                        data-response-type="manager">
+                                        <i class="fas fa-reply"></i> رد المدير
+                                    </button>
+                                    @endif
+
                                     <!-- أزرار حالة العودة -->
                                     @if($request->status === 'approved')
                                     <div class="btn-group" role="group">
@@ -362,7 +373,7 @@ use Carbon\Carbon;
                                             </button>
 
                                             <!-- تعديل زر "لم يرجع" -->
-                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
+                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
                                             <button type="button"
                                                 class="btn btn-danger btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
@@ -665,7 +676,7 @@ use Carbon\Carbon;
                                     </button>
 
                                     <!-- تعديل زر "لم يرجع" -->
-                                    @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
+                                    @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
                                     <button type="button"
                                         class="btn btn-danger btn-sm return-btn me-2"
                                         data-request-id="{{ $request->id }}"

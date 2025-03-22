@@ -69,10 +69,19 @@ class AbsenceRequest extends Model implements Auditable
     }
 
     if (
-      $user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])
+      $user->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])
       && $user->hasPermissionTo('manager_respond_absence_request')
     ) {
       return true;
+    }
+
+    // حالة خاصة: مستخدم HR لديه صلاحية الرد كمدير ويملك فريقًا يكون صاحب الطلب عضوًا فيه
+    if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_absence_request')) {
+      foreach ($user->ownedTeams as $team) {
+        if ($team->users->contains('id', $this->user_id)) {
+          return true;
+        }
+      }
     }
 
     return false;
@@ -121,7 +130,7 @@ class AbsenceRequest extends Model implements Auditable
       }
 
       if (
-        $user->hasAnyRole(['team_leader', 'department_manager', 'company_manager'])
+        $user->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])
         && $user->hasPermissionTo('manager_respond_absence_request')
       ) {
         if ($this->user_id === $user->id) {
@@ -131,7 +140,7 @@ class AbsenceRequest extends Model implements Auditable
         if ($this->user) {
           foreach ($user->ownedTeams as $team) {
             $isTeamMember = DB::table('team_user')
-              ->where('user_id', $this->user_id)
+              ->where('user_id', operator: $this->user_id)
               ->where('team_id', $team->id)
               ->exists();
 
@@ -152,6 +161,22 @@ class AbsenceRequest extends Model implements Auditable
               ->exists();
 
             if ($isInManagedTeam) {
+              return true;
+            }
+          }
+        }
+      }
+
+      // حالة خاصة: مستخدم HR لديه صلاحية الرد كمدير ويملك فريقًا يكون صاحب الطلب عضوًا فيه
+      if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_absence_request')) {
+        if ($this->user) {
+          foreach ($user->ownedTeams as $team) {
+            $isTeamMember = DB::table('team_user')
+              ->where('user_id', $this->user_id)
+              ->where('team_id', $team->id)
+              ->exists();
+
+            if ($isTeamMember) {
               return true;
             }
           }

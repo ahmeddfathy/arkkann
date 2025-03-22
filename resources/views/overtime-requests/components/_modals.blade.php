@@ -1,5 +1,5 @@
     <!-- Team details modal -->
-    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
+    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
     <div class="modal fade" id="teamDetailsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">

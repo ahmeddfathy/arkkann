@@ -45,7 +45,7 @@ class PermissionRequestService
             return $query->whereHas('user', function ($q) {
                 $q->whereDoesntHave('teams');
             })->latest()->paginate(10);
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $teamMembers = $team->users->pluck('id')->toArray();
@@ -84,22 +84,28 @@ class PermissionRequestService
             $hrStatus = 'pending';
             $status = 'pending';
 
-            // عند إنشاء طلب للنفس، جميع الردود تكون معلقة بغض النظر عن دور المستخدم
+            if ($currentUser->hasRole('hr')) {
+                $hrStatus = 'approved';
+            }
+
+            if ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_permission_request')) {
+                $managerStatus = 'approved';
+            }
+
+            if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+                $managerStatus = 'approved';
+            }
 
             $returnTime = Carbon::parse($data['return_time']);
             $user = User::find($userId);
 
-            // تحديد الحالة النهائية بناءً على ما إذا كان المستخدم لديه فريق أم لا
-            // نحافظ على أن جميع الردود تكون معلقة في حالة طلب المستخدم لنفسه، ولكن نضع القاعدة هنا للاتساق
             if ($user && (!$user->teams()->exists() || $user->teams()->where('name', 'HR')->exists())) {
-                // إذا كان المستخدم ليس لديه فريق أو كان من فريق HR، فيكفي موافقة HR فقط
                 if ($hrStatus === 'approved') {
                     $status = 'approved';
                 } elseif ($hrStatus === 'rejected') {
                     $status = 'rejected';
                 }
             } else {
-                // إذا كان المستخدم لديه فريق، فيتطلب موافقة المدير وHR معًا
                 if ($managerStatus === 'approved' && $hrStatus === 'approved') {
                     $status = 'approved';
                 } elseif ($managerStatus === 'rejected' || $hrStatus === 'rejected') {
@@ -178,31 +184,27 @@ class PermissionRequestService
             $hrStatus = 'pending';
             $status = 'pending';
 
-            if ($user) {
-                $roles = $user->getRoleNames();
-
-                if ($roles->contains('team_leader') || $roles->contains('department_manager') || $roles->contains('company_manager')) {
-                    $managerStatus = 'approved';
-                }
-
-                if ($roles->contains('hr')) {
-                    $hrStatus = 'approved';
-                }
+            if ($user->hasRole('hr')) {
+                $hrStatus = 'approved';
             }
 
-            // المستخدم المستهدف
+            if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request')) {
+                $managerStatus = 'approved';
+            }
+
+            if ($user->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+                $managerStatus = 'approved';
+            }
+
             $targetUser = User::find($userId);
 
-            // تحديد الحالة النهائية بناءً على ما إذا كان المستخدم المستهدف لديه فريق أم لا
             if ($targetUser && (!$targetUser->teams()->exists() || $targetUser->teams()->where('name', 'HR')->exists())) {
-                // إذا كان المستخدم المستهدف ليس لديه فريق أو كان من فريق HR، فيكفي موافقة HR فقط
                 if ($hrStatus === 'approved') {
                     $status = 'approved';
                 } elseif ($hrStatus === 'rejected') {
                     $status = 'rejected';
                 }
             } else {
-                // إذا كان المستخدم المستهدف لديه فريق، فيتطلب موافقة المدير وHR معًا
                 if ($managerStatus === 'approved' && $hrStatus === 'approved') {
                     $status = 'approved';
                 } elseif ($managerStatus === 'rejected' || $hrStatus === 'rejected') {
@@ -235,7 +237,6 @@ class PermissionRequestService
                 'returned_on_time' => $returnedOnTime,
             ]);
 
-            // إرسال إشعار بغض النظر عن حالة الطلب
             $this->notificationService->createPermissionRequestNotification($request);
 
             $usedMinutes = $this->getUsedMinutes($userId);
@@ -312,7 +313,6 @@ class PermissionRequestService
 
             $request->update($updateData);
 
-            // إضافة إشعار عند تعديل الطلب
             $this->notificationService->notifyPermissionModified($request);
 
             $usedMinutes = $this->getUsedMinutes($request->user_id);
@@ -335,8 +335,8 @@ class PermissionRequestService
         $responseType = $data['response_type'];
         $status = $data['status'];
         $rejectionReason = $status === 'rejected' ? $data['rejection_reason'] : null;
+        $user = Auth::user();
 
-        // التحقق من الصلاحيات حسب نوع الرد
         if ($responseType === 'manager' && !auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
             return [
                 'success' => false,
@@ -349,6 +349,12 @@ class PermissionRequestService
                 'success' => false,
                 'message' => 'ليس لديك صلاحية الرد على طلبات الاستئذان كموارد بشرية'
             ];
+        }
+
+        if ($responseType === 'manager' && $user->hasRole('hr') && $user->hasPermissionTo('hr_respond_permission_request')) {
+            $request->updateHrStatus($status, $rejectionReason);
+        } elseif ($responseType === 'hr' && $user->hasPermissionTo('manager_respond_permission_request')) {
+            $request->updateManagerStatus($status, $rejectionReason);
         }
 
         if ($responseType === 'manager') {
@@ -365,7 +371,8 @@ class PermissionRequestService
     public function resetStatus(PermissionRequest $request, string $responseType)
     {
         try {
-            // التحقق من الصلاحيات حسب نوع الرد
+            $user = Auth::user();
+
             if ($responseType === 'manager' && !auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
                 throw new \Illuminate\Auth\Access\AuthorizationException(
                     'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير'
@@ -376,6 +383,12 @@ class PermissionRequestService
                 throw new \Illuminate\Auth\Access\AuthorizationException(
                     'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كموارد بشرية'
                 );
+            }
+
+            if ($responseType === 'manager' && $user->hasRole('hr') && $user->hasPermissionTo('hr_respond_permission_request')) {
+                $request->updateHrStatus('pending', null);
+            } elseif ($responseType === 'hr' && $user->hasPermissionTo('manager_respond_permission_request')) {
+                $request->updateManagerStatus('pending', null);
             }
 
             if ($responseType === 'manager') {
@@ -399,11 +412,18 @@ class PermissionRequestService
 
     public function modifyResponse(PermissionRequest $request, array $data): array
     {
+        $user = Auth::user();
+
         if (isset($data['status'])) {
             $status = $data['status'];
             $rejectionReason = $status === 'rejected' ? ($data['rejection_reason'] ?? null) : null;
 
             $request->updateManagerStatus($status, $rejectionReason);
+
+            if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_permission_request')) {
+                $request->updateHrStatus($status, $rejectionReason);
+            }
+
             $request->save();
 
             $this->notificationService->notifyManagerStatusUpdate($request);
@@ -419,28 +439,19 @@ class PermissionRequestService
             $departureTime = Carbon::parse($request->departure_time);
             $returnTime = Carbon::parse($request->return_time);
 
-            // Get the specific shift end time for this user
             $user = User::find($request->user_id);
             if ($user && $user->workShift) {
                 $shiftEndTime = Carbon::parse($user->workShift->check_out_time)->setDateFrom($departureTime);
             } else {
-                // Use default if no work shift found (4:00 PM)
                 $shiftEndTime = Carbon::parse($departureTime)->setTime(16, 0, 0);
             }
 
-            // لا نقوم بتسجيل "لم يرجع" تلقائياً عند انتهاء الوردية
-            // بل فقط نتأكد من أن حساب الدقائق يكون حتى نهاية الوردية
-            // يجب أن يقوم المدير يدوياً بالضغط على زر "لم يرجع" لتسجيل مخالفة
 
-            // Handle different return status values
             if ($returnTime->format('H:i') === $shiftEndTime->format('H:i')) {
-                // If return time is same as shift end, mark as returned
                 $request->returned_on_time = true;
             } else if ($returnStatus == 1) {
-                // Employee marked themselves as returned
                 $request->returned_on_time = true;
 
-                // تحديد وقت العودة الفعلي بالوقت الحالي أو نهاية الوردية أيهما أسبق
                 if ($now->gt($shiftEndTime)) {
                     Log::info('Employee returned after shift end time - using shift end time', [
                         'request_id' => $request->id,
@@ -454,25 +465,20 @@ class PermissionRequestService
                     ]);
                 }
             } else if ($returnStatus == 0) {
-                // Reset status
                 $request->returned_on_time = false;
             } else if ($returnStatus == 2) {
-                // Not returned - explicit action by manager or employee
                 $request->returned_on_time = 2;
 
-                // Create violation record only when explicitly marked as not returned
                 $this->violationService->handleReturnViolation(
                     $request,
                     $returnStatus
                 );
             }
 
-            // Update minutes used based on return status
             $request->updateActualMinutesUsed();
 
             $request->save();
 
-            // Send notification
             $this->notificationService->notifyReturnStatus($request);
 
             $message = 'تم تحديث حالة العودة بنجاح';
@@ -606,7 +612,6 @@ class PermissionRequestService
         $requestedMinutes = $departureDateTime->diffInMinutes($returnDateTime);
 
         if ($requestedMinutes > $remainingMinutes) {
-            // تعديل: السماح بتجاوز الحد مع إظهار تنبيه
             return [
                 'valid' => true,
                 'message' => "تنبيه: لقد تجاوزت الحد المجاني للاستئذان الشهري المسموح به (180 دقيقة). المتبقي: {$remainingMinutes} دقيقة.",
@@ -627,7 +632,7 @@ class PermissionRequestService
         $user = $user ?? Auth::user();
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_permission_request')
         ) {
             return true;
@@ -694,8 +699,10 @@ class PermissionRequestService
             $allowedRoles = ['employee'];
         } elseif ($user->hasRole('department_manager')) {
             $allowedRoles = ['employee', 'team_leader'];
-        } elseif ($user->hasRole('company_manager')) {
+        } elseif ($user->hasRole('project_manager')) {
             $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+        } elseif ($user->hasRole('company_manager')) {
+            $allowedRoles = ['employee', 'team_leader', 'department_manager', 'project_manager'];
         }
 
         return $user->currentTeam->users()

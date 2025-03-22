@@ -10,7 +10,7 @@
                     @csrf
                     <div class="modal-body">
                         <!-- اختيار الموظف (يظهر فقط للمدراء) -->
-                        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']))
+                        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
                         <div class="mb-3">
                             <label for="user_id" class="form-label">الموظف</label>
                             <select class="form-select" id="user_id" name="user_id" required>
@@ -63,12 +63,12 @@
                     @csrf
                     @method('PUT')
                     <div class="modal-header">
-                        <h5 class="modal-title">Edit Absence Request</h5>
+                        <h5 class="modal-title">تعديل طلب الغياب</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label for="edit_absence_date" class="form-label">Absence Date</label>
+                            <label for="edit_absence_date" class="form-label">تاريخ الغياب</label>
                             <input type="date"
                                 class="form-control"
                                 id="edit_absence_date"
@@ -76,7 +76,7 @@
                                 required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_reason" class="form-label">Reason</label>
+                            <label for="edit_reason" class="form-label">السبب</label>
                             <textarea class="form-control"
                                 id="edit_reason"
                                 name="reason"
@@ -85,8 +85,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Request</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">تحديث الطلب</button>
                     </div>
                 </form>
             </div>

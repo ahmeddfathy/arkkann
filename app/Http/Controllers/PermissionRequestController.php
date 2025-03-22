@@ -68,7 +68,7 @@ class PermissionRequestController extends Controller
             ->sum('minutes_used');
 
         $teamMembersMinutes = [];
-        if ($user->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) {
+        if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) {
             $teamMembers = $user->currentTeam ? $user->currentTeam->users->pluck('id') : collect();
 
             foreach ($teamMembers as $memberId) {
@@ -166,7 +166,7 @@ class PermissionRequestController extends Controller
             foreach ($teamUserIds as $userId) {
                 $remainingMinutes[$userId] = $this->permissionRequestService->getRemainingMinutes($userId);
             }
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $allowedRoles = [];
@@ -207,7 +207,7 @@ class PermissionRequestController extends Controller
             }
         }
 
-        if (Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) {
+        if (Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) {
             $users = $this->permissionRequestService->getAllowedUsers(Auth::user());
         } else {
             $users = User::when($user->hasRole('hr'), function ($query) {
@@ -459,7 +459,31 @@ class PermissionRequestController extends Controller
             'rejection_reason' => 'nullable|required_if:status,rejected|string|max:255',
         ]);
 
-        if ($validated['response_type'] === 'manager' && $user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        // التحقق من الصلاحيات حسب نوع الرد
+        if ($validated['response_type'] === 'manager') {
+            // التحقق من صلاحية الرد كمدير
+            if (!$user->hasPermissionTo('manager_respond_permission_request')) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير');
+            }
+
+            // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
+            if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+                !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير');
+            }
+        } elseif ($validated['response_type'] === 'hr') {
+            // التحقق من صلاحية الرد كـ HR
+            if (!$user->hasPermissionTo('hr_respond_permission_request')) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان كموارد بشرية');
+            }
+
+            // التحقق من أن المستخدم HR
+            if (!$user->hasRole('hr')) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان كموارد بشرية');
+            }
+        }
+
+        if ($validated['response_type'] === 'manager' && $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $permissionRequest->manager_status = $validated['status'];
             $permissionRequest->manager_rejection_reason = $validated['status'] === 'rejected' ? $validated['rejection_reason'] : null;
         } elseif ($validated['response_type'] === 'hr' && $user->hasRole('hr')) {
@@ -481,7 +505,7 @@ class PermissionRequestController extends Controller
 
         // تحقق من الصلاحيات
         if (
-            !$user->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']) &&
+            !$user->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
             $user->id !== $permissionRequest->user_id
         ) {
             return response()->json([
@@ -501,7 +525,7 @@ class PermissionRequestController extends Controller
             $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
             // إذا كان المستخدم مدير أو HR، نسمح له بتسجيل العودة بغض النظر عن الوقت
-            $isManager = $user->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']);
+            $isManager = $user->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']);
 
             if ($returnTime->gte($endOfWorkDay)) {
                 $permissionRequest->returned_on_time = true;
@@ -588,36 +612,36 @@ class PermissionRequestController extends Controller
         }
     }
 
-    public function updateHrStatus(Request $request, $id)
+    public function updateHrStatus(Request $request, PermissionRequest $permissionRequest)
     {
         // التحقق من صلاحية الرد على الطلب كـ HR
         if (!auth()->user()->hasPermissionTo('hr_respond_permission_request')) {
             abort(403, 'ليس لديك صلاحية الرد على طلبات الاستئذان كموارد بشرية');
         }
 
-        $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'rejection_reason' => 'required_if:status,rejected'
-        ]);
-
         try {
-            $permissionRequest = PermissionRequest::findOrFail($id);
+            $validated = $request->validate([
+                'status' => 'required|in:approved,rejected',
+                'rejection_reason' => 'nullable|required_if:status,rejected|string|max:255',
+            ]);
+
             $user = Auth::user();
 
-            if (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_permission_request')) {
+            // التحقق من أن المستخدم HR
+            if (!$user->hasRole('hr')) {
                 return back()->with('error', 'Unauthorized action.');
             }
 
-            $permissionRequest->updateHrStatus(
-                $request->status,
-                $request->status === 'rejected' ? $request->rejection_reason : null
-            );
+            // تحديث حالة الرد كـ HR
+            $permissionRequest->updateHrStatus($validated['status'], $validated['rejection_reason'] ?? null);
+            $permissionRequest->save();
 
-            $this->notificationService->notifyHRStatusUpdate($permissionRequest);
+            $this->notificationService->createPermissionStatusUpdateNotification($permissionRequest);
 
             return back()->with('success', 'تم تحديث الرد بنجاح');
         } catch (\Exception $e) {
-            return back()->with('error', 'An error occurred while updating the status.');
+            \Log::error('Update HR Status Error: ' . $e->getMessage());
+            return back()->with('error', 'حدث خطأ أثناء تحديث الرد');
         }
     }
 
@@ -691,39 +715,37 @@ class PermissionRequestController extends Controller
         }
     }
 
-    public function updateManagerStatus(Request $request, $id)
+    public function updateManagerStatus(Request $request, PermissionRequest $permissionRequest)
     {
         // التحقق من صلاحية الرد على الطلب كمدير
         if (!auth()->user()->hasPermissionTo('manager_respond_permission_request')) {
             abort(403, 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير');
         }
 
-        $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'rejection_reason' => 'required_if:status,rejected'
-        ]);
-
         try {
-            $permissionRequest = PermissionRequest::findOrFail($id);
+            $validated = $request->validate([
+                'status' => 'required|in:approved,rejected',
+                'rejection_reason' => 'nullable|required_if:status,rejected|string|max:255',
+            ]);
+
             $user = Auth::user();
 
-            if (
-                !$user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
-                !$user->hasPermissionTo('manager_respond_permission_request')
-            ) {
+            // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
+            if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+                !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
                 return back()->with('error', 'Unauthorized action.');
             }
 
-            $permissionRequest->updateManagerStatus(
-                $request->status,
-                $request->status === 'rejected' ? $request->rejection_reason : null
-            );
+            // تحديث حالة الرد كمدير
+            $permissionRequest->updateManagerStatus($validated['status'], $validated['rejection_reason'] ?? null);
+            $permissionRequest->save();
 
-            $this->notificationService->notifyManagerStatusUpdate($permissionRequest);
+            $this->notificationService->createPermissionStatusUpdateNotification($permissionRequest);
 
             return back()->with('success', 'تم تحديث الرد بنجاح');
         } catch (\Exception $e) {
-            return back()->with('error', 'An error occurred while updating the status.');
+            \Log::error('Update Manager Status Error: ' . $e->getMessage());
+            return back()->with('error', 'حدث خطأ أثناء تحديث الرد');
         }
     }
 
@@ -739,10 +761,17 @@ class PermissionRequestController extends Controller
             ]);
         }
 
-        if (
-            !$user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
-            !$user->hasPermissionTo('manager_respond_permission_request')
-        ) {
+        // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
+        if (!$user->hasPermissionTo('manager_respond_permission_request')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير'
+            ]);
+        }
+
+        // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
+        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير'
@@ -751,16 +780,16 @@ class PermissionRequestController extends Controller
 
         try {
             $this->permissionRequestService->resetStatus($permissionRequest, 'manager');
-
             return response()->json([
                 'success' => true,
-                'message' => 'تم إعادة تعيين رد المدير بنجاح'
+                'message' => 'تم إعادة تعيين الرد بنجاح'
             ]);
         } catch (\Exception $e) {
+            \Log::error('Reset Manager Status Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إعادة تعيين الرد'
-            ], 500);
+            ]);
         }
     }
 
@@ -768,11 +797,20 @@ class PermissionRequestController extends Controller
     {
         $user = Auth::user();
 
-        if (
-            !$user->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
-            !$user->hasPermissionTo('manager_respond_permission_request')
-        ) {
-            return back()->with('error', 'Unauthorized action.');
+        // منع المستخدم من الرد على طلباته الخاصة
+        if ($user->id === $permissionRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك تعديل الرد على طلب الاستئذان الخاص بك');
+        }
+
+        // التحقق من أن المستخدم لديه صلاحية الرد كمدير
+        if (!$user->hasPermissionTo('manager_respond_permission_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات الاستئذان كمدير');
+        }
+
+        // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
+        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات الاستئذان كمدير');
         }
 
         $validated = $request->validate([
@@ -780,18 +818,14 @@ class PermissionRequestController extends Controller
             'rejection_reason' => 'required_if:status,rejected|nullable|string|max:255'
         ]);
 
-        try {
-            $permissionRequest->manager_status = $validated['status'];
-            $permissionRequest->manager_rejection_reason = $validated['status'] === 'rejected' ? $validated['rejection_reason'] : null;
-            $permissionRequest->updateFinalStatus();
-            $permissionRequest->save();
+        $permissionRequest->manager_status = $validated['status'];
+        $permissionRequest->manager_rejection_reason = $validated['status'] === 'rejected' ? $validated['rejection_reason'] : null;
+        $permissionRequest->updateFinalStatus();
+        $permissionRequest->save();
 
-            $this->notificationService->notifyManagerStatusUpdate($permissionRequest);
+        $this->notificationService->notifyManagerStatusUpdate($permissionRequest);
 
-            return back()->with('success', 'تم تعديل الرد بنجاح');
-        } catch (\Exception $e) {
-            return back()->with('error', 'حدث خطأ أثناء تعديل الرد');
-        }
+        return redirect()->back()->with('success', 'تم تعديل الرد بنجاح');
     }
 
     protected function getStatistics($user, $dateStart, $dateEnd)
@@ -860,7 +894,7 @@ class PermissionRequestController extends Controller
         ];
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']) &&
+            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']) &&
             ($user->currentTeam || $user->ownedTeams->count() > 0)
         ) {
             $teams = collect();
@@ -1288,10 +1322,12 @@ class PermissionRequestController extends Controller
             return ['employee'];
         } elseif ($user->hasRole('department_manager')) {
             return ['employee', 'team_leader'];
+        } elseif ($user->hasRole('project_manager')) {
+            return ['employee', 'team_leader', 'department_manager'];
         } elseif ($user->hasRole('company_manager')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'department_manager', 'project_manager'];
         } elseif ($user->hasRole('hr')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'department_manager', 'project_manager', 'company_manager'];
         }
         return [];
     }

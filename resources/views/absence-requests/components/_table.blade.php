@@ -115,7 +115,7 @@
     </div>
 
     <!-- Team Absence Requests (For Managers & HR Only) -->
-    @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'company_manager']))
+    @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card shadow-sm">
@@ -192,7 +192,10 @@
                                     </span>
                                 </td>
                                 <td>
-                                    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']))
+                                    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) ||
+                                       (Auth::user()->hasRole('hr') && $canRespondAsManager && Auth::user()->ownedTeams->contains(function($team) use ($request) {
+                                           return $team->users->contains('id', $request->user_id);
+                                       })))
                                     @if($request->manager_status === 'pending')
                                     @if($canRespondAsManager)
                                     <button class="btn btn-sm btn-info respond-btn"

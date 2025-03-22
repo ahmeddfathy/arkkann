@@ -58,10 +58,19 @@ class AbsenceRequestService
             return redirect()->back()->withErrors(['absence_date' => 'You have already requested this day off.']);
         }
 
-        // Auto-approve HR status if the requester is an HR
         $hrStatus = 'pending';
+        $managerStatus = 'pending';
+
         if ($user->hasRole('hr')) {
             $hrStatus = 'approved';
+        }
+
+        if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_absence_request')) {
+            $managerStatus = 'approved';
+        }
+
+        if ($user->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+            $managerStatus = 'approved';
         }
 
         $request = AbsenceRequest::create([
@@ -69,10 +78,10 @@ class AbsenceRequestService
             'absence_date' => $data['absence_date'],
             'reason' => $data['reason'],
             'status' => 'pending',
-            'hr_status' => $hrStatus
+            'hr_status' => $hrStatus,
+            'manager_status' => $managerStatus
         ]);
 
-        // Update the final status based on the new HR approval
         $request->updateFinalStatus();
         $request->save();
 
@@ -87,6 +96,7 @@ class AbsenceRequestService
 
         if (!($currentUser->hasRole('team_leader') ||
               $currentUser->hasRole('department_manager') ||
+              $currentUser->hasRole('project_manager') ||
               $currentUser->hasRole('company_manager') ||
               $currentUser->hasRole('hr'))) {
             throw new \Illuminate\Auth\Access\AuthorizationException('You are not authorized to create requests for other users.');
@@ -96,7 +106,6 @@ class AbsenceRequestService
             return $this->createRequest($data);
         }
 
-        // Check if the employee already has a request for the same absence date
         $existingRequest = AbsenceRequest::where('user_id', $userId)
             ->where('absence_date', $data['absence_date'])
             ->first();
@@ -104,38 +113,36 @@ class AbsenceRequestService
             return redirect()->back()->withErrors(['absence_date' => 'This employee already has a request for this day off.']);
         }
 
-        // Get target user data
         $targetUser = \App\Models\User::find($userId);
 
-        // التحقق مما إذا كان الموظف لديه فريق
         $hasTeam = DB::table('team_user')->where('user_id', $userId)->exists();
 
-        // تحديد حالة الطلب بناءً على وجود الفريق ودور المستخدم الحالي
-        if (!$hasTeam) {
-            // إذا لم يكن لدى الموظف فريق
-            if ($currentUser->hasRole('hr')) {
-                // إذا كان المستخدم الحالي HR، يتم الموافقة تلقائياً
-                $hrStatus = 'approved';
-            } else {
-                // إذا كان المستخدم الحالي ليس HR، نترك حالة HR معلقة
-                $hrStatus = 'pending';
-            }
-            $managerStatus = 'pending';
-        } else {
-            // إذا كان الموظف لديه فريق
-            if ($currentUser->hasRole('hr')) {
-                // إذا كان المستخدم الحالي HR، يتم الموافقة تلقائياً من ناحية HR
-                $hrStatus = 'approved';
-            } else {
-                // إذا كان المستخدم الحالي ليس HR، نترك حالة HR معلقة
-                $hrStatus = 'pending';
-            }
+        $hrStatus = 'pending';
+        $managerStatus = 'pending';
 
-            // المدير موافق دائماً عند إنشاء الطلب بواسطة مدير
-            $managerStatus = 'approved';
+        if ($currentUser->hasRole('hr')) {
+            $hrStatus = 'approved';
         }
 
-        // Auto-approve HR status if the target user is an HR
+        if ($hasTeam) {
+            if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+                $managerStatus = 'approved';
+            }
+            elseif ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_absence_request')) {
+                $isTeamOwner = false;
+                foreach ($currentUser->ownedTeams as $team) {
+                    if ($team->users->contains('id', $userId)) {
+                        $isTeamOwner = true;
+                        break;
+                    }
+                }
+
+                if ($isTeamOwner) {
+                    $managerStatus = 'approved';
+                }
+            }
+        }
+
         if ($targetUser && $targetUser->hasRole('hr')) {
             $hrStatus = 'approved';
         }
@@ -169,23 +176,19 @@ class AbsenceRequestService
             return redirect()->back()->withErrors(['absence_date' => 'You have already requested this day off.']);
         }
 
-        // Store the current status values
         $currentHrStatus = $request->hr_status;
         $currentManagerStatus = $request->manager_status;
 
-        // Update basic information
         $request->update([
             'absence_date' => $data['absence_date'],
             'reason' => $data['reason']
         ]);
 
-        // If the user is HR and the HR status was already approved, keep it approved
         if ($user->hasRole('hr') && $currentHrStatus === 'approved') {
             $request->hr_status = 'approved';
             $request->save();
         }
 
-        // Update the final status
         $request->updateFinalStatus();
         $request->save();
 
@@ -284,13 +287,17 @@ class AbsenceRequestService
         $user = $user ?? Auth::user();
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_absence_request')
         ) {
             return true;
         }
 
         if ($user->hasRole('hr') && $user->hasPermissionTo('hr_respond_absence_request')) {
+            return true;
+        }
+
+        if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_absence_request') && $user->ownedTeams->count() > 0) {
             return true;
         }
 
@@ -306,7 +313,7 @@ class AbsenceRequestService
         }
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_absence_request')
         ) {
             return true;

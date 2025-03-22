@@ -48,7 +48,7 @@ class AbsenceRequestController extends Controller
         $statistics = $this->getStatistics($user, $dateStart, $dateEnd);
 
         $users = collect();
-        if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $managedTeams = $user->ownedTeams;
             foreach ($managedTeams as $team) {
                 $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
@@ -120,7 +120,7 @@ class AbsenceRequestController extends Controller
                     ->latest()
                     ->paginate(10, ['*'], 'team_page');
             }
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $allowedRoles = $this->getAllowedRoles($user);
@@ -275,13 +275,33 @@ class AbsenceRequestController extends Controller
     public function updateStatus(Request $request, AbsenceRequest $absenceRequest)
     {
         $user = Auth::user();
+        $responseType = $request->input('response_type');
 
-        if ($user->hasRole('team_leader') && !$user->hasPermissionTo('manager_respond_absence_request')) {
-            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الغياب');
+        // التحقق من صلاحيات الرد كمدير
+        if ($responseType === 'manager') {
+            // حالة خاصة: مستخدم HR لديه صلاحية الرد كمدير ويملك فريقًا يكون صاحب الطلب عضوًا فيه
+            $canRespondAsManager = false;
+
+            if ($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_absence_request')) {
+                foreach ($user->ownedTeams as $team) {
+                    if ($team->users->contains('id', $absenceRequest->user_id)) {
+                        $canRespondAsManager = true;
+                        break;
+                    }
+                }
+            } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+                    $user->hasPermissionTo('manager_respond_absence_request')) {
+                $canRespondAsManager = true;
+            }
+
+            if (!$canRespondAsManager) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الغياب كمدير');
+            }
         }
 
-        if ($user->hasRole('hr') && !$user->hasPermissionTo('hr_respond_absence_request')) {
-            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الغياب');
+        // التحقق من صلاحيات الرد كـ HR
+        if ($responseType === 'hr' && (!$user->hasRole('hr') || !$user->hasPermissionTo('hr_respond_absence_request'))) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الغياب كـ HR');
         }
 
         $validated = $request->validate([
@@ -464,7 +484,7 @@ class AbsenceRequestController extends Controller
                 ] : null,
             ];
 
-            if ($user->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr'])) {
+            if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) {
                 $hasTeamWithMultipleMembers = $user->ownedTeams()
                     ->withCount('users')
                     ->having('users_count', '>', 1)
@@ -530,7 +550,7 @@ class AbsenceRequestController extends Controller
                             'team_name' => $user->currentTeam->name
                         ];
                     }
-                } else if ($user->hasRole('department_manager')) {
+                } else if ($user->hasRole('department_manager') || $user->hasRole('project_manager') || $user->hasRole('company_manager')) {
                     // Special handling for department managers who might not have a team with multiple members
                     // Get all teams under this department manager
                     $managedTeams = $user->ownedTeams;
@@ -764,10 +784,12 @@ class AbsenceRequestController extends Controller
             return ['employee'];
         } elseif ($user->hasRole('department_manager')) {
             return ['employee', 'team_leader'];
+        } elseif ($user->hasRole('project_manager')) {
+            return ['employee', 'team_leader', 'department_manager'];
         } elseif ($user->hasRole('company_manager')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'department_manager', 'project_manager'];
         } elseif ($user->hasRole('hr')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'department_manager', 'project_manager', 'company_manager'];
         }
         return [];
     }

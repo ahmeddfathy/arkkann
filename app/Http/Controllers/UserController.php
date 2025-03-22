@@ -90,33 +90,50 @@ class UserController extends Controller
                     throw new \Exception("الرول '{$roleName}' غير موجود");
                 }
 
+                // تعيين الرول للمستخدم
+                $user->syncRoles([$role]);
+
+                // الحصول على صلاحيات الروله بت
                 $rolePermissions = $role->permissions->pluck('name')->toArray();
+
+                // الصلاحيات المرسلة من النموذج
                 $requestedPermissions = $request->permissions ?? [];
+
+                // جمع كل صلاحيات النظام
+                $allPermissionNames = Permission::pluck('name')->toArray();
+
+                // إعداد مصفوفة لتخزين الصلاحيات المباشرة التي سيتم تعيينها للمستخدم
+                $directPermissions = [];
+
+                // تحديد الصلاحيات المراد حظرها (الموجودة في الرول ولكن غير محددة في الطلب)
                 $permissionsToBlock = array_diff($rolePermissions, $requestedPermissions);
 
+                // مسح جميع الصلاحيات المباشرة وإعادة تعيينها
+                $user->permissions()->detach();
+
+                // إضافة الصلاحيات المحظورة (الموجودة في الرول ولكن المستخدم لا يجب أن يملكها)
                 foreach ($permissionsToBlock as $permission) {
-                    $permissionId = Permission::where('name', $permission)->first()->id;
-                    DB::table('model_has_permissions')
-                        ->updateOrInsert(
-                            [
-                                'permission_id' => $permissionId,
-                                'model_type' => get_class($user),
-                                'model_id' => $user->id
-                            ],
-                            ['forbidden' => true]
-                        );
+                    $permObj = Permission::where('name', $permission)->first();
+                    if ($permObj) {
+                        DB::table('model_has_permissions')->insert([
+                            'permission_id' => $permObj->id,
+                            'model_type' => get_class($user),
+                            'model_id' => $user->id,
+                            'forbidden' => true
+                        ]);
+                    }
                 }
 
-                DB::table('model_has_permissions')
-                    ->where([
-                        'model_type' => get_class($user),
-                        'model_id' => $user->id,
-                        'forbidden' => true
-                    ])
-                    ->whereIn('permission_id', Permission::whereIn('name', $requestedPermissions)->pluck('id'))
-                    ->delete();
+                // إضافة الصلاحيات الإضافية (ليست ضمن صلاحيات الرول)
+                $additionalPermissions = array_diff($requestedPermissions, $rolePermissions);
+                foreach ($additionalPermissions as $permission) {
+                    $directPermissions[] = $permission;
+                }
 
-                $user->syncRoles([$role]);
+                // تعيين الصلاحيات المباشرة للمستخدم
+                if (!empty($directPermissions)) {
+                    $user->syncPermissions($directPermissions);
+                }
             }
 
             DB::commit();
@@ -307,5 +324,29 @@ class UserController extends Controller
 
         return redirect()->route('users.assign-work-shifts')
             ->with('success', 'تم تعيين الورديات للمستخدمين بنجاح.');
+    }
+
+    /**
+     * استرجاع الصلاحيات الإضافية للمستخدم (الصلاحيات المباشرة التي ليست ضمن الرول)
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAdditionalPermissions($id)
+    {
+        $user = User::findOrFail($id);
+
+        // الحصول على صلاحيات المستخدم المباشرة
+        $userDirectPermissions = $user->permissions->pluck('name')->toArray();
+
+        // الحصول على صلاحيات الأدوار التي يملكها المستخدم
+        $rolePermissions = $user->roles->flatMap(function ($role) {
+            return $role->permissions->pluck('name')->toArray();
+        })->toArray();
+
+        // الصلاحيات الإضافية هي التي يملكها المستخدم مباشرة وليست موجودة في صلاحيات الأدوار
+        $additionalPermissions = array_diff($userDirectPermissions, $rolePermissions);
+
+        return response()->json($additionalPermissions);
     }
 }

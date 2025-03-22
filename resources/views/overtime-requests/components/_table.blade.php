@@ -1,5 +1,5 @@
     <!-- Team requests table -->
-    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']))
+    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
@@ -12,7 +12,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']))
+                            @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
                             <th>الموظف</th>
                             @endif
                             <th>التاريخ</th>
@@ -30,7 +30,7 @@
                     <tbody>
                         @forelse($teamRequests as $request)
                         <tr>
-                            @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']))
+                            @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
                             <td>{{ $request->user->name }}</td>
                             @endif
                             <td>{{ $request->overtime_date->format('Y-m-d') }}</td>
@@ -112,6 +112,33 @@
                                     @endif
                                     @endif
 
+                                    <!-- الحالة الخاصة: إذا كان مستخدم HR لديه صلاحية الاستجابة كمدير -->
+                                    @if(Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_overtime_request') && $request->user_id !== Auth::id())
+                                    @if($request->manager_status === 'pending')
+                                    <button type="button" class="btn btn-info respond-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#respondOvertimeModal"
+                                        data-request-id="{{ $request->id }}"
+                                        data-response-type="manager">
+                                        <i class="fas fa-reply"></i> رد المدير
+                                    </button>
+                                    @else
+                                    <button type="button" class="btn btn-warning modify-response-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modifyResponseModal"
+                                        data-request-id="{{ $request->id }}"
+                                        data-response-type="manager"
+                                        data-current-status="{{ $request->manager_status }}"
+                                        data-current-reason="{{ $request->manager_rejection_reason }}">
+                                        <i class="fas fa-edit"></i> تعديل الرد
+                                    </button>
+                                    <button type="button" class="btn btn-secondary reset-btn"
+                                        onclick="resetStatus('{{ $request->id }}', 'manager')">
+                                        <i class="fas fa-undo"></i> إعادة تعيين
+                                    </button>
+                                    @endif
+                                    @endif
+
                                     @if($canRespondAsHR && Auth::user()->hasPermissionTo('hr_respond_overtime_request'))
                                     @if($request->hr_status === 'pending')
                                     <button type="button" class="btn btn-info respond-btn"
@@ -142,7 +169,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager', 'hr']) ? '11' : '10' }}"
+                            <td colspan="{{ Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']) ? '11' : '10' }}"
                                 class="text-center">
                                 لا توجد طلبات عمل إضافي
                             </td>

@@ -28,7 +28,7 @@
         <!-- الرسوم البيانية للفريق -->
         @if(
         (
-        Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
+        Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) ||
         Auth::user()->hasRole('hr')
         ) &&
         (
@@ -41,7 +41,7 @@
         ->withCount('users')
         ->having('users_count', '>', 1)
         ->exists() ||
-        (Auth::user()->hasRole('department_manager') && isset($statistics['team']))
+        (Auth::user()->hasRole(['department_manager', 'project_manager']) && isset($statistics['team']))
         ) &&
         isset($statistics['team'])
         )
@@ -163,7 +163,7 @@
         <!-- إحصائيات الفريق -->
         @if(
         (
-        Auth::user()->hasRole(['team_leader', 'department_manager', 'company_manager']) ||
+        Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) ||
         Auth::user()->hasRole('hr')
         ) &&
         (
@@ -176,7 +176,7 @@
         ->withCount('users')
         ->having('users_count', '>', 1)
         ->exists() ||
-        (Auth::user()->hasRole('department_manager') && isset($statistics['team']))
+        (Auth::user()->hasRole(['department_manager', 'project_manager']) && isset($statistics['team']))
         ) &&
         isset($statistics['team'])
         )

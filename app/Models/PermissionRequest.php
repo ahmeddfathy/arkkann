@@ -133,7 +133,7 @@ class PermissionRequest extends Model implements Auditable
       return false;
     }
 
-    if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+    if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
       return DB::table('team_user')
         ->where('user_id', $user->id)
         ->where('team_id', $this->user->currentTeam->id)

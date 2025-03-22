@@ -158,7 +158,7 @@ class OverTimeRequestsController extends Controller
                         ->first()
                 ];
             }
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $allowedRoles = [];
@@ -166,8 +166,10 @@ class OverTimeRequestsController extends Controller
                     $allowedRoles = ['employee'];
                 } elseif ($user->hasRole('department_manager')) {
                     $allowedRoles = ['employee', 'team_leader'];
-                } elseif ($user->hasRole('company_manager')) {
+                } elseif ($user->hasRole('project_manager')) {
                     $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+                } elseif ($user->hasRole('company_manager')) {
+                    $allowedRoles = ['employee', 'team_leader', 'department_manager', 'project_manager'];
                 }
 
                 $teamMembers = $team->users()
@@ -243,7 +245,7 @@ class OverTimeRequestsController extends Controller
                 ->value('total_hours')
         ];
 
-        if ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $teamStatistics = [
                 'total_requests' => OverTimeRequests::whereIn('user_id', $users->pluck('id'))
                     ->whereBetween('overtime_date', [$dateStart, $dateEnd])
@@ -518,8 +520,20 @@ class OverTimeRequestsController extends Controller
 
     public function updateManagerStatus(Request $request, $id)
     {
-        if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
-            abort(403, 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
+        $user = Auth::user();
+        $overtimeRequest = OverTimeRequests::findOrFail($id);
+
+        if ($user->id === $overtimeRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك الرد على طلب العمل الإضافي الخاص بك');
+        }
+
+        if (!$user->hasPermissionTo('manager_respond_overtime_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
+        }
+
+        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
 
         $request->validate([
@@ -528,9 +542,8 @@ class OverTimeRequestsController extends Controller
         ]);
 
         try {
-            $overtimeRequest = OverTimeRequests::findOrFail($id);
             $this->overTimeRequestService->updateManagerStatus($overtimeRequest, $request->all());
-            return back()->with('success', 'Response submitted successfully.');
+            return back()->with('success', 'تم الرد على الطلب بنجاح');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -558,12 +571,23 @@ class OverTimeRequestsController extends Controller
 
     public function resetManagerStatus($id)
     {
-        if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
-            abort(403, 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
+        $user = Auth::user();
+        $overtimeRequest = OverTimeRequests::findOrFail($id);
+
+        if ($user->id === $overtimeRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك إعادة تعيين الرد على طلب العمل الإضافي الخاص بك');
+        }
+
+        if (!$user->hasPermissionTo('manager_respond_overtime_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
+        }
+
+        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
         }
 
         try {
-            $overtimeRequest = OverTimeRequests::findOrFail($id);
             $overtimeRequest->manager_status = 'pending';
             $overtimeRequest->manager_rejection_reason = null;
             $overtimeRequest->updateFinalStatus();
@@ -571,7 +595,7 @@ class OverTimeRequestsController extends Controller
 
             $this->notificationService->notifyStatusReset($overtimeRequest, 'manager');
 
-            return back()->with('success', 'Status reset successfully.');
+            return back()->with('success', 'تم إعادة تعيين الرد بنجاح');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -600,8 +624,20 @@ class OverTimeRequestsController extends Controller
 
     public function modifyManagerStatus(Request $request, $id)
     {
-        if (!auth()->user()->hasPermissionTo('manager_respond_overtime_request')) {
-            abort(403, 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
+        $user = Auth::user();
+        $overtimeRequest = OverTimeRequests::findOrFail($id);
+
+        if ($user->id === $overtimeRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك تعديل الرد على طلب العمل الإضافي الخاص بك');
+        }
+
+        if (!$user->hasPermissionTo('manager_respond_overtime_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
+        }
+
+        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
         }
 
         $request->validate([
@@ -610,12 +646,6 @@ class OverTimeRequestsController extends Controller
         ]);
 
         try {
-            $overtimeRequest = OverTimeRequests::findOrFail($id);
-
-            if (!Auth::user()->hasPermissionTo('manager_respond_overtime_request')) {
-                return back()->with('error', 'Unauthorized action.');
-            }
-
             $overtimeRequest->manager_status = $request->status;
             $overtimeRequest->manager_rejection_reason = $request->status === 'rejected' ? $request->rejection_reason : null;
             $overtimeRequest->updateFinalStatus();
@@ -623,7 +653,7 @@ class OverTimeRequestsController extends Controller
 
             $this->notificationService->notifyResponseModified($overtimeRequest, 'manager');
 
-            return back()->with('success', 'Manager response updated successfully.');
+            return back()->with('success', 'تم تعديل الرد بنجاح');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -631,7 +661,6 @@ class OverTimeRequestsController extends Controller
 
     public function modifyHrStatus(Request $request, $id)
     {
-        // التحقق من صلاحية الرد على الطلب كـ HR
         if (!auth()->user()->hasPermissionTo('hr_respond_overtime_request')) {
             abort(403, 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كموارد بشرية');
         }
@@ -665,13 +694,25 @@ class OverTimeRequestsController extends Controller
     {
         $user = Auth::user();
 
-        // التحقق من صلاحيات المدير
+        if ($user->id === $overtimeRequest->user_id) {
+            return redirect()->back()->with('error', 'لا يمكنك الرد على طلب العمل الإضافي الخاص بك');
+        }
+
         if ($request->input('response_type') === 'manager' && !$user->hasPermissionTo('manager_respond_overtime_request')) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
 
-        // التحقق من صلاحيات HR
         if ($request->input('response_type') === 'hr' && !$user->hasPermissionTo('hr_respond_overtime_request')) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كموارد بشرية');
+        }
+
+        if ($request->input('response_type') === 'manager' &&
+            !$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
+        }
+
+        if ($request->input('response_type') === 'hr' && !$user->hasRole('hr')) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كموارد بشرية');
         }
 

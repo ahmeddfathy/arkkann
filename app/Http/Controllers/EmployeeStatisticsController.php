@@ -33,7 +33,7 @@ class EmployeeStatisticsController extends Controller
                 })
                 ->orWhere('id', $user->id); // Include the current HR user
             })->get();
-        } elseif ($user->hasRole('department_manager')) {
+        } elseif ($user->hasRole('department_manager') || $user->hasRole('project_manager')) {
             $managedTeams = $user->allTeams()->pluck('id');
 
             $employeeQuery->where(function ($query) use ($managedTeams, $user) {
@@ -111,7 +111,7 @@ class EmployeeStatisticsController extends Controller
         }
 
         $departments = [];
-        if ($user->hasRole(['hr', 'company_manager', 'department_manager'])) {
+        if ($user->hasRole(['hr', 'company_manager', 'department_manager' , 'project_manager'])) {
             $departments = User::select('department')
                 ->distinct()
                 ->whereNotNull('department')
@@ -298,7 +298,7 @@ class EmployeeStatisticsController extends Controller
 
         if ($user->hasRole('hr')) {
             $canViewEmployee = true;
-        } elseif ($user->hasRole('department_manager')) {
+        } elseif ($user->hasRole('department_manager') || $user->hasRole('project_manager')) {
             $managedTeams = $user->allTeams()->pluck('id');
             $canViewEmployee = $employee->teams()
                 ->whereIn('teams.id', $managedTeams)
@@ -475,6 +475,8 @@ class EmployeeStatisticsController extends Controller
         } elseif ($user->hasRole('department_manager')) {
             return ['employee', 'team_leader'];
         } elseif ($user->hasRole('company_manager')) {
+            return ['employee', 'team_leader', 'department_manager' , 'project_manager'];
+        } elseif ($user->hasRole('project_manager')) {
             return ['employee', 'team_leader', 'department_manager'];
         }
         return [];

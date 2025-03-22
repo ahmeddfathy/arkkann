@@ -152,7 +152,7 @@ class NotificationService
             if ($hasTeam && $currentUserRole === 'hr') {
                 $this->notifyTeamOwners($request);
             }
-            elseif (in_array($currentUserRole, ['team_leader', 'department_manager', 'company_manager'])) {
+            elseif (in_array($currentUserRole, ['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
                 $this->notifyHR($request);
             }
         } catch (\Exception $e) {
@@ -701,11 +701,11 @@ class NotificationService
     {
         $link = "/dashboard";
 
-        if ($user->role === 'employee') {
+        if ($user->hasRole('employee')) {
             $link = "/employee/absence/{$requestId}";
-        } elseif ($user->role === 'admin' || $user->role === 'manager') {
+        } elseif ($user->hasAnyRole(['admin', 'manager', 'team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $link = "/admin/absence/{$requestId}";
-        } elseif ($user->role === 'hr') {
+        } elseif ($user->hasRole('hr')) {
             $link = "/hr/absence/{$requestId}";
         }
 

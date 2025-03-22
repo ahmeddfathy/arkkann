@@ -37,7 +37,7 @@ class EmployeeCompetitionController extends Controller
             $employeeQuery->whereDoesntHave('roles', function ($q) {
                 $q->whereIn('name', ['hr', 'company_manager']);
             });
-        } elseif ($user->hasRole('department_manager')) {
+        } elseif ($user->hasRole('department_manager') || $user->hasRole('project_manager')) {
             $managedTeams = $user->allTeams()->pluck('id');
             $employeeQuery->whereHas('teams', function ($q) use ($managedTeams) {
                 $q->whereIn('teams.id', $managedTeams);

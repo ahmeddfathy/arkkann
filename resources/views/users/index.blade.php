@@ -215,6 +215,7 @@
                                     id="perm_{{ $permission->name }}">
                                 <label class="form-check-label" for="perm_{{ $permission->name }}">
                                     {{ $permission->name }}
+                                    <span id="source_{{ $permission->name }}" class="badge"></span>
                                 </label>
                             </div>
                             @endforeach
@@ -301,31 +302,45 @@
 
         if (!selectedRole) {
             $('.permission-checkbox').prop('checked', false);
+            $('.badge').text('');
             return;
         }
 
-        // جلغاء تحديد كل الصلاحيات أولاً
+        // إزالة جميع الشارات وإلغاء تحديد الصلاحيات
         $('.permission-checkbox').prop('checked', false);
+        $('.badge').text('').removeClass('bg-primary bg-success');
 
         // جلب صلاحيات الرول المحدد
         $.ajax({
             url: `/roles/${selectedRole}/permissions`,
             method: 'GET',
             success: function(rolePermissions) {
-                console.log('Role permissions:', rolePermissions); // للتأكد من الصلاحيات المستلمة
+                console.log('Role permissions:', rolePermissions);
 
-                // تحديد صلاحيات الرول
+                // تحديد صلاحيات الرول وإضافة الشارة
                 rolePermissions.forEach(permission => {
                     $(`#perm_${permission}`).prop('checked', true);
+                    $(`#source_${permission}`).text('من الرول').addClass('bg-primary');
                 });
 
-                // ثم نحصل على الصلاحيات المحظورة للمستخدم
-                $.get(`/users/${userId}/forbidden-permissions`, function(forbiddenPermissions) {
-                    console.log('Forbidden permissions:', forbiddenPermissions); // للتأكد من الصلاحيات المحظورة
+                // جلب الصلاحيات الإضافية للمستخدم
+                $.get(`/users/${userId}/additional-permissions`, function(additionalPermissions) {
+                    console.log('Additional permissions:', additionalPermissions);
 
-                    // إلغاء تحديد الصلاحيات المحظورة
-                    forbiddenPermissions.forEach(permission => {
-                        $(`#perm_${permission}`).prop('checked', false);
+                    // تحديد الصلاحيات الإضافية وإضافة الشارة المناسبة
+                    additionalPermissions.forEach(permission => {
+                        $(`#perm_${permission}`).prop('checked', true);
+                        $(`#source_${permission}`).text('إضافية').addClass('bg-success');
+                    });
+
+                    // ثم نحصل على الصلاحيات المحظورة للمستخدم
+                    $.get(`/users/${userId}/forbidden-permissions`, function(forbiddenPermissions) {
+                        console.log('Forbidden permissions:', forbiddenPermissions);
+
+                        // إلغاء تحديد الصلاحيات المحظورة
+                        forbiddenPermissions.forEach(permission => {
+                            $(`#perm_${permission}`).prop('checked', false);
+                        });
                     });
                 });
             },

@@ -225,6 +225,8 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/users/{user}/forbidden-permissions', [UserController::class, 'getForbiddenPermissions'])
     ->name('users.forbidden-permissions');
 
+Route::get('/users/{user}/additional-permissions', [UserController::class, 'getAdditionalPermissions']);
+
 Route::get('/roles/{role}/permissions', [UserController::class, 'getRolePermissions'])
     ->name('roles.permissions');
 

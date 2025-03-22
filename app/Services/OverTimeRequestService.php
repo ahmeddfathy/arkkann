@@ -41,7 +41,7 @@ class OverTimeRequestService
             return $query->whereHas('user', function ($q) {
                 $q->whereDoesntHave('teams');
             })->latest()->paginate(10);
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $teamMembers = $team->users->pluck('id')->toArray();
@@ -153,7 +153,21 @@ class OverTimeRequestService
             $managerStatus = 'pending';
             $hrStatus = 'pending';
 
-            if ($userId != $currentUser->id) {
+            // إذا كان المستخدم الحالي HR لديه صلاحية الرد كمدير
+            if ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
+                $managerStatus = 'approved';
+                $hrStatus = 'approved';
+            }
+            // إذا كان المستخدم الحالي مدير
+            elseif ($currentUser->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+                $managerStatus = 'approved';
+            }
+            // إذا كان المستخدم الحالي HR عادي
+            elseif ($currentUser->hasRole('hr')) {
+                $hrStatus = 'approved';
+            }
+            // إذا كان المستخدم يضيف طلب لشخص آخر
+            elseif ($userId != $currentUser->id) {
                 $isTeamOwner = false;
 
                 if ($currentUser->currentTeam && $currentUser->currentTeam->user_id == $currentUser->id) {
@@ -175,15 +189,10 @@ class OverTimeRequestService
                 }
 
                 // Check if current user is HR and the request user has no team
-                if ($currentUser->roles->contains('name', 'hr')) {
+                if ($currentUser->hasRole('hr')) {
                     if ($requestUser && !$requestUser->teams()->exists()) {
                         $hrStatus = 'approved';
                     }
-                }
-            } else {
-                // If HR user creates request for themselves, auto-approve HR status
-                if ($currentUser->roles->contains('name', 'hr')) {
-                    $hrStatus = 'approved';
                 }
             }
 
@@ -422,7 +431,7 @@ class OverTimeRequestService
         $user = $user ?? Auth::user();
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_overtime_request')
         ) {
             return true;
@@ -452,8 +461,10 @@ class OverTimeRequestService
             $allowedRoles = ['employee'];
         } elseif ($user->hasRole('department_manager')) {
             $allowedRoles = ['employee', 'team_leader'];
-        } elseif ($user->hasRole('company_manager')) {
+        } elseif ($user->hasRole('project_manager')) {
             $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+        } elseif ($user->hasRole('company_manager')) {
+            $allowedRoles = ['employee', 'team_leader', 'department_manager', 'project_manager'];
         }
 
         $users = $user->currentTeam->users()
