@@ -13,35 +13,13 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('employee_id')->unique()->nullable();
             $table->string('name');
             $table->string('email')->unique();
-
-            $table->string('password');
-            $table->string('role')->default('employee');
-
-
-            $table->string('profile_photo_path', 2048)->nullable();
-            $table->integer('age');
-            $table->date('date_of_birth');
-            $table->string('national_id_number')->unique();
-            $table->string('phone_number');
-            $table->date('start_date_of_employment') ->nullable();
-            $table->date('last_contract_start_date')->nullable();
-            $table->date('last_contract_end_date')->nullable();
-            $table->string('job_progression')->nullable();
-            $table->string('department')->nullable();
-            $table->string('gender');
-            $table->string('address');
-            $table->string('education_level');
-            $table->string('marital_status');
-            $table->integer('number_of_children')->default(0);
-            $table->string('employee_status')->default('active');
             $table->timestamp('email_verified_at')->nullable();
-
+            $table->string('password');
             $table->rememberToken();
             $table->foreignId('current_team_id')->nullable();
-
+            $table->string('profile_photo_path', 2048)->nullable();
             $table->timestamps();
         });
 

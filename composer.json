@@ -12,6 +12,7 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.0",
         "inertiajs/inertia-laravel": "^2.0",
+        "laravel/fortify": "*",
         "laravel/framework": "^11.31",
         "laravel/jetstream": "^5.3",
         "laravel/sanctum": "^4.0",
