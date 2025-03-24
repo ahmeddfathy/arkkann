@@ -8,7 +8,6 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterImport;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
-use App\Models\Team;
 
 class UsersImport implements ToModel, WithEvents
 {
@@ -25,7 +24,6 @@ class UsersImport implements ToModel, WithEvents
             return null;
         }
 
-        // التحقق من وجود الموظف مسبقاً
         $existingUser = User::where('employee_id', $row[2])
             ->orWhere('national_id_number', $row[11])
             ->orWhere('email', $row[7])
@@ -40,7 +38,6 @@ class UsersImport implements ToModel, WithEvents
             return null;
         }
 
-        // Validate and format the date_of_birth
         $dateOfBirth = null;
         if (!empty($row[8]) && is_numeric($row[8])) {
             try {
@@ -50,7 +47,6 @@ class UsersImport implements ToModel, WithEvents
             }
         }
 
-        // Validate and convert Excel serial number to date for start_date_of_employment
         $startDateOfEmployment = null;
         if (!empty($row[16]) && is_numeric($row[16])) {
             $startDateOfEmployment = Carbon::createFromFormat('Y-m-d', Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row[16]))->format('Y-m-d'));
@@ -87,9 +83,7 @@ class UsersImport implements ToModel, WithEvents
             'job_progression' => null,
         ]);
 
-        if ($user->save()) {
-            $this->createTeam($user);
-        }
+        $user->save();
 
         return $user;
     }
@@ -120,19 +114,5 @@ class UsersImport implements ToModel, WithEvents
                 }
             }
         ];
-    }
-
-    protected function createTeam(User $user): void
-    {
-        $team = $user->ownedTeams()->save(Team::forceCreate([
-            'user_id' => $user->id,
-            'name' => explode(' ', $user->name, 2)[0] . "'s Team",
-            'personal_team' => true,
-        ]));
-
-        // تحديث current_team_id للمستخدم
-        $user->forceFill([
-            'current_team_id' => $team->id,
-        ])->save();
     }
 }

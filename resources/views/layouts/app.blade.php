@@ -22,7 +22,7 @@
     <div>
 
     </div>
-    @if(auth()->check() && auth()->user()->currentTeam)
+    @if(auth()->check() )
     @livewire('navigation-menu')
     @endif
 

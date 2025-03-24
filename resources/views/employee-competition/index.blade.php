@@ -154,7 +154,7 @@
         </div>
     </div>
 
-    <!-- Employees Ranking Table -->
+    <!-- Employees Ranking Table - SORTED BY COMPETITION RANK -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -176,7 +176,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($employees as $index => $employee)
+                                @php
+                                    // هنا نقوم بعمل ترتيب للموظفين حسب النقاط قبل عرضهم
+                                    // ترتيب تنازلي - من الأعلى للأقل
+                                    $sortedEmployees = collect($employees)->sortByDesc('points')->values()->all();
+                                @endphp
+
+                                @foreach($sortedEmployees as $index => $employee)
                                 <tr>
                                     <td>
                                         <div class="employee-rank {{ $index < 3 ? 'rank-'.($index+1) : 'bg-light' }}">
@@ -200,7 +206,7 @@
                                             <div class="progress mb-1" style="height: 20px;">
                                                 <div class="progress-bar {{ $employee['attendance_percentage'] >= 90 ? 'bg-success' : ($employee['attendance_percentage'] >= 75 ? 'bg-warning' : 'bg-danger') }}"
                                                     role="progressbar"
-                                                    style="width: {{$employee['attendance_percentage'].'%'}}">
+                                                    style="width: {{ $employee['attendance_percentage'] }}%">
                                                     {{ number_format($employee['attendance_percentage'], 1) }}٪
                                                 </div>
                                             </div>
