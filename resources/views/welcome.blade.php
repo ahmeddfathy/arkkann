@@ -1,71 +1,124 @@
 @extends('layouts.app')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/homePage.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@endpush
+
 @section('content')
-
-<head>
-    <link rel="stylesheet" href="{{asset('css/dashboardPage.css')}}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
-</head>
-
-
-
-<div class="hero-section">
-    <div class="container">
-        <div class="row align-items-center min-vh-60">
-            <div class="col-lg-6" data-aos="fade-right">
-                
-                <h1 class="display-4 fw-bold mb-4">نظام أركان لإدارة الحضور والإجازات</h1>
-                <p class="lead mb-4">نظام متكامل لإدارة الحضور والانصراف، الإجازات، والأذونات مع تقارير تفصيلية للموظفين</p>
-                <div class="hero-buttons">
-                    <a href="{{ route('login') }}" class="btn btn-primary btn-lg mb-4 me-3">تسجيل الدخول</a>
-                    <a href="{{ route('register') }}" class="btn btn-outline-primary btn-lg mb-4">حساب جديد</a>
+<div class="home-wrapper">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center hero-content">
+                <div class="col-lg-6 hero-text" data-aos="fade-right" data-aos-duration="1000">
+                    <h1>نظام إدارة الموارد البشرية المتكامل</h1>
+                    <p class="hero-description">إدارة الإجازات، الأذونات، العمل الإضافي، وتحليل الأداء في منصة واحدة سهلة الاستخدام</p>
+                    <div class="hero-actions">
+                        <a href="{{ route('login') }}" class="btn-primary">تسجيل الدخول</a>
+                        <a href="{{ route('register') }}" class="btn-secondary">حساب جديد</a>
+                    </div>
+                </div>
+                <div class="col-lg-6 hero-image" data-aos="fade-left" data-aos-duration="1000" data-aos-delay="200">
+                    <img src="{{ asset('assets/images/arkan.png') }}" alt="شركة أركان">
+                    <div class="shape-1"></div>
+                    <div class="shape-2"></div>
                 </div>
             </div>
-            <div class="col-lg-6 d-flex justify-content-center align-items-center" data-aos="fade-left">
-                <div class="hero-image">
-                    <img src="{{asset('assets/images/arkan.png')}}" alt="نظام الحضور" class="img-fluid">
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up" data-aos-duration="800">
+                <h2>خدمات النظام</h2>
+                <p>كل ما تحتاجه لإدارة فريق العمل في مكان واحد</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Feature 1 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
+                    <div class="icon-container">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3>إدارة الإجازات</h3>
+                    <p>تقديم وإدارة طلبات الإجازة مع متابعة رصيد الإجازات واعتمادها</p>
                 </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
+                    <div class="icon-container">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>الأذونات والمغادرات</h3>
+                    <p>طلب أذونات المغادرة والتأخير مع نظام موافقات سلس</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
+                    <div class="icon-container">
+                        <i class="fas fa-business-time"></i>
+                    </div>
+                    <h3>العمل الإضافي</h3>
+                    <p>تسجيل وإدارة ساعات العمل الإضافي مع حساب تلقائي للمستحقات</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
+                    <div class="icon-container">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>تحليل الأداء</h3>
+                    <p>متابعة أداء الموظفين مع تقارير تفصيلية ومؤشرات قياس الأداء</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card" data-aos="fade-up" data-aos-duration="800">
+                    <h3>+50%</h3>
+                    <p>تحسين في كفاءة إدارة الموارد البشرية</p>
+                </div>
+                <div class="stat-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
+                    <h3>-30%</h3>
+                    <p>تقليل الوقت المستغرق في الإجراءات الإدارية</p>
+                </div>
+                <div class="stat-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
+                    <h3>+80%</h3>
+                    <p>رضا الموظفين عن سهولة استخدام النظام</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+        <div class="container">
+            <div class="cta-content" data-aos="fade-up" data-aos-duration="800">
+                <h2>جاهز للبدء؟</h2>
+                <p>قم بالتسجيل الآن واستمتع بإدارة أفضل لفريق العمل</p>
+                <a href="{{ route('register') }}" class="btn-primary">إنشاء حساب</a>
             </div>
         </div>
     </div>
 </div>
 
-<section class="features-section py-5">
-    <div class="container">
-        <h2 class="text-center mb-5" data-aos="fade-up">مميزات النظام</h2>
-        <div class="row g-4">
-
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-                <div class="feature-card">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-calendar-check"></i>
-                    </div>
-                    <h3>طلب الإجازات</h3>
-                    <p>نظام متكامل لطلب وإدارة الإجازات والأذونات</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
-                <div class="feature-card">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-graph-up"></i>
-                    </div>
-                    <h3>تقارير تفصيلية</h3>
-                    <p>تقارير شاملة للحضور والغياب والإجازات</p>
-                </div>
-            </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="400">
-                <div class="feature-card">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <h3>العمل الإضافي</h3>
-                    <p>إدارة وتتبع ساعات العمل الإضافي للموظفين</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-
+<!-- AOS Animation Library -->
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AOS.init({
+            duration: 800,
+            once: true,
+            mirror: true,
+            offset: 50
+        });
+    });
+</script>
 @endsection

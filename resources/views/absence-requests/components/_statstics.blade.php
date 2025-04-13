@@ -5,7 +5,7 @@
         <!-- الرسوم البيانية الشخصية -->
         <div class="col-md-6">
             <div class="card shadow-sm chart-card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0"><i class="fas fa-chart-pie"></i> رسوم بيانية لطلباتي</h5>
                 </div>
                 <div class="card-body">
@@ -48,7 +48,7 @@
         )
         <div class="col-md-6">
             <div class="card shadow-sm chart-card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-chart-bar"></i> رسوم بيانية للفريق
                         @if(isset($statistics['team']['team_name']))
@@ -78,7 +78,7 @@
         @if(Auth::user()->hasRole('hr') && isset($statistics['hr']))
         <div class="col-md-12 mt-4">
             <div class="card shadow-sm chart-card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0"><i class="fas fa-chart-line"></i> رسوم بيانية للشركة</h5>
                 </div>
                 <div class="card-body">
@@ -112,7 +112,7 @@
         <!-- الإحصائيات الشخصية -->
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0"><i class="fas fa-user-clock"></i> إحصائيات طلباتي</h5>
                 </div>
                 <div class="card-body">
@@ -184,7 +184,7 @@
         )
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-users"></i> إحصائيات الفريق
                         @if(isset($statistics['team']['team_name']))
@@ -253,7 +253,7 @@
         @if(Auth::user()->hasRole('hr'))
         <div class="col-md-12 mt-4">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0"><i class="fas fa-chart-pie"></i> إحصائيات الشركة</h5>
                 </div>
                 <div class="card-body">
@@ -387,7 +387,7 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0">إحصائيات تفصيلية للغياب</h5>
                 </div>
                 <div class="card-body">

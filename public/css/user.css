@@ -1,29 +1,30 @@
 :root {
-    --primary-blue: #2152ff;
-    --hover-blue: #1b44df;
-    --light-blue: #eef2ff;
-    --border-color: #e9ecef;
-    --text-dark: #252f40;
-    --text-muted: #67748e;
-    --success: #82d616;
-    --danger: #ea0606;
-    --warning: #f53939;
-    --info: #17c1e8;
-    --gray-100: #f8f9fa;
-    --gray-200: #e9ecef;
-    --card-shadow: 0px 3px 20px rgba(0, 0, 0, 0.05);
-    --hover-shadow: 0 0 1.25rem rgba(31, 45, 61, 0.08);
+    --primary-blue: #0077cc;
+    --hover-blue: #005999;
+    --light-blue: #e6f3ff;
+    --border-color: #dee2e6;
+    --text-dark: #1a1f2b;
+    --text-muted: #4a5568;
+    --success: #2d9900;
+    --danger: #cc0000;
+    --warning: #cc3300;
+    --info: #0099cc;
+    --gray-100: #f5f7fa;
+    --gray-200: #e2e8f0;
+    --card-shadow: 0px 3px 20px rgba(0, 0, 0, 0.08);
+    --hover-shadow: 0 0 1.25rem rgba(26, 32, 44, 0.12);
 }
 
 body {
     background-color: var(--gray-100);
     color: var(--text-dark);
+    font-family: 'Poppins', 'Tajawal', sans-serif;
 }
 
 .container-fluid {
     padding: 2rem;
     min-height: 100vh;
-    background: linear-gradient(180deg, var(--gray-100) 0%, #ffffff 100%);
+    background: linear-gradient(180deg, var(--light-blue) 0%, #ffffff 100%);
 }
 
 .card {
@@ -37,6 +38,20 @@ body {
     overflow: hidden;
 }
 
+.card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background-image: url('../img/pattern.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.03;
+    pointer-events: none;
+}
+
 .card::before {
     content: "";
     position: absolute;
@@ -45,12 +60,8 @@ body {
     width: 100%;
     height: 0.25rem;
     background: linear-gradient(90deg, var(--primary-blue), var(--info));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.card:hover::before {
     opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
 .card:hover {
@@ -104,8 +115,8 @@ body {
 }
 
 .table thead th {
-    background: var(--gray-100);
-    color: var(--text-dark);
+    background: var(--light-blue);
+    color: var(--primary-blue);
     font-weight: 700;
     text-transform: uppercase;
     font-size: 0.75rem;
@@ -151,7 +162,7 @@ body {
 .search-input:focus {
     border-color: var(--primary-blue);
     background-color: #fff;
-    box-shadow: 0 0 0 0.2rem rgba(33, 82, 255, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(85, 185, 230, 0.15);
 }
 
 .btn {
@@ -161,11 +172,12 @@ body {
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.025rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .btn i {
@@ -180,17 +192,17 @@ body {
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-blue), var(--hover-blue));
     border: none;
-    box-shadow: 0 4px 6px rgba(33, 82, 255, 0.2);
+    box-shadow: 0 4px 6px rgba(85, 185, 230, 0.2);
 }
 
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--hover-blue), var(--primary-blue));
     transform: translateY(-2px);
-    box-shadow: 0 7px 14px rgba(33, 82, 255, 0.3);
+    box-shadow: 0 7px 14px rgba(85, 185, 230, 0.3);
 }
 
 .btn-secondary {
-    background: var(--gray-100);
+    background: #fff;
     border: 2px solid var(--border-color);
     color: var(--text-dark);
 }
@@ -238,6 +250,23 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.alert::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../img/pattern.svg');
+    background-size: 100px;
+    background-repeat: no-repeat;
+    background-position: right top;
+    opacity: 0.05;
+    pointer-events: none;
 }
 
 .alert-success {
@@ -255,7 +284,8 @@ body {
 .modal-content {
     border-radius: 1rem;
     border: none;
-    box-shadow: 0 50px 100px rgba(33, 82, 255, 0.1);
+    box-shadow: 0 50px 100px rgba(85, 185, 230, 0.1);
+    overflow: hidden;
 }
 
 .modal-header {
@@ -263,6 +293,20 @@ body {
     padding: 1.5rem;
     border-radius: 1rem 1rem 0 0;
     border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-header::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 100px;
+    height: 100px;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.1) 10%, transparent 10.5%);
+    background-size: 20px 20px;
+    opacity: 0.3;
 }
 
 .modal-header .modal-title {
@@ -291,12 +335,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--text-muted);
+    background: var(--primary-blue);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-dark);
+    background: var(--hover-blue);
 }
 
 .loading {
@@ -332,6 +376,44 @@ body {
     animation: slideIn 0.3s ease-out;
 }
 
+/* Geometric pattern inspired by Arkan logo */
+.arkan-pattern {
+    position: relative;
+}
+
+.arkan-pattern::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    background-image: url('../img/arkan-pattern.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.05;
+    pointer-events: none;
+}
+
+/* RTL Support */
+[dir="rtl"] .card-header h4::before {
+    left: auto;
+    right: 0;
+}
+
+[dir="rtl"] .alert {
+    border-left: none;
+    border-right: 4px solid;
+}
+
+/* Add logo to navbar */
+.navbar-brand img {
+    height: 40px;
+    margin-right: 10px;
+}
+
+/* Responsive styles */
 @media (max-width: 768px) {
     .container-fluid {
         padding: 1rem;
@@ -354,4 +436,47 @@ body {
     .d-flex {
         flex-direction: column;
     }
+}
+
+/* Add a custom login page design */
+.login-page {
+    background: linear-gradient(135deg, var(--light-blue), #ffffff);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-page::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(circle, var(--primary-blue) 8px, transparent 8px);
+    background-size: 80px 80px;
+    opacity: 0.05;
+}
+
+.login-card {
+    max-width: 400px;
+    width: 100%;
+    padding: 2rem;
+    border-radius: 1.5rem;
+    background: white;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-logo img {
+    width: 120px;
 }

@@ -1,8 +1,11 @@
+
+
+
 /* Birthday Theme Styles - Arkan Colors */
 .birthday-container {
-    background: linear-gradient(135deg, #f0f9ff 0%, #ebf8ff 100%);
-    border-radius: 1rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    background: linear-gradient(135deg, #f5faff 0%, #ebf8ff 100%);
+    border-radius: 1.25rem;
+    box-shadow: 0 15px 30px rgba(77, 182, 226, 0.12);
     position: relative;
     overflow: hidden;
     animation: fadeIn 1s ease-in;
@@ -21,7 +24,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234db6e2' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234db6e2' fill-opacity='0.06'%3E%3Cpath d='M40 40L20 20L0 40L20 60L40 40zM60 20L40 0L20 20L40 40L60 20zM80 40L60 20L40 40L60 60L80 40zM60 60L40 40L20 60L40 80L60 60z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     opacity: 0.5;
     z-index: 0;
     pointer-events: none;
@@ -33,8 +36,8 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, #4db6e2, #70c4e6, #4db6e2, #3a9cc7, #4db6e2);
+    height: 6px;
+    background: linear-gradient(90deg, #3a9cc7, #4db6e2, #70c4e6, #4db6e2, #3a9cc7);
     background-size: 200% 200%;
     animation: gradientBorder 3s ease infinite;
     z-index: 1;
@@ -48,25 +51,26 @@
 
 .birthday-header {
     position: relative;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    padding: 2rem 1.5rem;
+    margin-bottom: 1.5rem;
     text-align: center;
     background: rgba(255, 255, 255, 0.9);
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(77, 182, 226, 0.1);
     z-index: 1;
     animation: pulseHeader 5s infinite alternate;
 }
 
 @keyframes pulseHeader {
-    0% { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
-    100% { box-shadow: 0 8px 15px rgba(77, 182, 226, 0.2); }
+    0% { box-shadow: 0 4px 12px rgba(77, 182, 226, 0.1); }
+    100% { box-shadow: 0 8px 20px rgba(77, 182, 226, 0.2); }
 }
 
 .birthday-header h1 {
-    color: #333333;
+    color: #3a9cc7;
     position: relative;
     display: inline-block;
+    font-weight: 700;
 }
 
 .birthday-header h1::after {
@@ -76,7 +80,47 @@
     right: -25px;
     font-size: 0.8em;
     animation: bounce 2s infinite;
-    opacity: 0.8;
+    opacity: 0.9;
+}
+
+/* Arkan logo styles */
+.arkan-logo-mini {
+    position: relative;
+    animation: pulse 2s infinite alternate;
+}
+
+.arkan-logo-mini img {
+    transition: transform 0.3s ease;
+}
+
+.arkan-logo-mini:hover img {
+    transform: scale(1.15);
+}
+
+.arkan-brand-element {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.arkan-brand-element img {
+    filter: drop-shadow(0 0 5px rgba(77, 182, 226, 0.5));
+    animation: slowRotate 10s linear infinite;
+    transform-origin: center;
+}
+
+@keyframes slowRotate {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(5deg); }
+    50% { transform: rotate(0deg); }
+    75% { transform: rotate(-5deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
 }
 
 /* Confetti animation */
@@ -104,20 +148,20 @@
     100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
 }
 
-.confetti-1 { background-color: #4db6e2; left: 10%; animation-delay: 0s; }
-.confetti-2 { background-color: #ffd166; left: 20%; animation-delay: 0.5s; }
-.confetti-3 { background-color: #ef476f; left: 30%; animation-delay: 1s; }
-.confetti-4 { background-color: #06d6a0; left: 40%; animation-delay: 1.5s; }
-.confetti-5 { background-color: #118ab2; left: 50%; animation-delay: 2s; }
-.confetti-6 { background-color: #4db6e2; left: 60%; animation-delay: 2.5s; }
-.confetti-7 { background-color: #ffd166; left: 70%; animation-delay: 3s; }
-.confetti-8 { background-color: #ef476f; left: 80%; animation-delay: 3.5s; }
-.confetti-9 { background-color: #06d6a0; left: 90%; animation-delay: 4s; }
+.confetti-1 { background-color: #4db6e2; left: 10%; animation-delay: 0s; border-radius: 50%; }
+.confetti-2 { background-color: #3a9cc7; left: 20%; animation-delay: 0.5s; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+.confetti-3 { background-color: #70c4e6; left: 30%; animation-delay: 1s; clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); }
+.confetti-4 { background-color: #4db6e2; left: 40%; animation-delay: 1.5s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+.confetti-5 { background-color: #3a9cc7; left: 50%; animation-delay: 2s; border-radius: 50%; }
+.confetti-6 { background-color: #70c4e6; left: 60%; animation-delay: 2.5s; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+.confetti-7 { background-color: #4db6e2; left: 70%; animation-delay: 3s; clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); }
+.confetti-8 { background-color: #3a9cc7; left: 80%; animation-delay: 3.5s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+.confetti-9 { background-color: #70c4e6; left: 90%; animation-delay: 4s; border-radius: 50%; }
 
 .birthday-table {
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgba(77, 182, 226, 0.08);
     z-index: 1;
     position: relative;
     animation: fadeInUp 0.8s ease-out;
@@ -129,7 +173,7 @@
 }
 
 .birthday-table th {
-    background: linear-gradient(90deg, #4db6e2, #70c4e6);
+    background: linear-gradient(90deg, #3a9cc7, #4db6e2);
     color: #ffffff;
     font-weight: 600;
     text-transform: uppercase;
@@ -137,6 +181,7 @@
     border-bottom: none !important;
     position: relative;
     overflow: hidden;
+    padding: 15px 10px;
 }
 
 .birthday-table th::after {
@@ -203,20 +248,21 @@
 }
 
 .days-badge {
-    background: linear-gradient(45deg, #4db6e2, #3a9cc7);
+    background: linear-gradient(45deg, #3a9cc7, #4db6e2);
     color: white;
     border-radius: 999px;
-    padding: 0.25rem 0.75rem;
+    padding: 0.35rem 0.85rem;
     font-weight: bold;
     display: inline-block;
     position: relative;
     overflow: hidden;
     transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(77, 182, 226, 0.3);
 }
 
 .days-badge:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 10px rgba(77, 182, 226, 0.5);
+    box-shadow: 0 0 12px rgba(77, 182, 226, 0.6);
 }
 
 .days-badge::after {
@@ -242,7 +288,7 @@
 }
 
 .upcoming-birthday {
-    color: #4db6e2;
+    color: #3a9cc7;
     font-weight: bold;
     position: relative;
     display: inline-block;
@@ -251,7 +297,7 @@
 .upcoming-birthday::before {
     content: "🎉";
     position: absolute;
-    right: -20px;
+    right: -22px;
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.9em;
@@ -264,7 +310,7 @@
     100% { transform: translateY(-50%) scale(1); opacity: 1; }
 }
 
-/* Additional decorative elements for birthday theme */
+/* Additional decorative elements inspired by Arkan logo */
 .birthday-decoration {
     position: absolute;
     font-size: 1.5rem;
@@ -297,12 +343,12 @@
     right: 10px;
 }
 
-/* Snowflake animation for special decoration */
+/* Snowflake animation inspired by Arkan logo design */
 @keyframes snowflake {
     0% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(5px) rotate(10deg); }
+    25% { transform: translateY(5px) rotate(15deg); }
     50% { transform: translateY(0) rotate(45deg); }
-    75% { transform: translateY(-5px) rotate(20deg); }
+    75% { transform: translateY(-5px) rotate(30deg); }
     100% { transform: translateY(0) rotate(0deg); }
 }
 
@@ -365,10 +411,28 @@
 /* Footer animation */
 .birthday-footer {
     animation: pulseFooter 3s infinite alternate;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 0.75rem;
+    margin: 1rem 2rem;
+    padding: 0.75rem !important;
+    box-shadow: 0 4px 12px rgba(77, 182, 226, 0.08);
+}
+
+.birthday-footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234db6e2' fill-opacity='0.08'%3E%3Cpath d='M30 30L15 15L0 30L15 45L30 30zM45 15L30 0L15 15L30 30L45 15zM60 30L45 15L30 30L45 45L60 30zM45 45L30 30L15 45L30 60L45 45z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    border-radius: 0.75rem;
+    opacity: 0.25;
+    z-index: -1;
 }
 
 @keyframes pulseFooter {
-    0% { opacity: 0.7; }
+    0% { opacity: 0.8; }
     100% { opacity: 1; }
 }
 

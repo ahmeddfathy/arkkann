@@ -1,28 +1,26 @@
 @forelse($notifications as $notification)
-<div class="notification-item {{ is_null($notification->read_at) ? 'unread' : '' }}"
-    data-id="{{ $notification->id }}">
+    <div
+        class="notification-item {{ is_null($notification->read_at) ? 'unread' : '' }}"
+        data-id="{{ $notification->id }}"
+        data-read-at="{{ $notification->read_at }}"
+        data-created-at="{{ $notification->created_at }}"
+    >
+        <div class="notification-message">
+            @if(isset($notification->data['message']))
+                {{ $notification->data['message'] }}
+            @elseif(isset($notification->data['title']))
+                {{ $notification->data['title'] }}
+            @else
+                إشعار جديد
+            @endif
+        </div>
 
-    @if($notification->type === 'admin_broadcast')
-    <!-- عرض الإشعارات العامة -->
-    <div class="notification-content">
-        <strong>{{ $notification->data['title'] ?? 'إشعار جديد' }}</strong>
-        <p>{{ $notification->data['message'] ?? 'لا يوجد محتوى' }}</p>
-        <small>من: {{ $notification->data['sender_name'] ?? 'النظام' }}</small>
+        <div class="notification-time text-gray-400 text-xs mt-1">
+            {{ $notification->created_at->diffForHumans() }}
+        </div>
     </div>
-    @else
-    <!-- عرض الإشعارات الخاصة -->
-    <div class="notification-content">
-        {{ $notification->data['message'] ?? $notification->data['content'] ?? 'لا يوجد محتوى' }}
-    </div>
-    @endif
-
-    <div class="notification-time">
-        {{ $notification->created_at->diffForHumans() }}
-    </div>
-</div>
 @empty
-<div class="text-center p-4 text-muted">
-    <i class="fas fa-bell-slash mb-3" style="font-size: 24px; opacity: 0.5;"></i>
-    <p class="mb-0 small">لا توجد إشعارات</p>
-</div>
+    <div class="text-center text-gray-500 p-4">
+        لا توجد إشعارات
+    </div>
 @endforelse

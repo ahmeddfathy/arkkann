@@ -3,60 +3,7 @@
 @section('content')
 
 <head>
-  <link rel="stylesheet" href="{{asset('css/dashboard.css')}}">
-  <style>
-    a {
-      text-decoration: none;
-    }
-
-    .stats-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .stat-card {
-      background: white;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1rem;
-      background: linear-gradient(45deg, #3b82f6, #2563eb);
-    }
-
-    .stat-value {
-      font-size: 1.875rem;
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 0.5rem;
-    }
-
-    .stat-label {
-      color: #6b7280;
-      font-size: 0.875rem;
-    }
-
-    .stat-sublabel {
-      font-size: 0.75rem;
-      color: #6b7280;
-      margin-top: 0.25rem;
-    }
-  </style>
+  <link rel="stylesheet" href="{{asset('css/dashboard-user.css')}}">
 </head>
 
 @if(session('success'))
@@ -68,13 +15,19 @@
 
 <div class="dashboard-container">
   <div class="dashboard-header">
-    <h1 class="text-3xl font-bold mb-2">مرحباً، {{ Auth::user()->name }}</h1>
-    <p class="text-white/80">
-      إحصائيات الفترة من {{ $startDate->format('d/m/Y') }} إلى {{ $endDate->format('d/m/Y') }}
-    </p>
-    <p class="text-white/60 text-sm">
-      شهر {{ $attendanceStats['period']['month'] }} {{ $attendanceStats['period']['year'] }}
-    </p>
+    <div class="dashboard-header-content">
+      <h1 class="text-3xl font-bold mb-2">مرحباً، {{ Auth::user()->name }}</h1>
+      <p class="text-white/80">
+        إحصائيات الفترة من {{ $startDate->format('d/m/Y') }} إلى {{ $endDate->format('d/m/Y') }}
+      </p>
+      <p class="text-white/60 text-sm">
+        شهر {{ $attendanceStats['period']['month'] }} {{ $attendanceStats['period']['year'] }}
+      </p>
+      <div class="dashboard-date">
+        <i class="fas fa-calendar-alt"></i>
+        <span>{{ now()->format('Y/m/d') }}</span>
+      </div>
+    </div>
   </div>
 
   <div class="stats-container">

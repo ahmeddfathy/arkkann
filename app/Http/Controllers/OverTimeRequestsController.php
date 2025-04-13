@@ -744,4 +744,24 @@ class OverTimeRequestsController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+
+    /**
+     * عرض سجل تغييرات طلب الساعات الإضافية
+     */
+    public function showAudits($id)
+    {
+        $user = Auth::user();
+
+        // التحقق من صلاحيات المستخدم
+        if (!$user->hasRole('hr')) {
+            abort(403, 'غير مصرح لك بعرض سجل التغييرات');
+        }
+
+        $overtimeRequest = OverTimeRequests::findOrFail($id);
+
+        return redirect()->route('audit-log.index', [
+            'request_type' => OverTimeRequests::class,
+            'model_id' => $id
+        ]);
+    }
 }

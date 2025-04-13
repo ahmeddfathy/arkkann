@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class AbsenceRequestController extends Controller
 {
+
     protected $absenceRequestService;
 
     public function __construct(AbsenceRequestService $absenceRequestService)
@@ -52,14 +53,12 @@ class AbsenceRequestController extends Controller
 
         $users = collect();
         if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
-            $managedTeams = $user->ownedTeams;
-            foreach ($managedTeams as $team) {
-                $teamMembers = $this->getTeamMembers($team, $this->getAllowedRoles($user));
+            if ($user->currentTeam) {
+                $teamMembers = $this->getTeamMembers($user->currentTeam, $this->getAllowedRoles($user));
                 if (!empty($teamMembers)) {
-                    $users = $users->concat(User::whereIn('id', $teamMembers)->get());
+                    $users = User::whereIn('id', $teamMembers)->get();
                 }
             }
-            $users = $users->unique('id');
         } elseif ($user->hasRole('hr')) {
             $users = User::whereDoesntHave('roles', function ($q) {
                 $q->whereIn('name', ['company_manager', 'hr']);
@@ -830,5 +829,25 @@ class AbsenceRequestController extends Controller
             })
             ->pluck('users.id')
             ->toArray();
+    }
+
+    /**
+     * عرض سجل تغييرات طلب الغياب
+     */
+    public function showAudits($id)
+    {
+        $user = Auth::user();
+
+        // التحقق من صلاحيات المستخدم
+        if (!$user->hasRole('hr')) {
+            abort(403, 'غير مصرح لك بعرض سجل التغييرات');
+        }
+
+        $absenceRequest = AbsenceRequest::findOrFail($id);
+
+        return redirect()->route('audit-log.index', [
+            'request_type' => AbsenceRequest::class,
+            'model_id' => $id
+        ]);
     }
 }

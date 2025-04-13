@@ -2,7 +2,7 @@
     <div class="row justify-content-center mb-4">
         <div class="col-md-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div class="card-header text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-calendar-alt"></i> طلباتي
                         @php
@@ -119,7 +119,7 @@
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-calendar-alt"></i> طلبات غياب التيم
                     </h5>
@@ -320,7 +320,7 @@
     <div class="row justify-content-center mb-4">
         <div class="col-md-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0"><i class="fas fa-building"></i> طلبات موظفي الشركة</h5>
                 </div>
                 <div class="table-responsive">
@@ -429,6 +429,11 @@
                                     </form>
                                     @endif
                                     @endif
+
+                                    <!-- Audit History Button -->
+                                    <a href="{{ route('absence-requests.audits', $request->id) }}" class="btn btn-sm btn-dark mt-1" title="عرض تاريخ التغييرات">
+                                        <i class="fas fa-history"></i> سجل التغييرات
+                                    </a>
                                 </td>
                             </tr>
                             @empty
@@ -450,7 +455,7 @@
     <div class="row justify-content-center mb-4">
         <div class="col-md-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-info text-white">
+                <div class="card-header text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-users"></i> طلبات الموظفين بدون فريق
                     </h5>
@@ -531,6 +536,11 @@
                                         </button>
                                     </form>
                                     @endif
+
+                                    <!-- Audit History Button -->
+                                    <a href="{{ route('absence-requests.audits', $request->id) }}" class="btn btn-sm btn-dark mt-1" title="عرض تاريخ التغييرات">
+                                        <i class="fas fa-history"></i> سجل التغييرات
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach

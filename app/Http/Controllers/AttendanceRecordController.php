@@ -43,7 +43,8 @@ class AttendanceRecordController extends Controller
       'late_days' => 0,
       'total_delay_minutes' => 0,
       'avg_delay_minutes' => 0,
-      'max_delay_minutes' => 0
+      'max_delay_minutes' => 0,
+      'attendance_rate' => 0
     ];
 
     if ($request->has('employee_filter') && !empty($request->employee_filter)) {

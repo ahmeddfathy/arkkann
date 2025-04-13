@@ -53,6 +53,11 @@ class AuditLogController extends Controller
             $query->where('auditable_type', $request->request_type);
         }
 
+        // Filter by model ID
+        if ($request->filled('model_id')) {
+            $query->where('auditable_id', $request->model_id);
+        }
+
         $audits = $query->latest()
             ->get()
             ->map(function ($audit) {

@@ -17,26 +17,7 @@
                         <h6 class="fw-bold text-primary mb-3">كيفية احتساب التقييم النهائي للموظفين</h6>
                         <p>يتم تقييم أداء الموظفين بناءً على ثلاثة مؤشرات رئيسية ولكل منها وزن نسبي في التقييم النهائي:</p>
 
-                        <div class="d-flex flex-wrap">
-                            <div class="me-4 mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-primary d-inline-block" style="width:30px; height:30px; line-height:30px; border-radius:50%;">45%</span>
-                                    <span class="ms-2 fw-bold">الحضور</span>
-                                </div>
-                            </div>
-                            <div class="me-4 mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-success d-inline-block" style="width:30px; height:30px; line-height:30px; border-radius:50%;">20%</span>
-                                    <span class="ms-2 fw-bold">الالتزام بالمواعيد</span>
-                                </div>
-                            </div>
-                            <div class="me-4 mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-info d-inline-block" style="width:30px; height:30px; line-height:30px; border-radius:50%;">35%</span>
-                                    <span class="ms-2 fw-bold">ساعات العمل</span>
-                                </div>
-                            </div>
-                        </div>
+                    
                     </div>
 
                     <div class="col-md-12">

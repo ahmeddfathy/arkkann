@@ -1346,12 +1346,35 @@ class PermissionRequestController extends Controller
 
     private function getTeamMembers($team, $allowedRoles)
     {
+        if (!$team) {
+            return [];
+        }
+
         return $team->users()
-            ->select('users.id')
             ->whereHas('roles', function ($q) use ($allowedRoles) {
                 $q->whereIn('name', $allowedRoles);
             })
             ->pluck('users.id')
             ->toArray();
+    }
+
+    /**
+     * عرض سجل تغييرات طلب الإذن
+     */
+    public function showAudits($id)
+    {
+        $user = Auth::user();
+
+        // التحقق من صلاحيات المستخدم
+        if (!$user->hasRole('hr')) {
+            abort(403, 'غير مصرح لك بعرض سجل التغييرات');
+        }
+
+        $permissionRequest = PermissionRequest::findOrFail($id);
+
+        return redirect()->route('audit-log.index', [
+            'request_type' => PermissionRequest::class,
+            'model_id' => $id
+        ]);
     }
 }

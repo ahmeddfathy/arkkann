@@ -514,6 +514,11 @@ use Carbon\Carbon;
                                 </div>
                                 @endif
                                 @endif
+
+                                <!-- Audit History Button -->
+                                <a href="{{ route('permission-requests.audits', $request->id) }}" class="btn btn-sm btn-dark mt-1" title="عرض تاريخ التغييرات">
+                                    <i class="fas fa-history"></i> سجل التغييرات
+                                </a>
                             </td>
                         </tr>
                         @empty
@@ -696,6 +701,11 @@ use Carbon\Carbon;
                                 </div>
                             </div>
                             @endif
+
+                            <!-- Audit History Button -->
+                            <a href="{{ route('permission-requests.audits', $request->id) }}" class="btn btn-sm btn-dark mt-1" title="عرض تاريخ التغييرات">
+                                <i class="fas fa-history"></i> سجل التغييرات
+                            </a>
                         </div>
                     </td>
 

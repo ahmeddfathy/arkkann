@@ -263,4 +263,21 @@ Route::get('/audit-log', [App\Http\Controllers\AuditLogController::class, 'index
     ->name('audit-log.index')
     ->middleware(['auth', 'verified']);
 
+// Override Jetstream's current-team.update route to use our custom controller
+Route::put('/current-team', [\App\Http\Controllers\CustomCurrentTeamController::class, 'update'])
+    ->name('current-team.update')->middleware('auth');
+
+
+Route::get('absence-requests/{id}/audits', [App\Http\Controllers\AbsenceRequestController::class, 'showAudits'])
+    ->name('absence-requests.audits')
+    ->middleware(['auth', 'verified']);
+
+Route::get('permission-requests/{id}/audits', [App\Http\Controllers\PermissionRequestController::class, 'showAudits'])
+    ->name('permission-requests.audits')
+    ->middleware(['auth', 'verified']);
+
+Route::get('overtime-requests/{id}/audits', [App\Http\Controllers\OverTimeRequestsController::class, 'showAudits'])
+    ->name('overtime-requests.audits')
+    ->middleware(['auth', 'verified']);
+
 

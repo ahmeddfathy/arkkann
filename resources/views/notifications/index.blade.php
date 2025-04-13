@@ -65,33 +65,91 @@
     }
 </style>
 
-@forelse($notifications as $notification)
-<div class="notification-item {{ $notification->read_at ? '' : 'unread' }}">
-    <a href="{{
-            match($notification->type) {
-                'absence-requests' => '/absence-requests',
-                'permission-requests' => '/permission-requests',
-                'overtime-requests' => '/overtime-requests',
-                default => '#'
-            }
-        }}"
-        class="notification-link"
-        data-mark-as-read="{{ route('notifications.mark-as-read', $notification) }}">
-        <div class="notification-header d-flex justify-content-between">
-            <div class="notification-title">
-                <strong>{{ $notification->data['title'] ?? 'إشعار' }}</strong>
-            </div>
-            <div class="notification-time text-muted">
-                {{ $notification->created_at->diffForHumans() }}
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('الإشعارات') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('جميع الإشعارات') }}</h3>
+
+                    <div class="space-y-4">
+                        @forelse($notifications as $notification)
+                            <div
+                                class="notification-item p-4 border rounded-lg {{ is_null($notification->read_at) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200' }}"
+                                data-id="{{ $notification->id }}"
+                                data-read-at="{{ $notification->read_at }}"
+                                data-created-at="{{ $notification->created_at }}"
+                            >
+                                <div class="flex justify-between items-start">
+                                    <div class="notification-message text-gray-800 text-lg font-medium">
+                                        @if(isset($notification->data['message']))
+                                            {{ $notification->data['message'] }}
+                                        @elseif(isset($notification->data['title']))
+                                            {{ $notification->data['title'] }}
+                                        @else
+                                            إشعار جديد
+                                        @endif
+                                    </div>
+
+                                    <div class="text-gray-500 text-sm">
+                                        {{ $notification->created_at->format('Y-m-d H:i') }}
+                                    </div>
+                                </div>
+
+                                @if(is_null($notification->read_at))
+                                    <div class="mt-2">
+                                        <button
+                                            class="text-sm text-blue-600 hover:text-blue-800 mark-as-read-btn"
+                                            data-notification-id="{{ $notification->id }}"
+                                        >
+                                            تحديد كمقروء
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        @empty
+                            <div class="text-center text-gray-500 py-6">
+                                {{ __('لا توجد إشعارات') }}
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="notification-content">
-            {{ $notification->data['message'] ?? $notification->data['content'] ?? 'لا يوجد محتوى' }}
-        </div>
-    </a>
-</div>
-@empty
-<div class="no-notifications p-3 text-center text-muted">
-    لا توجد إشعارات
-</div>
-@endforelse
+    </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const markAsReadBtns = document.querySelectorAll('.mark-as-read-btn');
+
+            markAsReadBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const notificationId = this.getAttribute('data-notification-id');
+
+                    fetch(`/notifications/${notificationId}/mark-as-read`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update the UI
+                                const notificationItem = this.closest('.notification-item');
+                                notificationItem.classList.remove('bg-blue-50', 'border-blue-200');
+                                notificationItem.classList.add('bg-white', 'border-gray-200');
+                                this.parentElement.remove();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error marking notification as read:', error);
+                        });
+                });
+            });
+        });
+    </script>
+    @endpush
+</x-app-layout>

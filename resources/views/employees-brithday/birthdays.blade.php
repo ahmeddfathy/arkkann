@@ -27,17 +27,7 @@
                     <div class="birthday-decoration" style="bottom: 15%; left: 8%;">🎈</div>
                     <div class="birthday-decoration" style="bottom: 10%; right: 5%;">🎁</div>
 
-                    <!-- Balloons -->
-                    <div class="balloon" style="top: 15%; left: 10%;">🎈</div>
-                    <div class="balloon" style="top: 8%; right: 15%;">🎈</div>
-                    <div class="balloon" style="bottom: 30%; left: 18%;">🎈</div>
-                    <div class="balloon" style="bottom: 25%; right: 12%;">🎈</div>
-
-                    <!-- Gift boxes -->
-                    <div class="gift-box" style="top: 25%; right: 8%;">🎁</div>
-                    <div class="gift-box" style="bottom: 20%; left: 15%;">🎁</div>
-
-                    <!-- Snowflake decorations to match Arkan logo -->
+                    <!-- Geometric snowflake decorations inspired by Arkan logo -->
                     <div class="snowflake-decoration" style="top: 15%; left: 15%;">❄️</div>
                     <div class="snowflake-decoration" style="top: 20%; right: 20%;">❄️</div>
                     <div class="snowflake-decoration" style="bottom: 25%; left: 25%;">❄️</div>
@@ -45,8 +35,10 @@
 
                     <div class="birthday-header">
                         <div class="d-flex align-items-center justify-content-center mb-4">
-                            <span class="fs-1 mx-2 cake-icon">🎂</span>
-                            <h1 class="fs-2 fw-bold" style="color: #4db6e2;">قائمة أعياد ميلاد الموظفين</h1>
+                            <div class="arkan-logo-mini me-3">
+                                <img src="{{ asset('assets/images/arkan.png') }}" alt="Arkan Logo" width="50" height="50" class="img-fluid">
+                            </div>
+                            <h1 class="fs-2 fw-bold">قائمة أعياد ميلاد الموظفين</h1>
                             <span class="fs-1 mx-2 birthday-icon">🎈</span>
                         </div>
                         <p class="text-muted">استعرض أقرب أعياد ميلاد قادمة للموظفين مرتبة حسب التاريخ</p>
@@ -80,7 +72,7 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <span class="fw-bold" style="color: #4db6e2;">{{ $employee['age'] }}</span>
+                                                    <span class="fw-bold" style="color: #3a9cc7;">{{ $employee['age'] }}</span>
                                                     <span class="ms-1 text-muted">سنة</span>
                                                 </div>
                                             </td>
@@ -101,11 +93,13 @@
                     </div>
 
                     <div class="p-4 d-flex justify-content-center align-items-center gap-3 birthday-footer">
-                        <span class="fs-2 cake-icon">🎂</span>
+                        <div class="arkan-brand-element">
+                            <img src="{{ asset('assets/images/arkan.png') }}" alt="Arkan" width="40" height="40" class="img-fluid me-2">
+                        </div>
                         <span class="fs-2 snowflake-decoration" style="position: static; animation-delay: 0.5s;">❄️</span>
                         <span class="fs-2 gift-box" style="position: static; animation-delay: 1s;">🎁</span>
-                        <span class="fs-2 snowflake-decoration" style="position: static; animation-delay: 1.5s;">❄️</span>
-                        <span class="fs-2 balloon" style="position: static; animation-delay: 2s;">🎈</span>
+                        <span class="fs-2 balloon" style="position: static; animation-delay: 1.5s;">🎈</span>
+                        <span class="fs-2 cake-icon" style="position: static; animation-delay: 2s;">🎂</span>
                     </div>
                 </div>
             </div>

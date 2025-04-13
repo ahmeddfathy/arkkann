@@ -11,7 +11,7 @@
             </button>
             @endif
         </div>
-        <div class="card-body">
+
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -101,7 +101,7 @@
             <div class="d-flex justify-content-center mt-4">
                 {{ $myRequests->links() }}
             </div>
-        </div>
+
     </div>
 
 <!-- Team requests table -->
@@ -364,6 +364,11 @@
                                     onclick="resetStatus('{{ $request->id }}', 'hr')">
                                     <i class="fas fa-undo"></i> <strong>إعادة تعيين HR</strong>
                                 </button>
+
+                                <!-- Audit History Button -->
+                                <a href="{{ route('overtime-requests.audits', $request->id) }}" class="btn btn-sm btn-dark mt-1" title="عرض تاريخ التغييرات">
+                                    <i class="fas fa-history"></i> سجل التغييرات
+                                </a>
                                 @endif
                             </td>
                         </tr>
@@ -459,6 +464,11 @@
                                             </button>
                                         @endif
                                     @endif
+
+                                    <!-- Audit History Button -->
+                                    <a href="{{ route('overtime-requests.audits', $request->id) }}" class="btn btn-sm btn-dark mt-1" title="عرض تاريخ التغييرات">
+                                        <i class="fas fa-history"></i> سجل التغييرات
+                                    </a>
                                 </div>
                             </td>
                         </tr>

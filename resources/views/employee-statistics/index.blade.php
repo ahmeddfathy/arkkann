@@ -1,20 +1,17 @@
 @extends('layouts.app')
 
-
-
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/employee-statistics.css') }}">
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    window.employeesData = @json($employees -> items());
-</script>
+    <script>
+        window.employeesData = @json($employees->items());
+    </script>
 @endpush
 
 @section('content')
-
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-12">
@@ -25,18 +22,19 @@
                     </h5>
                 </div>
 
+                <div class="card-body">
+                    @include('employee-statistics.partials.indicators')
+                </div>
                 @include('employee-statistics.components.rules-section')
                 @include('employee-statistics.components.filters-section')
                 @include('employee-statistics.components.charts-section')
                 @include('employee-statistics.components.employee-list')
-                        </div>
-                                            </div>
-                                        </div>
-                                    </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal التفاصيل -->
-
-
 @include('employee-statistics.components.modals')
 @include('employee-statistics.partials.details-modal')
 @include('employee-statistics.components.scripts')

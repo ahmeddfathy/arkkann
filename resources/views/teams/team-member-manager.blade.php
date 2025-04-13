@@ -22,8 +22,19 @@
 
                     <!-- Member Email -->
                     <div class="col-span-6 sm:col-span-4">
-                        <x-label for="email" value="{{ __('Email') }}" />
-                        <x-input id="email" type="email" class="mt-1 block w-full" wire:model="addTeamMemberForm.email" />
+                        <x-label for="user_select" value="{{ __('Select User') }}" />
+
+                        <!-- User Dropdown -->
+                        <select id="user_select" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                             wire:change="selectUser($event.target.value)">
+                            <option value="">{{ __('Select a user') }}</option>
+                            @foreach ($availableUsers as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }} </option>
+                            @endforeach
+                        </select>
+
+                        <!-- Original Email Input (hidden, kept for form submission) -->
+                        <x-input id="email" type="hidden" wire:model="addTeamMemberForm.email" />
                         <x-input-error for="email" class="mt-2" />
                     </div>
 

@@ -10,129 +10,6 @@
 @endsection
 
 @section('notification-content')
-<style>
-/* Stats Cards */
-.stats-card {
-    background: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-}
-
-.stats-card:hover {
-    transform: translateY(-5px);
-}
-
-.stats-card h3 {
-    font-size: 2rem;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.stats-card p {
-    color: #666;
-    margin: 0;
-}
-
-.stats-card.success h3 {
-    color: #28a745;
-}
-
-.stats-card.warning h3 {
-    color: #ffc107;
-}
-
-/* Filter Section */
-.filter-section {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-}
-
-/* Notifications List */
-.notifications-list {
-    margin-top: 30px;
-}
-
-.notification-card {
-    background: #fff;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border: 1px solid #eee;
-}
-
-.notification-card.administrative {
-    border-left: 4px solid #dc3545;
-}
-
-.notification-card .card-body {
-    padding: 20px;
-}
-
-.notification-card .card-title {
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.notification-card .card-text {
-    color: #666;
-}
-
-.notification-card .badges {
-    margin-top: 15px;
-}
-
-.notification-card .badge {
-    margin-right: 10px;
-    padding: 8px 12px;
-}
-
-/* Progress Bar */
-.read-stats .progress {
-    height: 10px;
-    border-radius: 5px;
-    background: #e9ecef;
-}
-
-.read-stats .progress-bar {
-    background: #0d6efd;
-    border-radius: 5px;
-}
-
-/* Action Buttons */
-.action-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-
-.action-buttons .btn {
-    padding: 8px 12px;
-}
-
-/* Card Footer */
-.notification-card .card-footer {
-    background: #f8f9fa;
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .col-lg-3, .col-lg-6 {
-        margin-bottom: 15px;
-    }
-
-    .action-buttons {
-        justify-content: center;
-    }
-}
-</style>
-
 <!-- إحصائيات عامة -->
 <div class="row mb-4">
     <div class="col-md-4">
@@ -183,11 +60,11 @@
             </div>
         </div>
         <div class="col-md-4 d-flex align-items-center">
-            <button type="submit" class="btn btn-primary me-2">
+            <button type="submit" class="btn btn-filter primary">
                 <i class="fas fa-filter"></i>
                 تصفية
             </button>
-            <a href="{{ route('admin.notifications.index') }}" class="btn btn-secondary">
+            <a href="{{ route('admin.notifications.index') }}" class="btn btn-filter secondary ms-2">
                 <i class="fas fa-redo"></i>
                 إعادة تعيين
             </a>
@@ -196,31 +73,31 @@
 </div>
 
 <!-- قائمة الإشعارات -->
-<div class="notifications-list">
+<div class="notification-list">
     @foreach($notifications as $notification)
-    <div class="notification-card {{ $notification->type === 'administrative_decision' ? 'administrative' : '' }}">
-        <div class="card-body">
+    <div class="notification-item {{ $notification->type === 'administrative_decision' ? 'administrative' : '' }}">
+        <div class="notification-content">
             <div class="row align-items-center">
                 <div class="col-lg-6">
-                    <h5 class="card-title">
-                        <i class="fas {{ $notification->type === 'administrative_decision' ? 'fa-gavel' : 'fa-bell' }} me-2"></i>
+                    <h5 class="notification-title">
+                        <i class="fas {{ $notification->type === 'administrative_decision' ? 'fa-gavel' : 'fa-bell' }}"></i>
                         {{ $notification->data['title'] ?? '' }}
                     </h5>
                     <p class="card-text">{{ Str::limit($notification->data['message'] ?? '', 100) }}</p>
-                    <div class="badges">
+                    <div class="notification-meta">
                         @if($notification->type === 'administrative_decision')
-                        <span class="badge bg-danger">
+                        <span class="notification-badge badge-admin">
                             <i class="fas fa-gavel me-1"></i>
                             قرار إداري
                         </span>
                         @else
-                        <span class="badge bg-info">
+                        <span class="notification-badge badge-normal">
                             <i class="fas fa-bell me-1"></i>
                             إشعار عادي
                         </span>
                         @endif
                         @if($notification->data['requires_acknowledgment'] ?? false)
-                        <span class="badge bg-warning">
+                        <span class="notification-badge badge-warning">
                             <i class="fas fa-check-double me-1"></i>
                             يتطلب تأكيد
                         </span>
@@ -228,32 +105,33 @@
                     </div>
                 </div>
                 <div class="col-lg-3">
-                    <div class="read-stats">
-                        <div class="progress">
+                    <div class="progress-container">
+                        <div class="progress-bar-custom">
                             @php
-                            $percentage = $notification->total_recipients > 0
-                            ? ($notification->read_count / $notification->total_recipients) * 100
-                            : 0;
+                            $percentage = 0;
+                            if ($notification->total_recipients > 0) {
+                                $percentage = ($notification->read_count / $notification->total_recipients) * 100;
+                            }
                             @endphp
-                            <div class="progress-bar" style="width: {{ $percentage }}%"></div>
+                            <div class="progress-fill" style="width: {{ $percentage }}%;"></div>
                         </div>
-                        <div class="text-center mt-2">
-                            <strong class="text-primary">{{ $notification->read_count }}</strong>
-                            <span class="text-muted">من</span>
-                            <strong class="text-primary">{{ $notification->total_recipients }}</strong>
-                            <small class="d-block text-muted">قرأوا الإشعار</small>
+                        <div class="progress-stats">
+                            <strong>{{ $notification->read_count }}</strong>
+                            <span>من</span>
+                            <strong>{{ $notification->total_recipients }}</strong>
+                            <span>قرأوا الإشعار</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-3">
-                    <div class="action-buttons">
+                    <div class="notification-actions">
                         <a href="{{ route('admin.notifications.show', $notification) }}"
-                            class="btn btn-info"
+                            class="action-btn btn-view"
                             title="عرض التفاصيل">
                             <i class="fas fa-eye"></i>
                         </a>
                         <a href="{{ route('admin.notifications.edit', $notification) }}"
-                            class="btn btn-primary"
+                            class="action-btn btn-edit"
                             title="تعديل">
                             <i class="fas fa-edit"></i>
                         </a>
@@ -263,7 +141,7 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit"
-                                class="btn btn-danger"
+                                class="action-btn btn-delete"
                                 title="حذف"
                                 onclick="return confirm('هل أنت متأكد من الحذف؟')">
                                 <i class="fas fa-trash"></i>
@@ -281,18 +159,60 @@
         </div>
     </div>
     @endforeach
-</div>
-@endsection
-<div class="d-flex justify-content-center mt-4">
-    {{ $notifications->links() }}
+
+    @if($notifications->isEmpty())
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="fas fa-bell-slash"></i>
+        </div>
+        <h4>لا توجد إشعارات</h4>
+        <p>لم يتم العثور على أي إشعارات تطابق معايير البحث</p>
+        <a href="{{ route('admin.notifications.create') }}" class="btn btn-filter primary">
+            <i class="fas fa-plus"></i>
+            إنشاء إشعار جديد
+        </a>
+    </div>
+    @endif
 </div>
 
-@push('styles')
+<div class="pagination-wrapper">
+    {{ $notifications->links() }}
+</div>
+@endsection
+
+@push('page-styles')
 <link rel="stylesheet" href="{{ asset('css/admin/notifications.css') }}">
+<link rel="stylesheet" href="{{ asset('css/admin/notification-index.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 @endpush
 
 @push('page-scripts')
 <script>
-    // أي سكريبتات إضافية خاصة بالصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        const statBoxes = document.querySelectorAll('.stats-card');
+        const notificationItems = document.querySelectorAll('.notification-item');
+
+        // تأثيرات للإحصائيات
+        statBoxes.forEach((box, index) => {
+            box.style.opacity = '0';
+            box.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                box.style.transition = 'all 0.5s ease';
+                box.style.opacity = '1';
+                box.style.transform = 'translateY(0)';
+            }, 100 * (index + 1));
+        });
+
+        // تأثيرات للإشعارات
+        notificationItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                item.style.transition = 'all 0.5s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, 300 + (100 * index));
+        });
+    });
 </script>
 @endpush
