@@ -1,3 +1,7 @@
+@php
+    use Illuminate\Support\Facades\Auth;
+@endphp
+@if(auth()->user())
 <nav x-data="{ open: false, notificationsOpen: false, notificationsCount: 0 }" class="bg-white border-b border-gray-100">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,7 +60,7 @@
                                 @endif
 
                                 <!-- Team Switcher -->
-                                @if (Auth::user()->allTeams()->count() > 1)
+                                @if (Auth::user()->allTeams()->count() > 0)
                                 <div class="border-t border-gray-200"></div>
 
                                 <div class="block px-4 py-2 text-xs text-gray-400">
@@ -86,7 +90,7 @@
                         </x-slot>
 
                         <x-slot name="content">
-                            <div class="w-80 max-h-96 overflow-y-auto">
+                            <div class="w-80 max-h-96 overflow-y-auto bg-white shadow-lg border border-gray-200" style="opacity: 1 !important;">
                                 <div class="flex justify-between items-center px-4 py-2 text-xs text-gray-600 bg-gray-50 border-b border-gray-200 sticky top-0">
                                     <span class="font-semibold">{{ __('الإشعارات') }}</span>
                                     <button x-show="unreadCount > 0" @click="markAllAsRead" class="text-blue-500 hover:text-blue-700 text-xs">
@@ -202,14 +206,23 @@
         </div>
 
         <!-- Responsive Notifications -->
-        <div class="pt-2 pb-3 space-y-1 border-t border-gray-200">
+        <div class="pt-2 pb-3 space-y-1 border-t border-gray-200 bg-white">
             <x-responsive-nav-link href="{{ route('notifications') }}" :active="request()->routeIs('notifications')">
                 <div class="flex justify-between items-center">
                     <span>{{ __('الإشعارات') }}</span>
                     <span x-data="{ count: 0 }" x-init="
-                        fetch('/notifications/unread-count')
-                            .then(response => response.json())
-                            .then(data => { count = data.count })
+                        fetch('/notifications/unread-count', {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        })
+                        .then(data => { count = data.count })
+                        .catch(error => { console.error(error); count = 0; })
                     " x-show="count > 0" x-text="count" class="flex justify-center items-center rounded-full bg-red-500 text-white text-xs min-w-[20px] h-[20px] px-1"></span>
                 </div>
             </x-responsive-nav-link>
@@ -299,13 +312,15 @@
             unreadCount: 0,
             loading: true,
             init() {
-                this.fetchNotifications();
-                this.fetchUnreadCount();
-
-                // Refresh unread count every minute
-                setInterval(() => {
+                if (document.querySelector('.user-logged-in')) {
+                    this.fetchNotifications();
                     this.fetchUnreadCount();
-                }, 60000);
+
+                    // Refresh unread count every minute
+                    setInterval(() => {
+                        this.fetchUnreadCount();
+                    }, 60000);
+                }
             },
             fetchNotifications() {
                 this.loading = true;
@@ -336,14 +351,26 @@
                     });
             },
             fetchUnreadCount() {
-                fetch('/notifications/unread-count')
-                    .then(response => response.json())
-                    .then(data => {
-                        this.unreadCount = data.count;
-                    })
-                    .catch(error => {
-                        console.error('Error fetching unread count:', error);
-                    });
+                fetch('/notifications/unread-count', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.unreadCount = data.count;
+                })
+                .catch(error => {
+                    console.error('Error fetching unread count:', error);
+                    // Set to 0 on error to avoid showing NaN or undefined
+                    this.unreadCount = 0;
+                });
             },
             markAsRead(notificationId) {
                 fetch(`/notifications/${notificationId}/mark-as-read`)
@@ -430,4 +457,13 @@
         };
     }
 </script>
+<style>
+    .dropdown-panel, [x-dropdown], [x-dropdown] > div {
+        opacity: 1 !important;
+        background-color: white !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+</style>
 @endpush
+@endif

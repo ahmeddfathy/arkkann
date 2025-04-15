@@ -514,4 +514,96 @@ body {
                       radial-gradient(var(--primary-light) 25%, transparent 25%);
     background-position: 0 0, 12px 12px;
     background-size: 24px 24px;
-    opacity: 0.6; /* More visible */}
+    opacity: 0.6; /* More visible */
+}
+
+/* Search Form Styling */
+.search-form .input-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.search-form .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+    padding-left: 15px;
+    height: 42px;
+}
+
+.search-form .form-control:focus {
+    box-shadow: none;
+    border-color: var(--border-color);
+}
+
+.search-form .btn {
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    transition: var(--transition);
+}
+
+.search-form .btn i {
+    font-size: 1rem;
+}
+
+.search-form .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.search-form .btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.search-form .btn-clear {
+    background-color: #fff;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    margin-left: 8px;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.search-form .btn-clear:hover {
+    background-color: var(--light-gray);
+    color: var(--danger-color);
+}
+
+.search-form .btn-clear i {
+    margin-right: 6px;
+}
+
+/* Loading State Styling */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

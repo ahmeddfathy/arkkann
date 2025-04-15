@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: {
                     padding: 20,
                     font: {
-                        size: 12
+                        size: 12,
+                        family: 'Cairo, sans-serif'
                     }
                 }
             },
@@ -27,10 +28,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 padding: 10,
                 titleFont: {
-                    size: 14
+                    size: 14,
+                    family: 'Cairo, sans-serif'
                 },
                 bodyFont: {
-                    size: 13
+                    size: 13,
+                    family: 'Cairo, sans-serif'
+                }
+            }
+        }
+    };
+
+    // Add responsive options for different screen sizes
+    const responsiveOptions = {
+        scales: {
+            x: {
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    autoSkip: true,
+                    maxTicksLimit: 6
+                }
+            },
+            y: {
+                ticks: {
+                    precision: 0,
+                    font: {
+                        size: 12
+                    }
                 }
             }
         }
@@ -65,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 ...chartOptions,
+                ...responsiveOptions,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -79,7 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: true,
                         text: 'توزيع حالات طلباتي',
                         font: {
-                            size: 16
+                            size: 16,
+                            family: 'Cairo, sans-serif'
                         }
                     }
                 }
@@ -119,7 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: true,
                         text: 'توزيع حالات طلبات الفريق',
                         font: {
-                            size: 16
+                            size: 16,
+                            family: 'Cairo, sans-serif'
                         }
                     }
                 }
@@ -156,7 +184,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: true,
                         text: 'توزيع حالات طلبات العمل الإضافي',
                         font: {
-                            size: 16
+                            size: 16,
+                            family: 'Cairo, sans-serif'
                         }
                     }
                 }
@@ -215,12 +244,16 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 ...chartOptions,
+                ...responsiveOptions,
                 scales: {
                     y: {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'عدد الطلبات'
+                            text: 'عدد الطلبات',
+                            font: {
+                                family: 'Cairo, sans-serif'
+                            }
                         }
                     },
                     y1: {
@@ -231,7 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         title: {
                             display: true,
-                            text: 'عدد الساعات'
+                            text: 'عدد الساعات',
+                            font: {
+                                family: 'Cairo, sans-serif'
+                            }
                         }
                     }
                 },
@@ -241,7 +277,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: true,
                         text: 'توزيع طلبات العمل الإضافي على أيام الأسبوع',
                         font: {
-                            size: 16
+                            size: 16,
+                            family: 'Cairo, sans-serif'
                         }
                     }
                 }

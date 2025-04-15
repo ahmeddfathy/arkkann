@@ -699,9 +699,17 @@ class PermissionRequestService
     public function getAllowedUsers($user)
     {
         if ($user->hasRole('hr')) {
-            return User::whereDoesntHave('roles', function ($q) {
+            $query = User::whereDoesntHave('roles', function ($q) {
                 $q->whereIn('name', ['hr', 'company_manager']);
-            })->get();
+            });
+
+            // Include team members if HR user has a current team
+            if ($user->currentTeam) {
+                $teamMembersIds = $user->currentTeam->users->pluck('id')->toArray();
+                $query->orWhereIn('id', $teamMembersIds);
+            }
+
+            return $query->get();
         }
 
         if (!$user->currentTeam) {

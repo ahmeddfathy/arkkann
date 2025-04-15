@@ -35,8 +35,8 @@
 </div>
 
 <!-- Modal التفاصيل -->
+
+@include('employee-statistics.components.scripts')
 @include('employee-statistics.components.modals')
 @include('employee-statistics.partials.details-modal')
-@include('employee-statistics.components.scripts')
-
 @endsection

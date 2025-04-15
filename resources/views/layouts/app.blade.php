@@ -19,9 +19,9 @@
     @livewireStyles
 </head>
 
-<body class="d-flex flex-column min-vh-100" x-data x-cloak>
+<body class="d-flex flex-column min-vh-100 {{ auth()->user() ? 'user-logged-in' : 'user-guest' }}" x-data x-cloak>
     <div class="page-transition">
-        @if(auth()->check())
+        @if(auth()->user())
             @livewire('navigation-menu')
         @else
             @include('layouts.navigation')

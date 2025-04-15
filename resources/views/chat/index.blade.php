@@ -2,16 +2,16 @@
 
 @section('content')
 <div class="chat-container"
-     data-chat-config="{{ e(json_encode([
-         'currentUserId' => Auth::id(),
-         'csrfToken' => csrf_token(),
-         'managerData' => $manager ?? null
-     ])) }}">
+     data-chat-config='{!! json_encode([
+         "currentUserId" => Auth::id(),
+         "csrfToken" => csrf_token(),
+         "managerData" => $manager ?? null
+     ]) !!}'>
     <div class="chat-sidebar">
         <div class="chat-sidebar-header">
             <div class="user-profile">
                 <div class="user-avatar">
-                    <img src="{{ e(asset('images/default-avatar.png')) }}" alt="Profile" class="img-fluid">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=random" alt="Profile" class="img-fluid">
                 </div>
                 <div class="user-info">
                     <h4>{{ e(Auth::user()->name) }}</h4>
@@ -26,7 +26,7 @@
                  data-user-id="{{ e($chat['user']->id) }}"
                  data-user-name="{{ e($chat['user']->name) }}">
                 <div class="chat-item-avatar">
-                    <img src="{{ e($chat['user']->avatar ?? asset('images/default-avatar.png')) }}"
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode($chat['user']->name) }}&background=random"
                          alt="Avatar"
                          class="img-fluid">
                     <span class="status-dot {{ $chat['user']->is_online ? 'online' : 'offline' }}"></span>
@@ -53,7 +53,7 @@
     <div class="chat-main">
         <div id="no-chat-selected" class="no-chat-selected">
             <div class="no-chat-content">
-                <img src="{{ e(asset('images/select-chat.png')) }}" alt="Select a chat" class="img-fluid">
+                <img src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" alt="Select a chat" class="img-fluid">
                 <h3>Select a chat to start messaging</h3>
             </div>
         </div>
@@ -62,7 +62,7 @@
             <div class="chat-header">
                 <div class="chat-contact-info">
                     <div class="contact-avatar">
-                        <img src="{{ e(asset('images/default-avatar.png')) }}"
+                        <img src="https://ui-avatars.com/api/?background=random"
                              alt="Contact"
                              id="contact-avatar"
                              class="img-fluid">
@@ -104,8 +104,6 @@
 
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"
-        integrity="sha512-H+rglffZ6f5gF7UJgvH4Naa+fGCgjrHKMgoFOGmcPTRwR6oILo5R+gtzNrpDp7iMV3udbymBVjkeZGNz1Em4Q=="
-        crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
 <script src="{{ e(asset('js/chat.js')) }}"></script>
 @endpush

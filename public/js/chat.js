@@ -1,168 +1,259 @@
-
-function sanitizeHTML(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-
-function setInnerHTML(element, html) {
-    if (typeof DOMPurify !== 'undefined') {
-        element.innerHTML = DOMPurify.sanitize(html);
-    } else {
-        console.warn('DOMPurify is not available. Using basic sanitization instead.');
-        element.innerHTML = sanitizeHTML(html);
+// Sanitization utilities
+const sanitizer = {
+    DOMPurify: window.DOMPurify,
+    sanitizeHTML: function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+    purify: function(html) {
+        if (this.DOMPurify) {
+            return this.DOMPurify.sanitize(html);
+        }
+        return this.sanitizeHTML(html);
     }
-}
+};
 
+// Chat state
 let currentChatId = null;
 let chatConfig = {};
+let messagePollingInterval = null;
+let lastMessageTimestamp = null;
+
+// DOM Elements
+const elements = {
+    chatList: document.querySelector('.chat-list'),
+    noChat: document.querySelector('#no-chat-selected'),
+    chatArea: document.querySelector('#chat-area'),
+    contactName: document.querySelector('#contact-name'),
+    messagesContainer: document.querySelector('#messages-container'),
+    messageForm: document.querySelector('#message-form'),
+    messageInput: document.querySelector('#message-input'),
+};
+
+// API endpoints
+const API = {
+    messages: (userId, timestamp) => `/chat/messages/${userId}${timestamp ? `?after=${timestamp}` : ''}`,
+    send: '/chat/send'
+};
 
 function loadChat(userId, userName) {
-    document.querySelector('.chat-list').classList.remove('active');
-    currentChatId = userId;
-    $('#no-chat-selected').addClass('d-none');
-    $('#chat-area').removeClass('d-none');
-    $('#contact-name').text(sanitizeHTML(userName));
+    if (!userId || !userName) return;
 
-    fetchMessages();
+    elements.chatList?.classList.remove('active');
+    currentChatId = userId;
+    lastMessageTimestamp = null;
+
+    if (elements.noChat) elements.noChat.classList.add('d-none');
+    if (elements.chatArea) elements.chatArea.classList.remove('d-none');
+    if (elements.contactName) elements.contactName.textContent = sanitizer.sanitizeHTML(userName);
+
+    fetchMessages(true);
     startMessagePolling();
-    updateUserStatus(userId);
 }
 
-function fetchMessages() {
+function fetchMessages(isInitialLoad = false) {
     if (!currentChatId) return;
 
-    $.get(`/chat/messages/${currentChatId}`, function(messages) {
-        renderMessages(messages);
-        scrollToBottom();
-    });
+    const url = API.messages(currentChatId, isInitialLoad ? null : lastMessageTimestamp);
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(messages => {
+            if (Array.isArray(messages) && messages.length > 0) {
+                if (isInitialLoad) {
+                    renderMessages(messages);
+                } else {
+                    appendNewMessages(messages);
+                }
+                lastMessageTimestamp = new Date(messages[messages.length - 1].created_at).getTime();
+                if (isInitialLoad) {
+                    scrollToBottom();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching messages:', error);
+            showError('Failed to load messages. Please try again later.');
+        });
 }
 
 function renderMessages(messages) {
-    const container = $('#messages-container');
-    container.empty();
+    if (!elements.messagesContainer || !Array.isArray(messages)) return;
 
+    let html = '';
     let currentDate = null;
 
     messages.forEach(message => {
         const messageDate = new Date(message.created_at).toLocaleDateString();
 
         if (messageDate !== currentDate) {
-            setInnerHTML(container[0], `
+            html += `
                 <div class="message-date-divider">
-                    <span>${sanitizeHTML(messageDate)}</span>
+                    <span>${sanitizer.sanitizeHTML(messageDate)}</span>
                 </div>
-            `);
+            `;
             currentDate = messageDate;
         }
 
-        const isOwn = message.sender_id === chatConfig.currentUserId;
-        const time = new Date(message.created_at).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        html += createMessageHTML(message);
+    });
 
-        const messageHTML = `
-            <div class="message ${isOwn ? 'message-own' : 'message-other'}">
-                <div class="message-content">
-                    <p>${sanitizeHTML(message.content)}</p>
-                    <div class="message-meta">
-                        <span class="message-time">${sanitizeHTML(time)}</span>
-                        ${isOwn ? `
-                            <span class="message-status">
-                                ${message.is_seen ?
-                                    '<i class="fas fa-check-double seen"></i>' :
-                                    '<i class="fas fa-check"></i>'}
-                            </span>
-                        ` : ''}
-                    </div>
+    elements.messagesContainer.innerHTML = sanitizer.purify(html);
+}
+
+function appendNewMessages(messages) {
+    if (!elements.messagesContainer || !Array.isArray(messages) || messages.length === 0) return;
+
+    const fragment = document.createDocumentFragment();
+    let lastElement = elements.messagesContainer.lastElementChild;
+    let currentDate = lastElement?.querySelector('.message-date-divider span')?.textContent;
+
+    messages.forEach(message => {
+        const messageDate = new Date(message.created_at).toLocaleDateString();
+
+        if (messageDate !== currentDate) {
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'message-date-divider';
+            dateDiv.innerHTML = sanitizer.purify(`<span>${sanitizer.sanitizeHTML(messageDate)}</span>`);
+            fragment.appendChild(dateDiv);
+            currentDate = messageDate;
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = sanitizer.purify(createMessageHTML(message));
+        fragment.appendChild(messageDiv.firstChild);
+    });
+
+    elements.messagesContainer.appendChild(fragment);
+    scrollToBottom();
+}
+
+function createMessageHTML(message) {
+    const isOwn = message.sender_id === chatConfig.currentUserId;
+    const time = new Date(message.created_at).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    return `
+        <div class="message ${isOwn ? 'message-own' : 'message-other'}">
+            <div class="message-content">
+                <p>${sanitizer.sanitizeHTML(message.content)}</p>
+                <div class="message-meta">
+                    <span class="message-time">${sanitizer.sanitizeHTML(time)}</span>
+                    ${isOwn ? `
+                        <span class="message-status">
+                            ${message.is_seen ?
+                                '<i class="fas fa-check-double seen"></i>' :
+                                '<i class="fas fa-check"></i>'}
+                        </span>
+                    ` : ''}
                 </div>
             </div>
-        `;
-        setInnerHTML(container[0], messageHTML);
-    });
+        </div>
+    `;
 }
 
 function startMessagePolling() {
     stopMessagePolling();
-    window.messagePolling = setInterval(fetchMessages, 3000);
+    messagePollingInterval = setInterval(() => fetchMessages(false), 5000);
 }
 
 function stopMessagePolling() {
-    if (window.messagePolling) {
-        clearInterval(window.messagePolling);
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+        messagePollingInterval = null;
     }
-}
-
-function updateUserStatus(userId) {
-    function checkStatus() {
-        $.get(`/status/user/${userId}`, function(response) {
-            const statusText = response.is_online ? 'Online' : 'Last seen ' +
-                new Date(response.last_seen_at).toLocaleString();
-            $('#contact-status').text(sanitizeHTML(statusText));
-        });
-    }
-
-    checkStatus();
-    window.statusInterval = setInterval(checkStatus, 30000);
 }
 
 function scrollToBottom() {
-    const container = $('#messages-container');
-    container.scrollTop(container[0].scrollHeight);
+    if (elements.messagesContainer) {
+        elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
+    }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize chat configuration from data attribute
+function showError(message) {
+    console.error(message);
+}
+
+// Initialize chat
+function initializeChat() {
     const chatContainer = document.querySelector('.chat-container');
     if (chatContainer) {
         try {
-            chatConfig = JSON.parse(chatContainer.getAttribute('data-chat-config'));
+            const configStr = chatContainer.getAttribute('data-chat-config');
+            if (!configStr) {
+                throw new Error('Chat configuration not found');
+            }
+            chatConfig = JSON.parse(configStr);
+            if (!chatConfig.currentUserId || !chatConfig.csrfToken) {
+                throw new Error('Invalid chat configuration');
+            }
         } catch (e) {
             console.error('Error parsing chat configuration:', e);
+            showError('Failed to initialize chat. Please refresh the page.');
+            return;
         }
     }
 
     // Setup form submission
-    $('#message-form').on('submit', function(e) {
+    elements.messageForm?.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        const input = $('#message-input');
-        const content = input.val().trim();
+        const content = elements.messageInput?.value.trim();
+        if (!content || !currentChatId || !chatConfig.csrfToken) return;
 
-        if (!content || !currentChatId) return;
+        const formData = new FormData();
+        formData.append('receiver_id', currentChatId);
+        formData.append('content', content);
+        formData.append('_token', chatConfig.csrfToken);
 
-        $.post('/chat/send', {
-            receiver_id: currentChatId,
-            content: content,
-            _token: chatConfig.csrfToken
-        }, function() {
-            input.val('');
-            fetchMessages();
+        fetch(API.send, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to send message');
+            if (elements.messageInput) elements.messageInput.value = '';
+            fetchMessages(false);
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+            showError('Failed to send message. Please try again.');
         });
     });
 
-    // Add click event listener for chat items
+    // Add click event listeners for chat items
     document.querySelectorAll('.chat-item').forEach(item => {
         item.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
-            loadChat(userId, userName);
+            if (userId && userName) loadChat(userId, userName);
         });
     });
 
     // Toggle chat list on mobile
-    document.querySelector('.chat-sidebar-header').addEventListener('click', function() {
-        document.querySelector('.chat-list').classList.toggle('active');
+    document.querySelector('.chat-sidebar-header')?.addEventListener('click', function() {
+        elements.chatList?.classList.toggle('active');
     });
 
     // Auto-load chat with manager if available
-    if (chatConfig.managerData) {
+    if (chatConfig.managerData?.id && chatConfig.managerData?.name) {
         loadChat(chatConfig.managerData.id, chatConfig.managerData.name);
     }
-});
+}
+
+// Start initialization when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeChat);
+} else {
+    initializeChat();
+}

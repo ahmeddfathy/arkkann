@@ -29,6 +29,7 @@ class NotificationController extends Controller
 
     public function getUnreadCount()
     {
+        // Don't redirect, always return JSON regardless of request type
         $count = Notification::where(function ($query) {
             $query->where('user_id', Auth::id())
                 ->orWhere(function ($q) {
@@ -39,7 +40,10 @@ class NotificationController extends Controller
             ->whereNull('read_at')
             ->count();
 
-        return response()->json(['count' => $count]);
+        return response()->json(['count' => $count], 200, [
+            'Content-Type' => 'application/json',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate'
+        ]);
     }
 
     public function markAsRead(Notification $notification)

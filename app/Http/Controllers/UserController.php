@@ -297,33 +297,48 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function assignWorkShifts()
+    public function assignWorkShifts(Request $request)
     {
-        $users = User::orderBy('name')->get();
-        $workShifts = WorkShift::where('is_active', true)->get();
+        $query = User::orderBy('name');
 
-        return view('users.assign-work-shifts', compact('users', 'workShifts'));
+        if ($request->has('search') && !empty($request->search)) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $users = $query->paginate(10);
+        $workShifts = WorkShift::where('is_active', true)->get();
+        $allUserNames = User::orderBy('name')->pluck('name')->toArray();
+
+        return view('users.assign-work-shifts', compact('users', 'workShifts', 'allUserNames'));
     }
 
     /**
-     * حفظ تعيينات الورديات للمستخدمين
+     * حفظ تعيين وردية واحدة للمستخدم
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function saveWorkShifts(Request $request)
+    public function saveSingleWorkShift(Request $request)
     {
-        $validated = $request->validate([
-            'work_shifts' => 'required|array',
-            'work_shifts.*' => 'nullable|exists:work_shifts,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'work_shift_id' => 'nullable|exists:work_shifts,id'
+            ]);
 
-        foreach ($validated['work_shifts'] as $userId => $workShiftId) {
-            User::where('id', $userId)->update(['work_shift_id' => $workShiftId]);
+            User::where('id', $validated['user_id'])
+                ->update(['work_shift_id' => $validated['work_shift_id']]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعيين الوردية بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تعيين الوردية'
+            ], 500);
         }
-
-        return redirect()->route('users.assign-work-shifts')
-            ->with('success', 'تم تعيين الورديات للمستخدمين بنجاح.');
     }
 
     /**

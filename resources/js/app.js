@@ -1,12 +1,4 @@
 import "./bootstrap";
-import Alpine from "alpinejs";
-import Focus from '@alpinejs/focus';
-
-// تسجيل plugin Focus
-Alpine.plugin(Focus);
-
-window.Alpine = Alpine;
-Alpine.start();
 
 toastr.options = {
     closeButton: true,

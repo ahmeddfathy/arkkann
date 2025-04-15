@@ -12,14 +12,26 @@ use Carbon\Carbon;
 
 class AuditLogController extends Controller
 {
+    // تعريف الثوابت للأنواع المختلفة من الطلبات
+    const REQUEST_TYPES = [
+        'absence' => AbsenceRequest::class,
+        'permission' => PermissionRequest::class,
+        'overtime' => OverTimeRequests::class
+    ];
+
     public function index(Request $request)
     {
-        $query = Audit::with(['user', 'auditable'])
-            ->whereIn('auditable_type', [
-                AbsenceRequest::class,
-                PermissionRequest::class,
-                OverTimeRequests::class
-            ]);
+        $query = Audit::with(['user', 'auditable']);
+
+        // تحويل نوع الطلب إلى اسم الموديل المناسب
+        if ($request->filled('request_type')) {
+            $modelClass = self::REQUEST_TYPES[$request->request_type] ?? null;
+            if ($modelClass) {
+                $query->where('auditable_type', $modelClass);
+            }
+        } else {
+            $query->whereIn('auditable_type', array_values(self::REQUEST_TYPES));
+        }
 
         // Filter by date
         if ($request->filled('date')) {
@@ -46,11 +58,6 @@ class AuditLogController extends Controller
         // Filter by action type
         if ($request->filled('action')) {
             $query->where('event', $request->action);
-        }
-
-        // Filter by request type
-        if ($request->filled('request_type')) {
-            $query->where('auditable_type', $request->request_type);
         }
 
         // Filter by model ID

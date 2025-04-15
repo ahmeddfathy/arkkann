@@ -58,7 +58,7 @@ Route::middleware([
 
     // مسارات تعيين الورديات للمستخدمين
     Route::get('/users/assign-work-shifts', [UserController::class, 'assignWorkShifts'])->name('users.assign-work-shifts');
-    Route::post('/users/save-work-shifts', [UserController::class, 'saveWorkShifts'])->name('users.save-work-shifts');
+    Route::post('/users/save-single-work-shift', [UserController::class, 'saveSingleWorkShift'])->name('users.save-single-work-shift');
 });
 
 Route::middleware(['auth'])->group(function () {

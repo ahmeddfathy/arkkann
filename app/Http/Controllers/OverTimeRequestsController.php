@@ -223,6 +223,10 @@ class OverTimeRequestsController extends Controller
                 $pendingCount = $teamRequests->clone()->where('status', 'pending')->count();
                 $teamRequests = $teamRequests->latest()->paginate(10);
                 $users = $this->overTimeRequestService->getAllowedUsers(Auth::user());
+            } else {
+                // Return empty paginated collection when no team exists
+                $teamRequests = OverTimeRequests::where('id', 0)->paginate(10);
+                $users = collect();
             }
         }
 

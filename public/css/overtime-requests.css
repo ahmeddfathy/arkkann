@@ -87,12 +87,16 @@
 }
 
 .table-responsive {
-
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
     background-color: #fff;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .table {
-    width: 100%;
+    min-width: 800px;
     margin-bottom: 0;
     border-collapse: collapse;
     border-spacing: 0;
@@ -262,10 +266,11 @@
 
 .form-select,
 .form-control {
-    border-radius: var(--border-radius-md);
-    padding: 12px 18px;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
     border: 2px solid var(--background-dark);
-    font-size: 0.95rem;
+    border-radius: var(--border-radius-md);
     transition: all var(--transition-fast);
     background-color: white;
     color: var(--accent-color);
@@ -395,27 +400,123 @@
     box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.2);
 }
 
+/* Chart Container Styles */
+.chart-container {
+    position: relative;
+    margin: 0 auto;
+    height: 300px;
+    width: 100%;
+    padding: 20px;
+    background-color: white;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-medium);
+}
+
+.chart-container:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+}
+
+/* Modal Responsive Styles */
+.modal-dialog {
+    max-width: 550px;
+    margin: 1.75rem auto;
+}
+
+/* Form Responsive Styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive Media Queries */
 @media (max-width: 768px) {
     .container {
-        padding: 20px;
-    }
-
-    .table thead th {
-        font-size: 0.75rem;
-        padding: 12px;
-    }
-
-    .table td {
         padding: 15px;
-        font-size: 0.85rem;
     }
 
-    .btn-sm {
-        padding: 6px 12px;
-        font-size: 0.75rem;
+    .chart-container {
+        height: 250px;
+        padding: 15px;
+    }
+
+    .card {
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        padding: 15px;
     }
 
     .card-header h5 {
         font-size: 1.1rem;
+    }
+
+    .table thead th {
+        font-size: 0.75rem;
+        padding: 10px;
+    }
+
+    .table td {
+        padding: 12px;
+        font-size: 0.85rem;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem auto;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-control,
+    .form-select {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding: 10px;
+    }
+
+    .chart-container {
+        height: 200px;
+        padding: 10px;
+    }
+
+    .card-header {
+        padding: 12px;
+    }
+
+    .card-header h5 {
+        font-size: 1rem;
+    }
+
+    .table td {
+        padding: 8px;
+        font-size: 0.8rem;
+    }
+
+    .btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    .form-control,
+    .form-select {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.85rem;
     }
 }

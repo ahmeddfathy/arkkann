@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('htmldir', 'rtl')
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/homePage.css') }}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,46 +33,58 @@
     <!-- Features Section -->
     <div class="features-section">
         <div class="container">
-            <div class="section-header" data-aos="fade-up" data-aos-duration="800">
-                <h2>خدمات النظام</h2>
-                <p>كل ما تحتاجه لإدارة فريق العمل في مكان واحد</p>
+            <div class="row">
+                <div class="col-12">
+                    <div class="section-header" data-aos="fade-up" data-aos-duration="800">
+                        <h2>خدمات النظام</h2>
+                        <p>كل ما تحتاجه لإدارة فريق العمل في مكان واحد</p>
+                    </div>
+                </div>
             </div>
 
-            <div class="features-grid">
+            <div class="row feature-cards">
                 <!-- Feature 1 -->
-                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
-                    <div class="icon-container">
-                        <i class="fas fa-calendar-alt"></i>
+                <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="icon-container">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h3>إدارة الإجازات</h3>
+                        <p>تقديم وإدارة طلبات الإجازة مع متابعة رصيد الإجازات واعتمادها</p>
                     </div>
-                    <h3>إدارة الإجازات</h3>
-                    <p>تقديم وإدارة طلبات الإجازة مع متابعة رصيد الإجازات واعتمادها</p>
                 </div>
 
                 <!-- Feature 2 -->
-                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
-                    <div class="icon-container">
-                        <i class="fas fa-clock"></i>
+                <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="icon-container">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h3>الأذونات والمغادرات</h3>
+                        <p>طلب أذونات المغادرة والتأخير مع نظام موافقات سلس</p>
                     </div>
-                    <h3>الأذونات والمغادرات</h3>
-                    <p>طلب أذونات المغادرة والتأخير مع نظام موافقات سلس</p>
                 </div>
 
                 <!-- Feature 3 -->
-                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
-                    <div class="icon-container">
-                        <i class="fas fa-business-time"></i>
+                <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
+                    <div class="feature-card">
+                        <div class="icon-container">
+                            <i class="fas fa-business-time"></i>
+                        </div>
+                        <h3>العمل الإضافي</h3>
+                        <p>تسجيل وإدارة ساعات العمل الإضافي مع حساب تلقائي للمستحقات</p>
                     </div>
-                    <h3>العمل الإضافي</h3>
-                    <p>تسجيل وإدارة ساعات العمل الإضافي مع حساب تلقائي للمستحقات</p>
                 </div>
 
                 <!-- Feature 4 -->
-                <div class="feature-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
-                    <div class="icon-container">
-                        <i class="fas fa-chart-line"></i>
+                <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
+                    <div class="feature-card">
+                        <div class="icon-container">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>تحليل الأداء</h3>
+                        <p>متابعة أداء الموظفين مع تقارير تفصيلية ومؤشرات قياس الأداء</p>
                     </div>
-                    <h3>تحليل الأداء</h3>
-                    <p>متابعة أداء الموظفين مع تقارير تفصيلية ومؤشرات قياس الأداء</p>
                 </div>
             </div>
         </div>
@@ -79,18 +93,33 @@
     <!-- Statistics Section -->
     <div class="stats-section">
         <div class="container">
-            <div class="stats-grid">
-                <div class="stat-card" data-aos="fade-up" data-aos-duration="800">
-                    <h3>+50%</h3>
-                    <p>تحسين في كفاءة إدارة الموارد البشرية</p>
+            <div class="row">
+                <div class="col-12">
+                    <div class="section-header" data-aos="fade-up" data-aos-duration="800">
+                        <h2>إحصائيات النظام</h2>
+                        <p>نتائج استخدام نظام أركان للموارد البشرية</p>
+                    </div>
                 </div>
-                <div class="stat-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
-                    <h3>-30%</h3>
-                    <p>تقليل الوقت المستغرق في الإجراءات الإدارية</p>
+            </div>
+
+            <div class="row stats-cards">
+                <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-duration="800">
+                    <div class="stat-card">
+                        <h3>+50%</h3>
+                        <p>تحسين في كفاءة إدارة الموارد البشرية</p>
+                    </div>
                 </div>
-                <div class="stat-card" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
-                    <h3>+80%</h3>
-                    <p>رضا الموظفين عن سهولة استخدام النظام</p>
+                <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
+                    <div class="stat-card">
+                        <h3>-30%</h3>
+                        <p>تقليل الوقت المستغرق في الإجراءات الإدارية</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
+                    <div class="stat-card">
+                        <h3>+80%</h3>
+                        <p>رضا الموظفين عن سهولة استخدام النظام</p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -60,9 +60,18 @@ class AbsenceRequestController extends Controller
                 }
             }
         } elseif ($user->hasRole('hr')) {
+            // Get all users except company managers and other HR users
             $users = User::whereDoesntHave('roles', function ($q) {
                 $q->whereIn('name', ['company_manager', 'hr']);
-            })->get();
+            });
+
+            // Include team members if HR user has a current team
+            if ($user->currentTeam) {
+                $teamMembersIds = $user->currentTeam->users->pluck('id')->toArray();
+                $users = $users->orWhereIn('id', $teamMembersIds);
+            }
+
+            $users = $users->get();
         } else {
             $users = collect([$user]);
         }

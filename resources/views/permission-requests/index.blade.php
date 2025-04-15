@@ -21,12 +21,13 @@
         {{ session('error') }}
     </div>
     @endif
-
     @include('permission-requests.components._search')
     @include('permission-requests.components._stats')
     @include('permission-requests.components._table')
-    @include('permission-requests.components._statstics')
     @include('permission-requests.components._modals')
+
+    @include('permission-requests.components._statstics')
+
                 </div>
 @endsection
 

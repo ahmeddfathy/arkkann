@@ -331,7 +331,27 @@ a {
     }
 
     .dashboard-header {
-        padding: 1.5rem;
+        padding: 1rem;
+        height: auto;
+        min-height: 150px;
+    }
+
+    .dashboard-header-content {
+        padding: 1rem;
+        text-align: right;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        line-height: 1.3;
+        display: block;
+        word-wrap: break-word;
+        max-width: 100%;
+    }
+
+    .dashboard-header p {
+        font-size: 0.9rem;
+        max-width: 100%;
     }
 
     .stats-container {
@@ -346,15 +366,83 @@ a {
         font-size: 1.5rem;
     }
 
-    .action-card .col-6 {
+    .action-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .action-icon {
+        width: 45px;
+        height: 45px;
+    }
+
+    .action-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .col-6 {
         flex: 0 0 100%;
         max-width: 100%;
         margin-bottom: 10px;
     }
 
-    .btn-dashboard {
-        font-size: 13px;
-        padding: 0.4rem 0.75rem;
-        min-height: 36px;
+    .stat-card {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
     }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-dashboard {
+        min-height: 35px;
+        max-width: 100%;
+        width: 100%;
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+}
+
+/* Additional Dashboard Styles */
+.dashboard-cards-container {
+  padding: 0.5rem;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -10px;
+  margin-left: -10px;
+}
+.col-md-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+.action-card {
+  background: white;
+  padding: 1.2rem;
+  border-radius: 16px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: center;
+  height: 100%;
+}
+.stat-sublabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+@media (max-width: 768px) {
+  .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
 }
