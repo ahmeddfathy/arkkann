@@ -22,9 +22,37 @@ function setInnerHTML(element, html) {
     }
 }
 
+function getMonthsDifference(startDate, endDate) {
+    // Convert dates to Date objects
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Calculate months difference
+    let months = (end.getFullYear() - start.getFullYear()) * 12;
+    months += end.getMonth() - start.getMonth();
+
+    // التعامل مع حالة الشهر الواحد المقسم على شهرين ميلاديين
+    if (months < 1 && start.getMonth() !== end.getMonth()) {
+        months = 1;
+    }
+
+    // Ensure value is at least 1
+    return Math.max(1, months);
+}
+
 function showDetails(employeeId) {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
+
+    // Calculate months difference for acceptable thresholds
+    const monthsDifference = getMonthsDifference(startDate, endDate);
+    const maxAcceptableDelays = 120 * monthsDifference; // 120 minutes per month
+    const maxAcceptablePermissions = 180 * monthsDifference; // 180 minutes per month
+
+    // تقريب الأرقام للعرض
+    const displayMonthsDifference = Math.round(monthsDifference);
+    const displayMaxAcceptableDelays = Math.round(maxAcceptableDelays);
+    const displayMaxAcceptablePermissions = Math.round(maxAcceptablePermissions);
 
     fetch(`/employee-statistics/${employeeId}?start_date=${startDate}&end_date=${endDate}`)
         .then(response => response.json())
@@ -188,7 +216,7 @@ function showDetails(employeeId) {
                 </div>
 
                 <!-- تفاصيل النقاط المخصومة -->
-                ${data.statistics.attendance_percentage < 100 || data.statistics.delays > 120 ? `
+                ${data.statistics.attendance_percentage < 100 || data.statistics.delays > maxAcceptableDelays ? `
                 <div class="mt-4">
                     <h6 class="border-bottom pb-2">
                         <i class="fas fa-exclamation-triangle text-warning me-2"></i>تفاصيل النقاط المخصومة
@@ -207,7 +235,7 @@ function showDetails(employeeId) {
                                             <h3 class="mb-0 ${data.statistics.attendance_percentage < 80 ? 'text-danger' : (data.statistics.attendance_percentage < 90 ? 'text-warning' : 'text-success')}">
                                                 ${sanitizeHTML(data.statistics.attendance_percentage)}%
                                             </h3>
-                                            <small class="text-muted">الوزن: 40% من التقييم الكلي</small>
+                                            <small class="text-muted">الوزن: 45% من التقييم الكلي</small>
 
                                             ${data.statistics.attendance_percentage < 100 ? `
                                             <div class="alert alert-light mt-2 mb-0 p-2 text-start">
@@ -224,20 +252,20 @@ function showDetails(employeeId) {
 
                                 <!-- مؤشر الانضباط -->
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 ${data.statistics.delays > 120 ? 'border-danger' : 'border-success'}">
+                                    <div class="card h-100 ${data.statistics.delays > maxAcceptableDelays ? 'border-danger' : 'border-success'}">
                                         <div class="card-body p-3 text-center">
                                             <h6 class="card-title mb-1">الانضباط</h6>
-                                            <h3 class="mb-0 ${data.statistics.delays > 120 ? 'text-danger' : 'text-success'}">
-                                                ${sanitizeHTML(data.statistics.delays <= 120 ? '100%' : Math.max(0, Math.round(100 - ((data.statistics.delays - 120) / 120) * 100)) + '%')}
+                                            <h3 class="mb-0 ${data.statistics.delays > maxAcceptableDelays ? 'text-danger' : 'text-success'}">
+                                                ${sanitizeHTML(data.statistics.delays <= maxAcceptableDelays ? '100%' : Math.max(0, Math.round(100 - ((data.statistics.delays - maxAcceptableDelays) / maxAcceptableDelays) * 100)) + '%')}
                                             </h3>
-                                            <small class="text-muted">الوزن: 40% من التقييم الكلي</small>
+                                            <small class="text-muted">الوزن: 20% من التقييم الكلي</small>
 
-                                            ${data.statistics.delays > 120 ? `
+                                            ${data.statistics.delays > maxAcceptableDelays ? `
                                             <div class="alert alert-light mt-2 mb-0 p-2 text-start">
                                                 <small>
                                                     <i class="fas fa-info-circle me-1"></i>
-                                                    تم خصم <strong>${sanitizeHTML(Math.min(100, Math.round(((data.statistics.delays - 120) / 120) * 100)))}%</strong> بسبب
-                                                    تجاوز التأخير <strong>${sanitizeHTML(data.statistics.delays - 120)} دقيقة</strong> عن الحد المسموح (120 دقيقة)
+                                                    تم خصم <strong>${sanitizeHTML(Math.min(100, Math.round(((data.statistics.delays - maxAcceptableDelays) / maxAcceptableDelays) * 100)))}%</strong> بسبب
+                                                    تجاوز التأخير <strong>${sanitizeHTML(Math.round(data.statistics.delays - maxAcceptableDelays))} دقيقة</strong> عن الحد المسموح (${sanitizeHTML(displayMaxAcceptableDelays)} دقيقة لفترة ${sanitizeHTML(displayMonthsDifference)} شهر)
                                                 </small>
                                             </div>
                                             ` : ''}
@@ -255,7 +283,7 @@ function showDetails(employeeId) {
                                                 sanitizeHTML(Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100)) + '%') :
                                                 '-'}
                                             </h3>
-                                            <small class="text-muted">الوزن: 20% من التقييم الكلي</small>
+                                            <small class="text-muted">الوزن: 35% من التقييم الكلي</small>
 
                                             ${typeof data.statistics.average_working_hours !== 'undefined' && data.statistics.average_working_hours < 8 ? `
                                             <div class="alert alert-light mt-2 mb-0 p-2 text-start">
@@ -278,15 +306,15 @@ function showDetails(employeeId) {
                                     ${data.statistics.attendance_percentage < 100 ? `
                                     <li class="mb-2">
                                         <i class="fas fa-minus-circle text-danger me-1"></i>
-                                        خصم <strong>${sanitizeHTML(Math.round((100 - data.statistics.attendance_percentage) * 0.4, 1))}%</strong>
+                                        خصم <strong>${sanitizeHTML(Math.round((100 - data.statistics.attendance_percentage) * 0.45, 1))}%</strong>
                                         من التقييم النهائي بسبب الغياب
                                     </li>
                                     ` : ''}
 
-                                    ${data.statistics.delays > 120 ? `
+                                    ${data.statistics.delays > maxAcceptableDelays ? `
                                     <li class="mb-2">
                                         <i class="fas fa-minus-circle text-danger me-1"></i>
-                                        خصم <strong>${sanitizeHTML(Math.round(Math.min(100, ((data.statistics.delays - 120) / 120) * 100) * 0.4, 1))}%</strong>
+                                        خصم <strong>${sanitizeHTML(Math.round(Math.min(100, ((data.statistics.delays - maxAcceptableDelays) / maxAcceptableDelays) * 100) * 0.2, 1))}%</strong>
                                         من التقييم النهائي بسبب التأخير
                                     </li>
                                     ` : ''}
@@ -294,7 +322,7 @@ function showDetails(employeeId) {
                                     ${typeof data.statistics.average_working_hours !== 'undefined' && data.statistics.average_working_hours < 8 ? `
                                     <li class="mb-2">
                                         <i class="fas fa-minus-circle text-danger me-1"></i>
-                                        خصم <strong>${sanitizeHTML(Math.round((100 - Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100))) * 0.2, 1))}%</strong>
+                                        خصم <strong>${sanitizeHTML(Math.round((100 - Math.min(100, Math.round((data.statistics.average_working_hours / 8) * 100))) * 0.35, 1))}%</strong>
                                         من التقييم النهائي بسبب قلة ساعات العمل
                                     </li>
                                     ` : ''}

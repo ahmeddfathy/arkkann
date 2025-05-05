@@ -45,7 +45,7 @@ class PermissionRequestService
             return $query->whereHas('user', function ($q) {
                 $q->whereDoesntHave('teams');
             })->latest()->paginate(10);
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $teamMembers = $team->users->pluck('id')->toArray();
@@ -94,7 +94,7 @@ class PermissionRequestService
             }
 
             // إذا كان المستخدم مدير، يبقى رد المدير معلق لأنه لا يمكنه الموافقة على طلبه الخاص
-            if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+            if ($currentUser->hasAnyRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
                 // لا نغير حالة رد المدير هنا - تبقى معلقة
             }
 
@@ -207,7 +207,7 @@ class PermissionRequestService
             }
 
             // If manager roles, they auto-approve as manager
-            if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+            if ($currentUser->hasAnyRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
                 $managerStatus = 'approved';
             }
 
@@ -646,7 +646,7 @@ class PermissionRequestService
         $user = $user ?? Auth::user();
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_permission_request')
         ) {
             return true;
@@ -717,14 +717,14 @@ class PermissionRequestService
         }
 
         $allowedRoles = [];
-        if ($user->hasRole('team_leader')) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             $allowedRoles = ['employee'];
-        } elseif ($user->hasRole('department_manager')) {
-            $allowedRoles = ['employee', 'team_leader'];
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+            $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
         } elseif ($user->hasRole('project_manager')) {
-            $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+            $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
         } elseif ($user->hasRole('company_manager')) {
-            $allowedRoles = ['employee', 'team_leader', 'department_manager', 'project_manager'];
+            $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
         }
 
         return $user->currentTeam->users()

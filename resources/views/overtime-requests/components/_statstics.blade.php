@@ -50,7 +50,7 @@
     </div>
 
     <!-- Team Statistics for Managers -->
-    @if((Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
+    @if((Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr'])) && !empty($teamStatistics))
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">
@@ -279,11 +279,7 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="progress flex-grow-1" style="height: 10px;">
-                                                        <div class="progress-bar bg-success" role="progressbar"
-                                                            style="width: {{ $dept->efficiency_rate }}%;"
-                                                            aria-valuenow="{{ $dept->efficiency_rate }}"
-                                                            aria-valuemin="0"
-                                                            aria-valuemax="100"></div>
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $dept->efficiency_rate }}%;" aria-valuenow="{{ $dept->efficiency_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                     <span class="ms-2">{{ number_format($dept->efficiency_rate, 1) }}%</span>
                                                 </div>

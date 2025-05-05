@@ -49,9 +49,9 @@
                                 <option value="">اختر الشهر</option>
                                 @for($i = 1; $i <= 12; $i++)
                                     <option value="{{ $i }}" {{ request('month') == $i ? 'selected' : '' }}>
-                                        {{ date('F', mktime(0, 0, 0, $i, 1)) }}
+                                    {{ date('F', mktime(0, 0, 0, $i, 1)) }}
                                     </option>
-                                @endfor
+                                    @endfor
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -60,9 +60,9 @@
                                 <option value="">اختر السنة</option>
                                 @for($i = $currentYear - 2; $i <= $currentYear; $i++)
                                     <option value="{{ $i }}" {{ request('year') == $i ? 'selected' : '' }}>
-                                        {{ $i }}
+                                    {{ $i }}
                                     </option>
-                                @endfor
+                                    @endfor
                             </select>
                         </div>
 
@@ -72,9 +72,9 @@
                             <select name="user_id" class="form-select shadow-sm">
                                 <option value="">اختر الموظف</option>
                                 @foreach($users as $user)
-                                    <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
-                                        {{ $user->name }}
-                                    </option>
+                                <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
+                                    {{ $user->name }}
+                                </option>
                                 @endforeach
                             </select>
                         </div>
@@ -98,6 +98,10 @@
                                 <option value="{{ App\Models\AbsenceRequest::class }}" {{ request('request_type') == App\Models\AbsenceRequest::class ? 'selected' : '' }}>طلب غياب</option>
                                 <option value="{{ App\Models\PermissionRequest::class }}" {{ request('request_type') == App\Models\PermissionRequest::class ? 'selected' : '' }}>طلب إذن</option>
                                 <option value="{{ App\Models\OverTimeRequests::class }}" {{ request('request_type') == App\Models\OverTimeRequests::class ? 'selected' : '' }}>طلب وقت إضافي</option>
+                                <option value="{{ App\Models\TechnicalTeamReview::class }}" {{ request('request_type') == App\Models\TechnicalTeamReview::class ? 'selected' : '' }}>تقييم فريق تقني</option>
+                                <option value="{{ App\Models\MarketingReview::class }}" {{ request('request_type') == App\Models\MarketingReview::class ? 'selected' : '' }}>تقييم فريق تسويق</option>
+                                <option value="{{ App\Models\CustomerServiceReview::class }}" {{ request('request_type') == App\Models\CustomerServiceReview::class ? 'selected' : '' }}>تقييم فريق خدمة العملاء</option>
+                                <option value="{{ App\Models\CoordinationReview::class }}" {{ request('request_type') == App\Models\CoordinationReview::class ? 'selected' : '' }}>تقييم فريق التنسيق</option>
                             </select>
                         </div>
 
@@ -184,11 +188,19 @@
                 <h5 class="mb-0">
                     <i class="fas fa-info-circle me-2"></i>
                     @if(request('request_type') == App\Models\AbsenceRequest::class)
-                        عرض سجل التغييرات لطلب الغياب رقم <strong>#{{ request('model_id') }}</strong>
+                    عرض سجل التغييرات لطلب الغياب رقم <strong>#{{ request('model_id') }}</strong>
                     @elseif(request('request_type') == App\Models\PermissionRequest::class)
-                        عرض سجل التغييرات لطلب الإذن رقم <strong>#{{ request('model_id') }}</strong>
+                    عرض سجل التغييرات لطلب الإذن رقم <strong>#{{ request('model_id') }}</strong>
                     @elseif(request('request_type') == App\Models\OverTimeRequests::class)
-                        عرض سجل التغييرات لطلب الوقت الإضافي رقم <strong>#{{ request('model_id') }}</strong>
+                    عرض سجل التغييرات لطلب الوقت الإضافي رقم <strong>#{{ request('model_id') }}</strong>
+                    @elseif(request('request_type') == App\Models\TechnicalTeamReview::class)
+                    عرض سجل التغييرات لتقييم الفريق التقني رقم <strong>#{{ request('model_id') }}</strong>
+                    @elseif(request('request_type') == App\Models\MarketingReview::class)
+                    عرض سجل التغييرات لتقييم فريق التسويق رقم <strong>#{{ request('model_id') }}</strong>
+                    @elseif(request('request_type') == App\Models\CustomerServiceReview::class)
+                    عرض سجل التغييرات لتقييم فريق خدمة العملاء رقم <strong>#{{ request('model_id') }}</strong>
+                    @elseif(request('request_type') == App\Models\CoordinationReview::class)
+                    عرض سجل التغييرات لتقييم فريق التنسيق رقم <strong>#{{ request('model_id') }}</strong>
                     @endif
                 </h5>
             </div>
@@ -197,6 +209,48 @@
             <div class="mb-3">
                 <a href="{{ route('absence-requests.index') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-2"></i>العودة إلى طلبات الغياب
+                </a>
+            </div>
+            @endif
+            @if(request('model_id') && request('request_type') == App\Models\TechnicalTeamReview::class)
+            <div class="mb-3">
+                <a href="{{ route('technical-team-reviews.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>العودة إلى تقييمات الفريق التقني
+                </a>
+            </div>
+            @endif
+            @if(request('model_id') && request('request_type') == App\Models\MarketingReview::class)
+            <div class="mb-3">
+                <a href="{{ route('marketing-reviews.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>العودة إلى تقييمات فريق التسويق
+                </a>
+            </div>
+            @endif
+            @if(request('model_id') && request('request_type') == App\Models\CustomerServiceReview::class)
+            <div class="mb-3">
+                <a href="{{ route('customer-service-reviews.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>العودة إلى تقييمات فريق خدمة العملاء
+                </a>
+            </div>
+            @endif
+            @if(request('model_id') && request('request_type') == App\Models\CoordinationReview::class)
+            <div class="mb-3">
+                <a href="{{ route('coordination-reviews.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>العودة إلى تقييمات فريق التنسيق
+                </a>
+            </div>
+            @endif
+            @if(request('model_id') && request('request_type') == App\Models\PermissionRequest::class)
+            <div class="mb-3">
+                <a href="{{ route('permission-requests.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>العودة إلى طلبات الإذن
+                </a>
+            </div>
+            @endif
+            @if(request('model_id') && request('request_type') == App\Models\OverTimeRequests::class)
+            <div class="mb-3">
+                <a href="{{ route('overtime-requests.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>العودة إلى طلبات الوقت الإضافي
                 </a>
             </div>
             @endif

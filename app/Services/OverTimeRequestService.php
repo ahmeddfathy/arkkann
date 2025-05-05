@@ -41,7 +41,7 @@ class OverTimeRequestService
             return $query->whereHas('user', function ($q) {
                 $q->whereDoesntHave('teams');
             })->latest()->paginate(10);
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $teamMembers = $team->users->pluck('id')->toArray();
@@ -156,8 +156,8 @@ class OverTimeRequestService
 
             if ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
                 $isInHrOwnedTeam = false;
-                if ($currentUser->currentTeam && $currentUser->teams()->whereHas('users', function($q) {
-                    $q->whereHas('roles', function($r) {
+                if ($currentUser->currentTeam && $currentUser->teams()->whereHas('users', function ($q) {
+                    $q->whereHas('roles', function ($r) {
                         $r->where('name', 'hr');
                     });
                 })->exists()) {
@@ -167,8 +167,7 @@ class OverTimeRequestService
                 if ($isRequestForSelf && $isInHrOwnedTeam) {
                     $managerStatus = 'approved';
                     $hrStatus = 'approved';
-                }
-                elseif (!$isRequestForSelf) {
+                } elseif (!$isRequestForSelf) {
                     $hrStatus = 'approved';
 
                     $requestUser = User::find($userId);
@@ -185,8 +184,7 @@ class OverTimeRequestService
                         $managerStatus = 'approved';
                     }
                 }
-            }
-            elseif ($currentUser->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) && !$isRequestForSelf && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
+            } elseif ($currentUser->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) && !$isRequestForSelf && $currentUser->hasPermissionTo('manager_respond_overtime_request')) {
                 $requestUser = User::find($userId);
                 $isRequestUserInCurrentTeam = false;
 
@@ -200,8 +198,7 @@ class OverTimeRequestService
                 if ($isRequestUserInCurrentTeam) {
                     $managerStatus = 'approved';
                 }
-            }
-            elseif ($currentUser->hasRole('hr')) {
+            } elseif ($currentUser->hasRole('hr')) {
                 $hrStatus = 'approved';
 
                 if (!$isRequestForSelf) {
@@ -219,8 +216,7 @@ class OverTimeRequestService
                         $managerStatus = 'approved';
                     }
                 }
-            }
-            elseif (!$isRequestForSelf) {
+            } elseif (!$isRequestForSelf) {
                 $isTeamOwner = false;
 
                 if ($currentUser->currentTeam && $currentUser->currentTeam->user_id == $currentUser->id) {
@@ -479,7 +475,7 @@ class OverTimeRequestService
         $user = $user ?? Auth::user();
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_overtime_request')
         ) {
             return true;
@@ -505,14 +501,14 @@ class OverTimeRequestService
         }
 
         $allowedRoles = [];
-        if ($user->hasRole('team_leader')) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             $allowedRoles = ['employee'];
-        } elseif ($user->hasRole('department_manager')) {
-            $allowedRoles = ['employee', 'team_leader'];
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+            $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
         } elseif ($user->hasRole('project_manager')) {
-            $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+            $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
         } elseif ($user->hasRole('company_manager')) {
-            $allowedRoles = ['employee', 'team_leader', 'department_manager', 'project_manager'];
+            $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
         }
 
         $users = $user->currentTeam->users()

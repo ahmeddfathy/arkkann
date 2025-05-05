@@ -3,191 +3,375 @@
 @section('content')
 
 <head>
-  <link rel="stylesheet" href="{{asset('css/dashboard-user.css')}}">
+    <link rel="stylesheet" href="{{asset('css/dashboard-user.css')}}">
 </head>
 
 @if(session('success'))
 <div class="alert alert-success alert-dismissible fade show" role="alert">
-  {{ session('success') }}
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 @endif
 
 <div class="dashboard-container">
-  <div class="dashboard-header">
-    <div class="dashboard-header-content">
-      <h1 class="text-3xl font-bold mb-2">مرحباً، {{ Auth::user()->name }}</h1>
-      <p class="text-white/80">
-        إحصائيات الفترة من {{ $startDate->format('d/m/Y') }} إلى {{ $endDate->format('d/m/Y') }}
-      </p>
-      <p class="text-white/60 text-sm">
-        شهر {{ $attendanceStats['period']['month'] }} {{ $attendanceStats['period']['year'] }}
-      </p>
-      <div class="dashboard-date">
-        <i class="fas fa-calendar-alt"></i>
-        <span>{{ now()->format('Y/m/d') }}</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats-container">
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="fas fa-check text-white text-xl"></i>
-      </div>
-      <div class="stat-value">{{ $attendanceStats['present_days'] }}</div>
-      <div class="stat-label">أيام الحضور</div>
-      <div class="stat-sublabel">من أصل {{ $attendanceStats['total_work_days'] }} يوم عمل</div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="fas fa-times text-white text-xl"></i>
-      </div>
-      <div class="stat-value">{{ $attendanceStats['absent_days'] }}</div>
-      <div class="stat-label">أيام الغياب</div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="fas fa-clock text-white text-xl"></i>
-      </div>
-      <div class="stat-value">{{ $attendanceStats['late_days'] }}</div>
-      <div class="stat-label">مرات التأخير</div>
-      <div class="stat-sublabel">{{ $attendanceStats['total_delay_minutes'] }} دقيقة</div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="fas fa-exclamation-triangle text-white text-xl"></i>
-      </div>
-      <div class="stat-value">{{ $attendanceStats['violation_days'] }}</div>
-      <div class="stat-label">المخالفات</div>
-    </div>
-  </div>
-
-  <div class="action-cards">
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-file-alt text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">Overtime Requests</h3>
-      <a href="{{ route('overtime-requests.index') }}" class="btn-dashboard">
-        View Overtime Requests
-      </a>
-    </div>
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-user-clock text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">Permission Requests</h3>
-      <a href="{{ route('permission-requests.index') }}" class="btn-dashboard">
-        Manage Permissions
-      </a>
-    </div>
-  </div>
-
-  <div class="action-cards">
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-user-minus text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">Absence Requests</h3>
-      <a href="{{ route('absence-requests.index') }}" class="btn-dashboard">
-        Manage Absences
-      </a>
-    </div>
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-bell text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">Notifications</h3>
-      <a href="{{ route('notifications') }}" class="btn-dashboard">
-        View Notifications
-      </a>
-    </div>
-  </div>
-
-  <div class="action-cards">
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-file-pdf text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">تقرير الحضور</h3>
-      @if(Auth::user()->employee_id)
-        <a href="{{ route('user.previewAttendance', Auth::user()->employee_id) }}" class="btn-dashboard">
-          عرض التقرير
-        </a>
-      @else
-        <div class="alert alert-warning">
-          لا يوجد رقم موظف مسجل
-        </div>
-      @endif
-    </div>
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-envelope text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">Chat</h3>
-      <a href="{{ route('chat.index') }}" class="btn-dashboard">
-        Open Chat
-      </a>
-    </div>
-  </div>
-
-  <div class="action-cards">
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-chart-line text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">إحصائيات الموظف</h3>
-      <a href="{{ route('employee-statistics.index') }}" class="btn-dashboard">
-        عرض الإحصائيات
-      </a>
-    </div>
-    <div class="action-card">
-      <div class="action-icon">
-        <i class="fas fa-trophy text-white text-xl"></i>
-      </div>
-      <h3 class="font-semibold mb-2">المسابقة</h3>
-      <a href="{{ route('employee-competition.index') }}" class="btn-dashboard">
-         تابع المسابقه
-      </a>
-    </div>
-  </div>
-
-  @if($salaryFiles->count() > 0)
-  <div>
-
-  </div>
-  <div class="container mt-5 ">
-    <h3 class="text-center mb-4 ">Your Salary Sheets</h3>
-    <div class="row ">
-      @foreach($salaryFiles as $file)
-
-      <div class="col-md-4 mb-4">
-        <div class="card shadow-lg h-100 border-0">
-          <div class="card-body text-center position-relative">
-            <div class="salary-icon bg-gradient-primary text-white mb-3 d-inline-flex align-items-center justify-content-center">
-              <i class="fas fa-file-invoice-dollar fa-2x"></i>
+    <div class="dashboard-header">
+        <div class="dashboard-header-content">
+            <h1 class="text-3xl font-bold mb-2">مرحباً، {{ Auth::user()->name }}</h1>
+            <p class="text-white/80">
+                إحصائيات الفترة من {{ $startDate->format('d/m/Y') }} إلى {{ $endDate->format('d/m/Y') }}
+            </p>
+            <p class="text-white/60 text-sm">
+                شهر {{ $attendanceStats['period']['month'] }} {{ $attendanceStats['period']['year'] }}
+            </p>
+            <div class="dashboard-date">
+                <i class="fas fa-calendar-alt"></i>
+                <span>{{ now()->format('Y/m/d') }}</span>
             </div>
-            <h5 class="card-title text-dark mb-3">{{ $file->month }}</h5>
-            <a href="{{ url('/salary-sheet/' . $file->employee_id . '/' . $file->month . '/' . basename($file->file_path)) }}"
-              class="btn btn-primary btn-sm px-4 rounded-pill" target="_blank">
-              View Salary Sheet
-            </a>
-          </div>
         </div>
-      </div>
-      @endforeach
     </div>
-  </div>
-  @else
-  <div class="container mt-5">
-    <div class="alert alert-info text-center" role="alert">
-      <p class="mb-0">No salary sheets available at the moment. Please check back later!</p>
-    </div>
-  </div>
-  @endif
 
-  @endsection
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check text-white text-xl"></i>
+            </div>
+            <div class="stat-value">{{ $attendanceStats['present_days'] }}</div>
+            <div class="stat-label">أيام الحضور</div>
+            <div class="stat-sublabel">من أصل {{ $attendanceStats['total_work_days'] }} يوم عمل</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-times text-white text-xl"></i>
+            </div>
+            <div class="stat-value">{{ $attendanceStats['absent_days'] }}</div>
+            <div class="stat-label">أيام الغياب</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock text-white text-xl"></i>
+            </div>
+            <div class="stat-value">{{ $attendanceStats['late_days'] }}</div>
+            <div class="stat-label">مرات التأخير</div>
+            <div class="stat-sublabel">{{ $attendanceStats['total_delay_minutes'] }} دقيقة</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+            </div>
+            <div class="stat-value">{{ $attendanceStats['violation_days'] }}</div>
+            <div class="stat-label">المخالفات</div>
+        </div>
+    </div>
+
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-file-alt text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Overtime Requests</h3>
+            <a href="{{ route('overtime-requests.index') }}" class="btn-dashboard">
+                View Overtime Requests
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-user-clock text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Permission Requests</h3>
+            <a href="{{ route('permission-requests.index') }}" class="btn-dashboard">
+                Manage Permissions
+            </a>
+        </div>
+    </div>
+
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-user-minus text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Absence Requests</h3>
+            <a href="{{ route('absence-requests.index') }}" class="btn-dashboard">
+                Manage Absences
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-bell text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Notifications</h3>
+            <a href="{{ route('notifications') }}" class="btn-dashboard">
+                View Notifications
+            </a>
+        </div>
+    </div>
+
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-file-pdf text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقرير الحضور</h3>
+            @if(Auth::user()->employee_id)
+            <a href="{{ route('user.previewAttendance', Auth::user()->employee_id) }}" class="btn-dashboard">
+                عرض التقرير
+            </a>
+            @else
+            <div class="alert alert-warning">
+                لا يوجد رقم موظف مسجل
+            </div>
+            @endif
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-envelope text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Chat</h3>
+            <a href="{{ route('chat.index') }}" class="btn-dashboard">
+                Open Chat
+            </a>
+        </div>
+    </div>
+
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-chart-line text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">إحصائيات الموظف</h3>
+            <a href="{{ route('employee-statistics.index') }}" class="btn-dashboard">
+                عرض الإحصائيات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-trophy text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">المسابقة</h3>
+            <a href="{{ route('employee-competition.index') }}" class="btn-dashboard">
+                تابع المسابقه
+            </a>
+        </div>
+    </div>
+
+    <!-- Technical Team Reviews Section - Visible only for technical team leaders and department managers -->
+    @if(Auth::user()->hasRole(['technical_team_leader', 'technical_department_manager']))
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-star text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات الفريق التقني</h3>
+            <a href="{{ route('technical-team-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-plus-circle text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييم جديد</h3>
+            <a href="{{ route('technical-team-reviews.create') }}" class="btn-dashboard">
+                إنشاء تقييم
+            </a>
+        </div>
+    </div>
+    @endif
+
+    <!-- Marketing Reviews Section - Visible only for marketing team leaders and department managers -->
+    @if(Auth::user()->hasRole(['marketing_team_leader', 'marketing_department_manager']))
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-ad text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق التسويق</h3>
+            <a href="{{ route('marketing-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-plus-circle text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييم جديد</h3>
+            <a href="{{ route('marketing-reviews.create') }}" class="btn-dashboard">
+                إنشاء تقييم
+            </a>
+        </div>
+    </div>
+    @endif
+
+    <!-- Customer Service Reviews Section - Visible only for customer service team leaders and department managers -->
+    @if(Auth::user()->hasRole(['customer_service_team_leader', 'customer_service_department_manager']))
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-headset text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق خدمة العملاء</h3>
+            <a href="{{ route('customer-service-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-plus-circle text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييم جديد</h3>
+            <a href="{{ route('customer-service-reviews.create') }}" class="btn-dashboard">
+                إنشاء تقييم
+            </a>
+        </div>
+    </div>
+    @endif
+
+    <!-- Coordination Reviews Section - Visible only for coordination team leaders and department managers -->
+    @if(Auth::user()->hasRole(['coordination_team_leader', 'coordination_department_manager']))
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-tasks text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق التنسيق</h3>
+            <a href="{{ route('coordination-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-plus-circle text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييم جديد</h3>
+            <a href="{{ route('coordination-reviews.create') }}" class="btn-dashboard">
+                إنشاء تقييم
+            </a>
+        </div>
+    </div>
+    @endif
+
+    <!-- All Reviews Section - Visible only for project managers and company managers -->
+    @if(Auth::user()->hasRole(['project_manager', 'company_manager']))
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-list-alt text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات الفريق التقني</h3>
+            <a href="{{ route('technical-team-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-list-alt text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق التسويق</h3>
+            <a href="{{ route('marketing-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+    </div>
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-list-alt text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات خدمة العملاء</h3>
+            <a href="{{ route('customer-service-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-list-alt text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق التنسيق</h3>
+            <a href="{{ route('coordination-reviews.index') }}" class="btn-dashboard">
+                إدارة التقييمات
+            </a>
+        </div>
+    </div>
+    @endif
+
+    <!-- HR Reviews Section - Visible only for HR users -->
+    @if(Auth::user()->hasRole('hr'))
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-clipboard-list text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات الفريق التقني</h3>
+            <a href="{{ route('technical-team-reviews.index') }}" class="btn-dashboard">
+                استعراض التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-clipboard-list text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق التسويق</h3>
+            <a href="{{ route('marketing-reviews.index') }}" class="btn-dashboard">
+                استعراض التقييمات
+            </a>
+        </div>
+    </div>
+    <div class="action-cards">
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-clipboard-list text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات خدمة العملاء</h3>
+            <a href="{{ route('customer-service-reviews.index') }}" class="btn-dashboard">
+                استعراض التقييمات
+            </a>
+        </div>
+        <div class="action-card">
+            <div class="action-icon">
+                <i class="fas fa-clipboard-list text-white text-xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">تقييمات فريق التنسيق</h3>
+            <a href="{{ route('coordination-reviews.index') }}" class="btn-dashboard">
+                استعراض التقييمات
+            </a>
+        </div>
+    </div>
+    @endif
+
+    @if($salaryFiles->count() > 0)
+    <div>
+
+    </div>
+    <div class="container mt-5 ">
+        <h3 class="text-center mb-4 ">Your Salary Sheets</h3>
+        <div class="row ">
+            @foreach($salaryFiles as $file)
+
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-lg h-100 border-0">
+                    <div class="card-body text-center position-relative">
+                        <div class="salary-icon bg-gradient-primary text-white mb-3 d-inline-flex align-items-center justify-content-center">
+                            <i class="fas fa-file-invoice-dollar fa-2x"></i>
+                        </div>
+                        <h5 class="card-title text-dark mb-3">{{ $file->month }}</h5>
+                        <a href="{{ url('/salary-sheet/' . $file->employee_id . '/' . $file->month . '/' . basename($file->file_path)) }}"
+                            class="btn btn-primary btn-sm px-4 rounded-pill" target="_blank">
+                            View Salary Sheet
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @else
+    <div class="container mt-5">
+        <div class="alert alert-info text-center" role="alert">
+            <p class="mb-0">No salary sheets available at the moment. Please check back later!</p>
+        </div>
+    </div>
+    @endif
+
+    @endsection

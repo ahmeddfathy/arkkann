@@ -31,6 +31,7 @@ class UserController extends Controller
         }
 
         $users = $query->latest()->paginate(10);
+        $totalUsers = User::count();
 
         foreach ($users as $user) {
             $allPermissions = Permission::all();
@@ -41,7 +42,7 @@ class UserController extends Controller
         $roles = Role::all();
         $permissions = Permission::all();
 
-        return view('users.index', compact('users', 'employees', 'departments', 'roles', 'permissions'));
+        return view('users.index', compact('users', 'employees', 'departments', 'roles', 'permissions', 'totalUsers'));
     }
 
     public function show($id)

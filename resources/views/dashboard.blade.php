@@ -158,7 +158,7 @@
           </div>
         </div>
       </div>
-    @endif
+      @endif
 
       <div class="col-md-6 mb-4">
         <div class="action-card">
@@ -199,13 +199,13 @@
             <div class="col-6">
               <a href="{{ route('attendances.create') }}" class="btn-dashboard">
                 <i class="fas fa-clock"></i>
-                تسجيل الحضور
+                تسجيل حضور
               </a>
             </div>
             <div class="col-6">
-              <a href="{{ route('leaves.create') }}" class="btn-dashboard">
-                <i class="fas fa-calendar-plus"></i>
-                طلب إجازة
+              <a href="{{ route('my-reviews.index') }}" class="btn-dashboard">
+                <i class="fas fa-star"></i>
+                تقييماتي
               </a>
             </div>
             @endif

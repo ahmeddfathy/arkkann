@@ -73,7 +73,7 @@
                                 </td>
                                 <td>
                                     @if((Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending' && $canUpdateAbsence) ||
-                                       (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canUpdateAbsence))
+                                    (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canUpdateAbsence))
                                     <button class="btn btn-sm btn-warning edit-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editAbsenceModal"
@@ -87,7 +87,7 @@
                                     @endif
 
                                     @if((Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending' && $canDeleteAbsence) ||
-                                       (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canDeleteAbsence))
+                                    (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canDeleteAbsence))
                                     <form action="{{ route('absence-requests.destroy', $request) }}"
                                         method="POST"
                                         class="d-inline">
@@ -115,7 +115,7 @@
     </div>
 
     <!-- Team Absence Requests (For Managers & HR Only) -->
-    @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
+    @if(Auth::user()->hasRole(['hr', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']))
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card shadow-sm">
@@ -192,10 +192,10 @@
                                     </span>
                                 </td>
                                 <td>
-                                    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) ||
-                                       (Auth::user()->hasRole('hr') && $canRespondAsManager && Auth::user()->ownedTeams->contains(function($team) use ($request) {
-                                           return $team->users->contains('id', $request->user_id);
-                                       })))
+                                    @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) ||
+                                    (Auth::user()->hasRole('hr') && $canRespondAsManager && Auth::user()->ownedTeams->contains(function($team) use ($request) {
+                                    return $team->users->contains('id', $request->user_id);
+                                    })))
                                     @if($request->manager_status === 'pending')
                                     @if($canRespondAsManager)
                                     <button class="btn btn-sm btn-info respond-btn"
@@ -270,7 +270,7 @@
                                     @endif
 
                                     @if((Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending' && $canUpdateAbsence) ||
-                                       (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canUpdateAbsence))
+                                    (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canUpdateAbsence))
                                     <button class="btn btn-sm btn-warning edit-btn"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editAbsenceModal"
@@ -284,7 +284,7 @@
                                     @endif
 
                                     @if((Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending' && $canDeleteAbsence) ||
-                                       (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canDeleteAbsence))
+                                    (Auth::id() === $request->user_id && Auth::user()->hasRole('hr') && $request->hr_status === 'approved' && $canDeleteAbsence))
                                     <form action="{{ route('absence-requests.destroy', $request) }}"
                                         method="POST"
                                         class="d-inline">

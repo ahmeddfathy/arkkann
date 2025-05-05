@@ -17,6 +17,45 @@
     </div>
     @endif
 
+    @if(session('import_summary'))
+    <div class="alert alert-warning mb-4" style="background-color: #fff3cd; border-color: #ffeeba; border-right: 4px solid #ffbc00;">
+        <div class="d-flex align-items-center">
+            <div class="me-3 text-warning">
+                <i class="fas fa-exclamation-triangle fa-2x"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-1 text-dark">ملخص استيراد المستخدمين</h5>
+                    <span class="badge bg-danger">{{ session('skipped_count') ?? 0 }} تم تخطيهم</span>
+                </div>
+                <div class="mt-2">
+                    <div style="direction: rtl; text-align: right; max-height: 150px; overflow-y: auto; background-color: #fff; padding: 10px; border-radius: 5px; border: 1px solid #ffe69c;">
+                        @php
+                            $summaryText = session('import_summary');
+                            $lines = explode("\n", $summaryText);
+                            $filteredLines = [];
+
+                            foreach ($lines as $line) {
+                                if (str_contains($line, 'الموظف موجود مسبقاً') || str_contains($line, 'غير متوفر') ||
+                                    str_contains($line, 'بيانات إلزامية مفقودة')) {
+                                    $filteredLines[] = $line;
+                                }
+                            }
+                        @endphp
+
+                        @foreach($filteredLines as $line)
+                            <p class="mb-1 text-danger"><i class="fas fa-times-circle me-1"></i> {{ $line }}</p>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            <div class="ms-3">
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Search Form -->
     <div class="card search-card mb-4">
         <div class="card-body">
@@ -69,7 +108,7 @@
     <!-- Users Table Card -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">User Information</h4>
+            <h4 class="mb-0">User Information <span class="badge bg-primary ms-2">{{ $totalUsers }} Users</span></h4>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
                 <i class="fas fa-file-import"></i> Import Users
             </button>

@@ -52,7 +52,7 @@ class AbsenceRequestController extends Controller
         $statistics = $this->getStatistics($user, $dateStart, $dateEnd);
 
         $users = collect();
-        if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             if ($user->currentTeam) {
                 $teamMembers = $this->getTeamMembers($user->currentTeam, $this->getAllowedRoles($user));
                 if (!empty($teamMembers)) {
@@ -133,7 +133,7 @@ class AbsenceRequestController extends Controller
                     ->latest()
                     ->paginate(10, ['*'], 'team_page');
             }
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $allowedRoles = $this->getAllowedRoles($user);
@@ -313,7 +313,7 @@ class AbsenceRequestController extends Controller
                     }
                 }
             } elseif (
-                $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+                $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
                 $user->hasPermissionTo('manager_respond_absence_request')
             ) {
                 $canRespondAsManager = true;
@@ -517,7 +517,7 @@ class AbsenceRequestController extends Controller
                 ] : null,
             ];
 
-            if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) {
+            if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr'])) {
                 $hasTeamWithMultipleMembers = $user->ownedTeams()
                     ->withCount('users')
                     ->having('users_count', '>', 1)
@@ -583,7 +583,7 @@ class AbsenceRequestController extends Controller
                             'team_name' => $user->currentTeam->name
                         ];
                     }
-                } else if ($user->hasRole('department_manager') || $user->hasRole('project_manager') || $user->hasRole('company_manager')) {
+                } else if ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
                     $managedTeams = $user->ownedTeams;
                     $allTeamMembers = [];
 
@@ -809,16 +809,16 @@ class AbsenceRequestController extends Controller
      */
     private function getAllowedRoles($user)
     {
-        if ($user->hasRole('team_leader')) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             return ['employee'];
-        } elseif ($user->hasRole('department_manager')) {
-            return ['employee', 'team_leader'];
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
         } elseif ($user->hasRole('project_manager')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
         } elseif ($user->hasRole('company_manager')) {
-            return ['employee', 'team_leader', 'department_manager', 'project_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
         } elseif ($user->hasRole('hr')) {
-            return ['employee', 'team_leader', 'department_manager', 'project_manager', 'company_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'];
         }
         return [];
     }

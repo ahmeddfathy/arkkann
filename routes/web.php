@@ -15,14 +15,17 @@ use App\Http\Controllers\SalarySheetController;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ExampleMail;
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\OnlineStatusController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\EmployeeStatisticsController;
 use App\Http\Controllers\SpecialCaseController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\EmployeeCompetitionController;
 use App\Http\Controllers\EmployeeBirthdayController;
-
+use App\Http\Controllers\CoordinationReviewController;
+use App\Http\Controllers\MarketingReviewController;
+use App\Http\Controllers\CustomerServiceReviewController;
+use App\Http\Controllers\TechnicalTeamReviewController;
+use App\Http\Controllers\MyReviewsController;
 
 Route::get('/send-mail', function () {
     $data = [
@@ -120,7 +123,6 @@ Route::middleware(['auth', 'role:manager,employee'])->group(function () {
     Route::get('/chat/messages/{receiver}', [ChatController::class, 'getMessages']);
     Route::post('/chat/send', [ChatController::class, 'sendMessage']);
     Route::post('/chat/mark-seen', [ChatController::class, 'markAsSeen']);
-
 });
 
 Route::get('/salary-sheets', [SalarySheetController::class, 'index'])->name('salary-sheets.index');
@@ -280,4 +282,119 @@ Route::get('overtime-requests/{id}/audits', [App\Http\Controllers\OverTimeReques
     ->name('overtime-requests.audits')
     ->middleware(['auth', 'verified']);
 
+// GeoIP Routes
+Route::get('/geo', [App\Http\Controllers\GeoController::class, 'index'])->name('geo.index');
+Route::post('/geo/check-ip', [App\Http\Controllers\GeoController::class, 'checkIp'])->name('geo.checkip');
+Route::get('/geo/api', [App\Http\Controllers\GeoController::class, 'getLocationData'])->name('geo.api');
+Route::get('/geo/ip/{ip}', [App\Http\Controllers\GeoController::class, 'getLocationData'])->name('geo.ip');
 
+// Coordination Reviews Routes
+Route::prefix('coordination-reviews')->name('coordination-reviews.')->middleware(['auth'])->group(function () {
+    Route::get('/', [CoordinationReviewController::class, 'index'])
+        ->middleware(['permission:view_coordination_review'])
+        ->name('index');
+    Route::get('/create', [CoordinationReviewController::class, 'create'])
+        ->middleware(['permission:create_coordination_review'])
+        ->name('create');
+    Route::post('/', [CoordinationReviewController::class, 'store'])
+        ->middleware(['permission:create_coordination_review'])
+        ->name('store');
+    Route::get('/{coordinationReview}', [CoordinationReviewController::class, 'show'])
+        ->middleware(['permission:view_coordination_review'])
+        ->name('show');
+    Route::get('/{coordinationReview}/edit', [CoordinationReviewController::class, 'edit'])
+        ->middleware(['permission:update_coordination_review'])
+        ->name('edit');
+    Route::put('/{coordinationReview}', [CoordinationReviewController::class, 'update'])
+        ->middleware(['permission:update_coordination_review'])
+        ->name('update');
+    Route::patch('/{coordinationReview}', [CoordinationReviewController::class, 'update'])
+        ->middleware(['permission:update_coordination_review']);
+    Route::delete('/{coordinationReview}', [CoordinationReviewController::class, 'destroy'])
+        ->middleware(['permission:delete_coordination_review'])
+        ->name('destroy');
+});
+
+// Marketing Reviews Routes
+Route::prefix('marketing-reviews')->name('marketing-reviews.')->middleware(['auth'])->group(function () {
+    Route::get('/', [MarketingReviewController::class, 'index'])
+        ->middleware(['permission:view_marketing_review'])
+        ->name('index');
+    Route::get('/create', [MarketingReviewController::class, 'create'])
+        ->middleware(['permission:create_marketing_review'])
+        ->name('create');
+    Route::post('/', [MarketingReviewController::class, 'store'])
+        ->middleware(['permission:create_marketing_review'])
+        ->name('store');
+    Route::get('/{marketingReview}', [MarketingReviewController::class, 'show'])
+        ->middleware(['permission:view_marketing_review'])
+        ->name('show');
+    Route::get('/{marketingReview}/edit', [MarketingReviewController::class, 'edit'])
+        ->middleware(['permission:update_marketing_review'])
+        ->name('edit');
+    Route::put('/{marketingReview}', [MarketingReviewController::class, 'update'])
+        ->middleware(['permission:update_marketing_review'])
+        ->name('update');
+    Route::patch('/{marketingReview}', [MarketingReviewController::class, 'update'])
+        ->middleware(['permission:update_marketing_review']);
+    Route::delete('/{marketingReview}', [MarketingReviewController::class, 'destroy'])
+        ->middleware(['permission:delete_marketing_review'])
+        ->name('destroy');
+});
+
+// Customer Service Reviews Routes
+Route::prefix('customer-service-reviews')->name('customer-service-reviews.')->middleware(['auth'])->group(function () {
+    Route::get('/', [CustomerServiceReviewController::class, 'index'])
+        ->middleware(['permission:view_customer_service_review'])
+        ->name('index');
+    Route::get('/create', [CustomerServiceReviewController::class, 'create'])
+        ->middleware(['permission:create_customer_service_review'])
+        ->name('create');
+    Route::post('/', [CustomerServiceReviewController::class, 'store'])
+        ->middleware(['permission:create_customer_service_review'])
+        ->name('store');
+    Route::get('/{customerServiceReview}', [CustomerServiceReviewController::class, 'show'])
+        ->middleware(['permission:view_customer_service_review'])
+        ->name('show');
+    Route::get('/{customerServiceReview}/edit', [CustomerServiceReviewController::class, 'edit'])
+        ->middleware(['permission:update_customer_service_review'])
+        ->name('edit');
+    Route::put('/{customerServiceReview}', [CustomerServiceReviewController::class, 'update'])
+        ->middleware(['permission:update_customer_service_review'])
+        ->name('update');
+    Route::patch('/{customerServiceReview}', [CustomerServiceReviewController::class, 'update'])
+        ->middleware(['permission:update_customer_service_review']);
+    Route::delete('/{customerServiceReview}', [CustomerServiceReviewController::class, 'destroy'])
+        ->middleware(['permission:delete_customer_service_review'])
+        ->name('destroy');
+});
+
+// Technical Team Reviews Routes
+Route::prefix('technical-team-reviews')->name('technical-team-reviews.')->middleware(['auth'])->group(function () {
+    Route::get('/', [TechnicalTeamReviewController::class, 'index'])
+        ->middleware(['permission:view_technical_team_review'])
+        ->name('index');
+    Route::get('/create', [TechnicalTeamReviewController::class, 'create'])
+        ->middleware(['permission:create_technical_team_review'])
+        ->name('create');
+    Route::post('/', [TechnicalTeamReviewController::class, 'store'])
+        ->middleware(['permission:create_technical_team_review'])
+        ->name('store');
+    Route::get('/{technicalTeamReview}', [TechnicalTeamReviewController::class, 'show'])
+        ->middleware(['permission:view_technical_team_review'])
+        ->name('show');
+    Route::get('/{technicalTeamReview}/edit', [TechnicalTeamReviewController::class, 'edit'])
+        ->middleware(['permission:update_technical_team_review'])
+        ->name('edit');
+    Route::put('/{technicalTeamReview}', [TechnicalTeamReviewController::class, 'update'])
+        ->middleware(['permission:update_technical_team_review'])
+        ->name('update');
+    Route::patch('/{technicalTeamReview}', [TechnicalTeamReviewController::class, 'update'])
+        ->middleware(['permission:update_technical_team_review']);
+    Route::delete('/{technicalTeamReview}', [TechnicalTeamReviewController::class, 'destroy'])
+        ->middleware(['permission:delete_technical_team_review'])
+        ->name('destroy');
+});
+
+// Add My Reviews route
+Route::get('/my-reviews', [MyReviewsController::class, 'index'])->name('my-reviews.index')->middleware('auth');

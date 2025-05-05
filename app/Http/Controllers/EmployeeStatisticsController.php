@@ -20,27 +20,27 @@ class EmployeeStatisticsController extends Controller
         $employeeQuery = User::query();
 
         if ($user->hasRole('hr')) {
-            $employeeQuery->where(function($query) use ($user) {
+            $employeeQuery->where(function ($query) use ($user) {
                 $query->whereDoesntHave('roles', function ($q) {
                     $q->whereIn('name', ['hr', 'company_manager']);
                 })
-                ->orWhere('id', $user->id); // Include the current HR user
+                    ->orWhere('id', $user->id); // Include the current HR user
             });
 
-            $allUsers = User::where(function($query) use ($user) {
+            $allUsers = User::where(function ($query) use ($user) {
                 $query->whereDoesntHave('roles', function ($q) {
                     $q->whereIn('name', ['hr', 'company_manager']);
                 })
-                ->orWhere('id', $user->id); // Include the current HR user
+                    ->orWhere('id', $user->id); // Include the current HR user
             })->get();
-        } elseif ($user->hasRole('department_manager') || $user->hasRole('project_manager')) {
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'])) {
             $managedTeams = $user->allTeams()->pluck('id');
 
             $employeeQuery->where(function ($query) use ($managedTeams, $user) {
                 $query->whereHas('teams', function ($q) use ($managedTeams) {
                     $q->whereIn('teams.id', $managedTeams);
                 })->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['employee', 'team_leader']);
+                    $q->whereIn('name', ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader']);
                 })
                     ->orWhereHas('ownedTeams', function ($q) use ($managedTeams) {
                         $q->whereIn('id', $managedTeams);
@@ -52,14 +52,14 @@ class EmployeeStatisticsController extends Controller
                 $query->whereHas('teams', function ($q) use ($managedTeams) {
                     $q->whereIn('teams.id', $managedTeams);
                 })->whereHas('roles', function ($q) {
-                    $q->whereIn('name', ['employee', 'team_leader']);
+                    $q->whereIn('name', ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader']);
                 })
                     ->orWhereHas('ownedTeams', function ($q) use ($managedTeams) {
                         $q->whereIn('id', $managedTeams);
                     })
                     ->orWhere('id', $user->id); // Include the current department manager
             })->get();
-        } elseif ($user->hasRole('team_leader')) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             if ($user->currentTeam) {
                 $teamMembers = $user->currentTeam->users()
                     ->whereHas('roles', function ($q) {
@@ -67,32 +67,32 @@ class EmployeeStatisticsController extends Controller
                     })
                     ->pluck('users.id');
 
-                $employeeQuery->where(function($query) use ($teamMembers, $user) {
+                $employeeQuery->where(function ($query) use ($teamMembers, $user) {
                     $query->whereIn('id', $teamMembers)
-                          ->orWhere('id', $user->id); // Include the current team leader
+                        ->orWhere('id', $user->id); // Include the current team leader
                 });
 
-                $allUsers = User::where(function($query) use ($teamMembers, $user) {
+                $allUsers = User::where(function ($query) use ($teamMembers, $user) {
                     $query->whereIn('id', $teamMembers)
-                          ->orWhere('id', $user->id); // Include the current team leader
+                        ->orWhere('id', $user->id); // Include the current team leader
                 })->get();
             } else {
                 $employeeQuery->where('id', $user->id); // If no team, just show self
                 $allUsers = collect([$user]);
             }
         } elseif ($user->hasRole('company_manager')) {
-            $employeeQuery->where(function($query) use ($user) {
+            $employeeQuery->where(function ($query) use ($user) {
                 $query->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'hr');
                 })
-                ->orWhere('id', $user->id); // Include the current company manager
+                    ->orWhere('id', $user->id); // Include the current company manager
             });
 
-            $allUsers = User::where(function($query) use ($user) {
+            $allUsers = User::where(function ($query) use ($user) {
                 $query->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'hr');
                 })
-                ->orWhere('id', $user->id); // Include the current company manager
+                    ->orWhere('id', $user->id); // Include the current company manager
             })->get();
         } else {
             $employeeQuery->where('id', $user->id);
@@ -111,7 +111,7 @@ class EmployeeStatisticsController extends Controller
         }
 
         $departments = [];
-        if ($user->hasRole(['hr', 'company_manager', 'department_manager' , 'project_manager'])) {
+        if ($user->hasRole(['hr', 'company_manager', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'])) {
             $departments = User::select('department')
                 ->distinct()
                 ->whereNotNull('department')
@@ -298,7 +298,7 @@ class EmployeeStatisticsController extends Controller
 
         if ($user->hasRole('hr')) {
             $canViewEmployee = true;
-        } elseif ($user->hasRole('department_manager') || $user->hasRole('project_manager')) {
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'])) {
             $managedTeams = $user->allTeams()->pluck('id');
             $canViewEmployee = $employee->teams()
                 ->whereIn('teams.id', $managedTeams)
@@ -306,7 +306,7 @@ class EmployeeStatisticsController extends Controller
                 $employee->ownedTeams()
                 ->whereIn('id', $managedTeams)
                 ->exists();
-        } elseif ($user->hasRole('team_leader')) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             $canViewEmployee = $user->currentTeam && $employee->teams()
                 ->where('teams.id', $user->currentTeam->id)
                 ->exists();
@@ -397,7 +397,7 @@ class EmployeeStatisticsController extends Controller
                 ->whereBetween('overtime_date', [$startDate, $endDate])
                 ->count(),
             'delays' => $totalDelayMinutes,
-            'attendance' => $attendanceRecords->map(function($record) use ($specialCases) {
+            'attendance' => $attendanceRecords->map(function ($record) use ($specialCases) {
                 $date = Carbon::parse($record->attendance_date)->format('Y-m-d');
                 if (isset($specialCases[$date])) {
                     $specialCase = $specialCases[$date];
@@ -455,8 +455,17 @@ class EmployeeStatisticsController extends Controller
             ->count();
 
         $employeeData = $employee->only([
-            'id', 'name', 'employee_id', 'email', 'phone_number', 'position', 'department',
-            'date_of_birth', 'hire_date', 'employment_status', 'profile_photo_url'
+            'id',
+            'name',
+            'employee_id',
+            'email',
+            'phone_number',
+            'position',
+            'department',
+            'date_of_birth',
+            'hire_date',
+            'employment_status',
+            'profile_photo_url'
         ]);
 
         // Add max allowed absence days
@@ -470,14 +479,14 @@ class EmployeeStatisticsController extends Controller
 
     private function getAllowedRoles($user)
     {
-        if ($user->hasRole('team_leader')) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             return ['employee'];
-        } elseif ($user->hasRole('department_manager')) {
-            return ['employee', 'team_leader'];
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
         } elseif ($user->hasRole('company_manager')) {
-            return ['employee', 'team_leader', 'department_manager' , 'project_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
         } elseif ($user->hasRole('project_manager')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
         }
         return [];
     }
@@ -498,12 +507,12 @@ class EmployeeStatisticsController extends Controller
             $startDate = request('start_date');
             $endDate = request('end_date');
 
-            $approvedLeavesDates = AbsenceRequest::where('user_id', function($query) use ($employee_id) {
-                    $query->select('id')
-                        ->from('users')
-                        ->where('employee_id', $employee_id)
-                        ->first();
-                })
+            $approvedLeavesDates = AbsenceRequest::where('user_id', function ($query) use ($employee_id) {
+                $query->select('id')
+                    ->from('users')
+                    ->where('employee_id', $employee_id)
+                    ->first();
+            })
                 ->where('status', 'approved')
                 ->whereBetween('absence_date', [$startDate, $endDate])
                 ->pluck('absence_date')
@@ -516,7 +525,7 @@ class EmployeeStatisticsController extends Controller
                 ->orderBy('attendance_date', 'desc')
                 ->get();
 
-            return $absences->map(function($record) {
+            return $absences->map(function ($record) {
                 return [
                     'date' => $record->attendance_date,
                     'reason' => 'غياب',
@@ -542,7 +551,7 @@ class EmployeeStatisticsController extends Controller
                 ->orderBy('departure_time', 'desc')
                 ->get();
 
-            return $permissions->map(function($record) {
+            return $permissions->map(function ($record) {
                 $departureTime = Carbon::parse($record->departure_time);
                 $returnTime = Carbon::parse($record->return_time);
                 $minutes = abs($returnTime->diffInMinutes($departureTime));
@@ -575,7 +584,7 @@ class EmployeeStatisticsController extends Controller
                 ->orderBy('overtime_date', 'desc')
                 ->get();
 
-            return $overtimes->map(function($record) {
+            return $overtimes->map(function ($record) {
                 $startTime = Carbon::parse($record->start_time);
                 $endTime = Carbon::parse($record->end_time);
                 $minutes = abs($endTime->diffInMinutes($startTime));
@@ -611,7 +620,7 @@ class EmployeeStatisticsController extends Controller
                 ->orderBy('absence_date', 'desc')
                 ->get();
 
-            $formattedLeaves = $leaves->map(function($record) {
+            $formattedLeaves = $leaves->map(function ($record) {
                 return [
                     'date' => $record->absence_date,
                     'reason' => $record->reason,
@@ -644,7 +653,7 @@ class EmployeeStatisticsController extends Controller
             ])
             ->get();
 
-        $formattedLeaves = $leaves->map(function($record) {
+        $formattedLeaves = $leaves->map(function ($record) {
             return [
                 'date' => $record->absence_date,
                 'reason' => $record->reason,
@@ -680,14 +689,29 @@ class EmployeeStatisticsController extends Controller
         ];
 
         // If employee data is not properly set, return default metrics
-        if (!isset($employee->attendance_percentage) && !isset($employee->delays) &&
-            !isset($employee->total_working_days) && !isset($employee->actual_attendance_days)) {
+        if (
+            !isset($employee->attendance_percentage) && !isset($employee->delays) &&
+            !isset($employee->total_working_days) && !isset($employee->actual_attendance_days)
+        ) {
             return $defaultMetrics;
         }
 
         $attendanceScore = min(100, ($employee->attendance_percentage ?? 0));
 
-        $maxAcceptableDelays = 120;
+        // Calculate months between start and end date
+        $startDateObj = Carbon::parse($startDate);
+        $endDateObj = Carbon::parse($endDate);
+        $monthsDifference = max(1, $startDateObj->diffInMonths($endDateObj));
+
+        // التعامل مع حالة الشهر الواحد المقسم على شهرين ميلاديين
+        if ($monthsDifference < 1 && $startDateObj->format('m') != $endDateObj->format('m')) {
+            $monthsDifference = 1;
+        }
+
+        // Scale maxAcceptableDelays based on the number of months
+        $baseMaxAcceptableDelays = 120; // 120 minutes per month
+        $maxAcceptableDelays = $baseMaxAcceptableDelays * $monthsDifference;
+
         $punctualityScore = 100;
 
         if (($employee->delays ?? 0) > $maxAcceptableDelays) {
@@ -722,7 +746,10 @@ class EmployeeStatisticsController extends Controller
             $workingHoursScore = min(100, ($attendanceRate * $avgHoursRate * 100));
         }
 
-        $maxAcceptablePermissions = 180;
+        // Scale maxAcceptablePermissions based on the number of months as well
+        $baseMaxAcceptablePermissions = 180; // 180 minutes per month
+        $maxAcceptablePermissions = $baseMaxAcceptablePermissions * $monthsDifference;
+
         $permissionsScore = 100;
 
         if (($employee->permissions ?? 0) > $maxAcceptablePermissions) {
@@ -746,13 +773,13 @@ class EmployeeStatisticsController extends Controller
             'areas_for_improvement' => $this->getAreasForImprovement($attendanceScore, $punctualityScore, $workingHoursScore, $permissionsScore),
             'delay_status' => [
                 'minutes' => $employee->delays ?? 0,
-                'is_good' => ($employee->delays ?? 0) <= 120,
-                'percentage' => min(100, (($employee->delays ?? 0) / 120) * 100)
+                'is_good' => ($employee->delays ?? 0) <= $maxAcceptableDelays,
+                'percentage' => min(100, (($employee->delays ?? 0) / $maxAcceptableDelays) * 100)
             ],
             'permissions_status' => [
                 'minutes' => $employee->permissions ?? 0,
-                'is_good' => ($employee->permissions ?? 0) <= 180,
-                'percentage' => min(100, (($employee->permissions ?? 0) / 180) * 100)
+                'is_good' => ($employee->permissions ?? 0) <= $maxAcceptablePermissions,
+                'percentage' => min(100, (($employee->permissions ?? 0) / $maxAcceptablePermissions) * 100)
             ]
         ];
     }
@@ -833,7 +860,19 @@ class EmployeeStatisticsController extends Controller
 
         $prevAttendanceScore = $totalDays > 0 ? ($presentDays / $totalDays) * 100 : 0;
 
-        $maxAcceptableDelays = 120;
+        // Calculate months between previous start and end date
+        // حساب الفرق بالشهور بدقة، بدون إضافة 1
+        $monthsDifference = max(1, $previousStart->diffInMonths($previousEnd));
+
+        // التعامل مع حالة الشهر الواحد المقسم على شهرين ميلاديين
+        if ($monthsDifference < 1 && $previousStart->format('m') != $previousEnd->format('m')) {
+            $monthsDifference = 1;
+        }
+
+        // Scale maxAcceptableDelays based on the number of months
+        $baseMaxAcceptableDelays = 120; // 120 minutes per month
+        $maxAcceptableDelays = $baseMaxAcceptableDelays * $monthsDifference;
+
         $prevPunctualityScore = 100;
         if ($totalDelayMinutes > $maxAcceptableDelays) {
             $excessDelays = $totalDelayMinutes - $maxAcceptableDelays;
@@ -848,7 +887,10 @@ class EmployeeStatisticsController extends Controller
             $prevWorkingHoursScore = min(100, ($attendanceRate * $avgHoursRate * 100));
         }
 
-        $maxAcceptablePermissions = 180;
+        // Scale maxAcceptablePermissions based on the number of months as well
+        $baseMaxAcceptablePermissions = 180; // 180 minutes per month
+        $maxAcceptablePermissions = $baseMaxAcceptablePermissions * $monthsDifference;
+
         $prevPermissions = PermissionRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
             ->whereBetween('departure_time', [$previousStart, $previousEnd])
@@ -971,10 +1013,15 @@ class EmployeeStatisticsController extends Controller
         $currentMetrics = $employee->performance_metrics;
         $currentScore = $currentMetrics['overall_score'] ?? 0;
 
+        // Extract start date from comparison_periods if available, otherwise use current date
+        $startDate = isset($employee->comparison_periods['current_period']['start'])
+            ? $employee->comparison_periods['current_period']['start']
+            : now()->format('Y-m-d');
+
         $prevOverallScore = isset($employee->previous_scores) ?
             (($employee->previous_scores['attendance_score'] * 0.45) +
-             ($employee->previous_scores['punctuality_score'] * 0.2) +
-             ($employee->previous_scores['working_hours_score'] * 0.35)) :
+                ($employee->previous_scores['punctuality_score'] * 0.2) +
+                ($employee->previous_scores['working_hours_score'] * 0.35)) :
             $this->calculatePreviousPeriodScore($employee, $startDate);
 
         $trend = $currentScore - $prevOverallScore;
@@ -992,8 +1039,7 @@ class EmployeeStatisticsController extends Controller
             // If improving, allow moderate improvement
             $predictedImprovement = min(5, $trend * 0.3);
             $predictedScore = min(100, $currentScore + $predictedImprovement);
-        }
-        else if ($trend < 0) {
+        } else if ($trend < 0) {
             // If declining, predict continued decline but at a slower rate
             $predictedDecline = $trend * 0.5; // Use 50% of the current decline rate
             $predictedScore = max(0, $currentScore + $predictedDecline); // Remove minimum limit of 50
@@ -1107,7 +1153,7 @@ class EmployeeStatisticsController extends Controller
                 'prediction_for' => $periodsDetails['prediction_period']['label'],
                 'calculation_method' => [
                     'description' => 'تم حساب التنبؤ بناءً على تحليل الفرق في الأداء بين الفترة الحالية والفترة السابقة، ' .
-                                   'واستخدام هذا الاتجاه لتوقع الأداء المستقبلي مع مراعاة معدل تحسن أو تراجع أبطأ.'
+                        'واستخدام هذا الاتجاه لتوقع الأداء المستقبلي مع مراعاة معدل تحسن أو تراجع أبطأ.'
                 ],
                 'current_vs_previous' => [
                     'current_score' => $currentScore,
@@ -1141,8 +1187,7 @@ class EmployeeStatisticsController extends Controller
         if ($trend > 0) {
             $predictedChange = min(5, $trend * 0.25);
             return min(100, $currentScore + $predictedChange);
-        }
-        else if ($trend < 0) {
+        } else if ($trend < 0) {
             if ($currentScore >= 90) {
                 $predictedChange = max(-2, $trend * 0.15);
             } else {

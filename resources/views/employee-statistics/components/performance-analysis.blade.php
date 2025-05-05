@@ -41,7 +41,29 @@
                                         role="progressbar"
                                         style="width: {{ $employee->performance_metrics['delay_status']['percentage'] }}%"></div>
                                 </div>
-                                <small class="text-muted">الحد المسموح: 120 دقيقة</small>
+                                @php
+                                    // Calculate the months difference between start and end date
+                                    $startDateObj = \Carbon\Carbon::parse($startDate);
+                                    $endDateObj = \Carbon\Carbon::parse($endDate);
+                                    // حساب الفرق بالشهور بدقة، بدون إضافة 1
+                                    $monthsDifference = max(1, $startDateObj->diffInMonths($endDateObj));
+
+                                    // التعامل مع حالة الشهر الواحد المقسم على شهرين ميلاديين
+                                    if ($monthsDifference < 1 && $startDateObj->format('m') != $endDateObj->format('m')) {
+                                        $monthsDifference = 1;
+                                    }
+
+                                    // تقريب قيمة الشهور إلى رقم صحيح للعرض
+                                    $displayMonthsDifference = round($monthsDifference);
+
+                                    $maxAcceptableDelays = 120 * $monthsDifference;
+                                    $maxAcceptablePermissions = 180 * $monthsDifference;
+
+                                    // تقريب قيم الحدود المسموحة إلى أرقام صحيحة
+                                    $displayMaxAcceptableDelays = round($maxAcceptableDelays);
+                                    $displayMaxAcceptablePermissions = round($maxAcceptablePermissions);
+                                @endphp
+                                <small class="text-muted">الحد المسموح: {{ $displayMaxAcceptableDelays }} دقيقة ({{ $displayMonthsDifference }} شهر)</small>
                             </div>
 
                             <!-- حالة الأذونات -->
@@ -57,7 +79,7 @@
                                         role="progressbar"
                                         style="width: {{ $employee->performance_metrics['permissions_status']['percentage'] }}%"></div>
                                 </div>
-                                <small class="text-muted">الحد المسموح: 180 دقيقة</small>
+                                <small class="text-muted">الحد المسموح: {{ $displayMaxAcceptablePermissions }} دقيقة ({{ $displayMonthsDifference }} شهر)</small>
                             </div>
 
                             <!-- مؤشرات الأداء التفصيلية -->
@@ -135,8 +157,34 @@
                                                   <div class='text-start'>
                                                     <strong>تفاصيل الخصم:</strong><br>
                                                     - دقائق التأخير: {{ $employee->delays }} دقيقة<br>
-                                                    - الحد المسموح: 120 دقيقة شهرياً<br>
-                                                    - تجاوز الحد بـ: {{ max(0, $employee->delays - 120) }} دقيقة<br>
+                                                    @php
+                                                        // Calculate the months difference between start and end date
+                                                        $startDateObj = \Carbon\Carbon::parse($startDate);
+                                                        $endDateObj = \Carbon\Carbon::parse($endDate);
+                                                        // حساب الفرق بالشهور بدقة، بدون إضافة 1
+                                                        $monthsDifference = max(1, $startDateObj->diffInMonths($endDateObj));
+
+                                                        // التعامل مع حالة الشهر الواحد المقسم على شهرين ميلاديين
+                                                        if ($monthsDifference < 1 && $startDateObj->format('m') != $endDateObj->format('m')) {
+                                                            $monthsDifference = 1;
+                                                        }
+
+                                                        // تقريب قيمة الشهور إلى رقم صحيح للعرض
+                                                        $displayMonthsDifference = round($monthsDifference);
+
+                                                        $maxAcceptableDelays = 120 * $monthsDifference;
+                                                        $maxAcceptablePermissions = 180 * $monthsDifference;
+
+                                                        // تقريب قيم الحدود المسموحة إلى أرقام صحيحة
+                                                        $displayMaxAcceptableDelays = round($maxAcceptableDelays);
+                                                        $displayMaxAcceptablePermissions = round($maxAcceptablePermissions);
+
+                                                        // تقريب قيمة تجاوز الحد
+                                                        $excessDelay = max(0, $employee->delays - $maxAcceptableDelays);
+                                                        $displayExcessDelay = round($excessDelay);
+                                                    @endphp
+                                                    - الحد المسموح: {{ $displayMaxAcceptableDelays }} دقيقة لفترة {{ $displayMonthsDifference }} شهر<br>
+                                                    - تجاوز الحد بـ: {{ $displayExcessDelay }} دقيقة<br>
                                                     - نسبة الخصم من مؤشر الالتزام: {{ round(100 - $employee->performance_metrics['punctuality_score'], 1) }}%<br>
                                                     - وزن مؤشر الالتزام: 20% من التقييم الكلي<br>
                                                     - حساب الخصم: {{ round(100 - $employee->performance_metrics['punctuality_score'], 1) }}% × 20% = {{ round((100 - $employee->performance_metrics['punctuality_score']) * 0.2, 1) }}%

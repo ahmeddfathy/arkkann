@@ -10,7 +10,7 @@
                     @csrf
                     <div class="modal-body">
                         <!-- اختيار الموظف (يظهر فقط للمدراء) -->
-                        @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
+                        @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
                         <div class="mb-3">
                             <label for="user_id" class="form-label">الموظف</label>
                             <select class="form-select" id="user_id" name="user_id" required>
@@ -193,25 +193,25 @@
                             </thead>
                             <tbody>
                                 @if(isset($statistics['team']['exceeded_employees']) && count($statistics['team']['exceeded_employees']) > 0)
-                                    @foreach($statistics['team']['exceeded_employees'] as $index => $employee)
-                                    @php
-                                        $age = $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->age : null;
-                                        $maxDays = $age && $age >= 50 ? 45 : 21;
-                                        $excessPercentage = round(($employee->total_days / $maxDays) * 100 - 100, 1);
-                                    @endphp
-                                    <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $employee->name }}</td>
-                                        <td>{{ $age ?? 'غير محدد' }}</td>
-                                        <td>{{ $maxDays }} يوم</td>
-                                        <td>{{ $employee->total_days }} يوم</td>
-                                        <td><span class="text-danger">+{{ $excessPercentage }}%</span></td>
-                                    </tr>
-                                    @endforeach
+                                @foreach($statistics['team']['exceeded_employees'] as $index => $employee)
+                                @php
+                                $age = $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->age : null;
+                                $maxDays = $age && $age >= 50 ? 45 : 21;
+                                $excessPercentage = round(($employee->total_days / $maxDays) * 100 - 100, 1);
+                                @endphp
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $employee->name }}</td>
+                                    <td>{{ $age ?? 'غير محدد' }}</td>
+                                    <td>{{ $maxDays }} يوم</td>
+                                    <td>{{ $employee->total_days }} يوم</td>
+                                    <td><span class="text-danger">+{{ $excessPercentage }}%</span></td>
+                                </tr>
+                                @endforeach
                                 @else
-                                    <tr>
-                                        <td colspan="6" class="text-center">لا يوجد موظفين تجاوزوا الحد المسموح للغياب</td>
-                                    </tr>
+                                <tr>
+                                    <td colspan="6" class="text-center">لا يوجد موظفين تجاوزوا الحد المسموح للغياب</td>
+                                </tr>
                                 @endif
                             </tbody>
                         </table>

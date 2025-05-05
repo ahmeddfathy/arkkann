@@ -2,7 +2,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('permission-requests.index') }}" class="row g-3">
-            @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
+            @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
             <div class="col-md-3">
                 <label for="employee_name" class="form-label">بحث عن موظف</label>
                 <input type="text" class="form-control" id="employee_name" name="employee_name"
@@ -10,7 +10,7 @@
                 <datalist id="employee_names">
                     @foreach($users as $user)
                     <option value="{{ $user->name }}">
-                    @endforeach
+                        @endforeach
                 </datalist>
             </div>
             @endif

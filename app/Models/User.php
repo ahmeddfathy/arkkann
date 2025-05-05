@@ -31,7 +31,6 @@ class User extends Authenticatable
     'email',
     'password',
     'employee_id',
-    'age',
     'date_of_birth',
     'national_id_number',
     'phone_number',

@@ -68,7 +68,7 @@ class PermissionRequestController extends Controller
             ->sum('minutes_used');
 
         $teamMembersMinutes = [];
-        if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr'])) {
             $teamMembers = $user->currentTeam ? $user->currentTeam->users->pluck('id') : collect();
 
             foreach ($teamMembers as $memberId) {
@@ -121,7 +121,7 @@ class PermissionRequestController extends Controller
             // استبعاد أعضاء الفريق والمستخدمين بدون فريق من جدول طلبات موظفي الشركة
             $hrQuery->whereHas('user', function ($query) use ($teamMemberIds, $noTeamUserIds) {
                 $query->whereNotIn('id', $teamMemberIds)
-                      ->whereNotIn('id', $noTeamUserIds);
+                    ->whereNotIn('id', $noTeamUserIds);
             });
 
             $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
@@ -178,16 +178,18 @@ class PermissionRequestController extends Controller
             }
 
             $noTeamRequests = $noTeamQuery->latest()->paginate(10);
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $allowedRoles = [];
-                if ($user->hasRole('team_leader')) {
+                if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
                     $allowedRoles = ['employee'];
-                } elseif ($user->hasRole('department_manager')) {
-                    $allowedRoles = ['employee', 'team_leader'];
+                } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+                    $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
+                } elseif ($user->hasRole('project_manager')) {
+                    $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
                 } elseif ($user->hasRole('company_manager')) {
-                    $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+                    $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
                 }
 
                 $teamMembers = $this->permissionRequestService->getAllowedUsers($user)
@@ -219,7 +221,7 @@ class PermissionRequestController extends Controller
             }
         }
 
-        if (Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr'])) {
+        if (Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr'])) {
             $users = $this->permissionRequestService->getAllowedUsers(Auth::user());
         } else {
             $users = User::when($user->hasRole('hr'), function ($query) {
@@ -474,13 +476,15 @@ class PermissionRequestController extends Controller
         // التحقق من الصلاحيات حسب نوع الرد
         if ($validated['response_type'] === 'manager') {
             // التحقق من صلاحية الرد كمدير
-            if (!$user->hasPermissionTo('manager_respond_permission_request')) {
-                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير');
+            if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader']) && !$user->hasPermissionTo('manager_respond_permission_request')) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان');
             }
 
             // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
-            if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-                !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
+            if (
+                !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+                !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))
+            ) {
                 return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات الاستئذان كمدير');
             }
         } elseif ($validated['response_type'] === 'hr') {
@@ -495,7 +499,7 @@ class PermissionRequestController extends Controller
             }
         }
 
-        if ($validated['response_type'] === 'manager' && $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        if ($validated['response_type'] === 'manager' && $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $permissionRequest->manager_status = $validated['status'];
             $permissionRequest->manager_rejection_reason = $validated['status'] === 'rejected' ? $validated['rejection_reason'] : null;
         } elseif ($validated['response_type'] === 'hr' && $user->hasRole('hr')) {
@@ -517,7 +521,7 @@ class PermissionRequestController extends Controller
 
         // تحقق من الصلاحيات
         if (
-            !$user->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            !$user->hasRole(['hr', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
             $user->id !== $permissionRequest->user_id
         ) {
             return response()->json([
@@ -537,7 +541,7 @@ class PermissionRequestController extends Controller
             $endOfWorkDay = Carbon::now()->setTimezone('Africa/Cairo')->setTime(16, 0, 0);
 
             // إذا كان المستخدم مدير أو HR، نسمح له بتسجيل العودة بغض النظر عن الوقت
-            $isManager = $user->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']);
+            $isManager = $user->hasRole(['hr', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']);
 
             if ($returnTime->gte($endOfWorkDay)) {
                 $permissionRequest->returned_on_time = true;
@@ -743,8 +747,10 @@ class PermissionRequestController extends Controller
             $user = Auth::user();
 
             // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
-            if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-                !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
+            if (
+                !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+                !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))
+            ) {
                 return back()->with('error', 'Unauthorized action.');
             }
 
@@ -782,8 +788,10 @@ class PermissionRequestController extends Controller
         }
 
         // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
-        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
+        if (
+            !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية إعادة تعيين الرد على طلبات الاستئذان كمدير'
@@ -820,8 +828,10 @@ class PermissionRequestController extends Controller
         }
 
         // التحقق من أن المستخدم إما مدير أو HR لديه صلاحية الرد كمدير
-        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))) {
+        if (
+            !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_permission_request'))
+        ) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات الاستئذان كمدير');
         }
 
@@ -906,7 +916,7 @@ class PermissionRequestController extends Controller
         ];
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']) &&
+            $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']) &&
             ($user->currentTeam || $user->ownedTeams->count() > 0)
         ) {
             $teams = collect();
@@ -1063,11 +1073,11 @@ class PermissionRequestController extends Controller
                     ->whereIn('user_id', $allEmployees)
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->groupBy('user_id');
-                }, 'request_counts')
-                    ->join('users', 'users.id', '=', 'request_counts.user_id')
-                    ->select('users.name', 'request_counts.request_count')
-                    ->orderByDesc('request_count')
-                    ->first();
+            }, 'request_counts')
+                ->join('users', 'users.id', '=', 'request_counts.user_id')
+                ->select('users.name', 'request_counts.request_count')
+                ->orderByDesc('request_count')
+                ->first();
 
             $highestMinutes = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                 $query->from('permission_requests')
@@ -1076,11 +1086,11 @@ class PermissionRequestController extends Controller
                     ->where('status', 'approved')
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->groupBy('user_id');
-                }, 'minute_totals')
-                    ->join('users', 'users.id', '=', 'minute_totals.user_id')
-                    ->select('users.name', 'minute_totals.total_minutes')
-                    ->orderByDesc('total_minutes')
-                    ->first();
+            }, 'minute_totals')
+                ->join('users', 'users.id', '=', 'minute_totals.user_id')
+                ->select('users.name', 'minute_totals.total_minutes')
+                ->orderByDesc('total_minutes')
+                ->first();
 
             $exceededEmployees = DB::table(function ($query) use ($allEmployees, $dateStart, $dateEnd) {
                 $query->from('permission_requests')
@@ -1090,17 +1100,17 @@ class PermissionRequestController extends Controller
                     ->whereBetween('departure_time', [$dateStart, $dateEnd])
                     ->groupBy('user_id')
                     ->having('total_minutes', '>', 180);
-                }, 'exceeded_users')
-                    ->join('users', 'users.id', '=', 'exceeded_users.user_id')
-                    ->select('users.name', 'exceeded_users.total_minutes')
-                    ->orderByDesc('total_minutes')
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'name' => $item->name,
-                            'total_minutes' => $item->total_minutes
-                        ];
-                    });
+            }, 'exceeded_users')
+                ->join('users', 'users.id', '=', 'exceeded_users.user_id')
+                ->select('users.name', 'exceeded_users.total_minutes')
+                ->orderByDesc('total_minutes')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'name' => $item->name,
+                        'total_minutes' => $item->total_minutes
+                    ];
+                });
 
             $departmentStats = DB::table('users')
                 ->leftJoin('permission_requests', function ($join) use ($dateStart, $dateEnd) {
@@ -1330,16 +1340,16 @@ class PermissionRequestController extends Controller
 
     private function getAllowedRoles($user)
     {
-        if ($user->hasRole('team_leader')) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
             return ['employee'];
-        } elseif ($user->hasRole('department_manager')) {
-            return ['employee', 'team_leader'];
+        } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
         } elseif ($user->hasRole('project_manager')) {
-            return ['employee', 'team_leader', 'department_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
         } elseif ($user->hasRole('company_manager')) {
-            return ['employee', 'team_leader', 'department_manager', 'project_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
         } elseif ($user->hasRole('hr')) {
-            return ['employee', 'team_leader', 'department_manager', 'project_manager', 'company_manager'];
+            return ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'];
         }
         return [];
     }

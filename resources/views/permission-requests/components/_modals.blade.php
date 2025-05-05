@@ -9,7 +9,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    @if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
+                    @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
                     <div class="mb-4">
                         <label class="form-label fw-bold">نوع الطلب</label>
                         <div class="btn-group w-100" role="group">

@@ -7,6 +7,10 @@ use OwenIt\Auditing\Models\Audit;
 use App\Models\AbsenceRequest;
 use App\Models\PermissionRequest;
 use App\Models\OverTimeRequests;
+use App\Models\TechnicalTeamReview;
+use App\Models\MarketingReview;
+use App\Models\CustomerServiceReview;
+use App\Models\CoordinationReview;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -16,7 +20,11 @@ class AuditLogController extends Controller
     const REQUEST_TYPES = [
         'absence' => AbsenceRequest::class,
         'permission' => PermissionRequest::class,
-        'overtime' => OverTimeRequests::class
+        'overtime' => OverTimeRequests::class,
+        'technical_review' => TechnicalTeamReview::class,
+        'marketing_review' => MarketingReview::class,
+        'customer_service_review' => CustomerServiceReview::class,
+        'coordination_review' => CoordinationReview::class
     ];
 
     public function index(Request $request)
@@ -42,16 +50,16 @@ class AuditLogController extends Controller
         // Filter by month and year
         if ($request->filled('month') && $request->filled('year')) {
             $query->whereMonth('created_at', $request->month)
-                  ->whereYear('created_at', $request->year);
+                ->whereYear('created_at', $request->year);
         }
 
         // Filter by user (employee)
         if ($request->filled('user_id')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('user_id', $request->user_id)
-                  ->orWhereHas('auditable', function($q) use ($request) {
-                      $q->where('user_id', $request->user_id);
-                  });
+                    ->orWhereHas('auditable', function ($q) use ($request) {
+                        $q->where('user_id', $request->user_id);
+                    });
             });
         }
 
@@ -68,17 +76,21 @@ class AuditLogController extends Controller
         $audits = $query->latest()
             ->get()
             ->map(function ($audit) {
-                $actionType = match($audit->event) {
+                $actionType = match ($audit->event) {
                     'created' => 'إنشاء',
                     'updated' => 'تحديث',
                     'deleted' => 'حذف',
                     default => $audit->event
                 };
 
-                $modelType = match($audit->auditable_type) {
+                $modelType = match ($audit->auditable_type) {
                     AbsenceRequest::class => 'طلب غياب',
                     PermissionRequest::class => 'طلب إذن',
                     OverTimeRequests::class => 'طلب وقت إضافي',
+                    TechnicalTeamReview::class => 'تقييم فريق تقني',
+                    MarketingReview::class => 'تقييم فريق تسويق',
+                    CustomerServiceReview::class => 'تقييم فريق خدمة العملاء',
+                    CoordinationReview::class => 'تقييم فريق التنسيق',
                     default => $audit->auditable_type
                 };
 
@@ -203,8 +215,9 @@ class AuditLogController extends Controller
 
     private function translateFieldName($field)
     {
-        return match($field) {
+        return match ($field) {
             'user_id' => 'المستخدم',
+            'reviewer_id' => 'المُقيِّم',
             'status' => 'الحالة',
             'manager_status' => 'حالة المدير',
             'hr_status' => 'حالة الموارد البشرية',
@@ -219,13 +232,22 @@ class AuditLogController extends Controller
             'hr_rejection_reason' => 'سبب رفض الموارد البشرية',
             'minutes_used' => 'الدقائق المستخدمة',
             'returned_on_time' => 'العودة في الوقت المحدد',
+            'review_month' => 'شهر التقييم',
+            'total_score' => 'النتيجة الإجمالية',
+            'total_after_deductions' => 'النتيجة بعد الخصومات',
+            'total_salary' => 'إجمالي الراتب',
+            'notes' => 'ملاحظات',
+            'percentage' => 'النسبة المئوية',
+            'sales_commission' => 'عمولة المبيعات',
+            'sales_commission_percentage' => 'نسبة عمولة المبيعات',
+            'sales_amount' => 'مبلغ المبيعات',
             default => $field
         };
     }
 
     private function translateStatus($status)
     {
-        return match($status) {
+        return match ($status) {
             'pending' => 'قيد الانتظار',
             'approved' => 'موافق عليه',
             'rejected' => 'مرفوض',

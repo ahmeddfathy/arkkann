@@ -91,10 +91,18 @@ class AbsenceRequestService
         $currentUser = Auth::user();
 
         if (!($currentUser->hasRole('team_leader') ||
-              $currentUser->hasRole('department_manager') ||
-              $currentUser->hasRole('project_manager') ||
-              $currentUser->hasRole('company_manager') ||
-              $currentUser->hasRole('hr'))) {
+            $currentUser->hasRole('technical_team_leader') ||
+            $currentUser->hasRole('marketing_team_leader') ||
+            $currentUser->hasRole('customer_service_team_leader') ||
+            $currentUser->hasRole('coordination_team_leader') ||
+            $currentUser->hasRole('department_manager') ||
+            $currentUser->hasRole('technical_department_manager') ||
+            $currentUser->hasRole('marketing_department_manager') ||
+            $currentUser->hasRole('customer_service_department_manager') ||
+            $currentUser->hasRole('coordination_department_manager') ||
+            $currentUser->hasRole('project_manager') ||
+            $currentUser->hasRole('company_manager') ||
+            $currentUser->hasRole('hr'))) {
             throw new \Illuminate\Auth\Access\AuthorizationException('You are not authorized to create requests for other users.');
         }
 
@@ -121,10 +129,9 @@ class AbsenceRequestService
         }
 
         if ($hasTeam) {
-            if ($currentUser->hasAnyRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+            if ($currentUser->hasAnyRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
                 $managerStatus = 'approved';
-            }
-            elseif ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_absence_request')) {
+            } elseif ($currentUser->hasRole('hr') && $currentUser->hasPermissionTo('manager_respond_absence_request')) {
                 $isTeamOwner = false;
                 foreach ($currentUser->ownedTeams as $team) {
                     if ($team->users->contains('id', $userId)) {
@@ -283,7 +290,7 @@ class AbsenceRequestService
         $user = $user ?? Auth::user();
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_absence_request')
         ) {
             return true;
@@ -309,7 +316,7 @@ class AbsenceRequestService
         }
 
         if (
-            $user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
+            $user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
             $user->hasPermissionTo('manager_respond_absence_request')
         ) {
             return true;

@@ -88,10 +88,12 @@ class ManagerNotificationService
                 'related_id' => $request->id
             ])->exists();
 
-            if (!$existingNotification ||
+            if (
+                !$existingNotification ||
                 strpos($type, '_modified') !== false ||
                 strpos($type, '_deleted') !== false ||
-                strpos($type, '_reset') !== false) {
+                strpos($type, '_reset') !== false
+            ) {
 
                 $isTeamOwner = false;
                 if (!$isHRNotification && $request->user && $request->user->currentTeam) {

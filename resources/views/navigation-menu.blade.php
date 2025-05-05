@@ -1,5 +1,5 @@
 @php
-    use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth;
 @endphp
 @if(auth()->user())
 <nav x-data="{ open: false, notificationsOpen: false, notificationsCount: 0 }" class="bg-white border-b border-gray-100">
@@ -18,6 +18,9 @@
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
+                    </x-nav-link>
+                    <x-nav-link href="{{ route('my-reviews.index') }}" :active="request()->routeIs('my-reviews.index')">
+                        {{ __('تقييماتي') }}
                     </x-nav-link>
                 </div>
             </div>
@@ -53,7 +56,7 @@
                                 </x-dropdown-link>
                                 @endif
 
-                                @if(Auth::user()->hasRole(['team_leader', 'company_manager', 'hr', 'department_manager' , 'project_manager']) )
+                                @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'company_manager', 'hr', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager']) )
                                 <x-dropdown-link href="{{ route('teams.create') }}">
                                     {{ __('Create New Team') }}
                                 </x-dropdown-link>
@@ -202,6 +205,9 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link href="{{ route('my-reviews.index') }}" :active="request()->routeIs('my-reviews.index')">
+                {{ __('تقييماتي') }}
             </x-responsive-nav-link>
         </div>
 
@@ -352,25 +358,25 @@
             },
             fetchUnreadCount() {
                 fetch('/notifications/unread-count', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    this.unreadCount = data.count;
-                })
-                .catch(error => {
-                    console.error('Error fetching unread count:', error);
-                    // Set to 0 on error to avoid showing NaN or undefined
-                    this.unreadCount = 0;
-                });
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.unreadCount = data.count;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching unread count:', error);
+                        // Set to 0 on error to avoid showing NaN or undefined
+                        this.unreadCount = 0;
+                    });
             },
             markAsRead(notificationId) {
                 fetch(`/notifications/${notificationId}/mark-as-read`)
@@ -399,24 +405,24 @@
                 if (unreadIds.length === 0) return;
 
                 Promise.all(unreadIds.map(id =>
-                    fetch(`/notifications/${id}/mark-as-read`)
+                        fetch(`/notifications/${id}/mark-as-read`)
                         .then(response => response.json())
-                ))
-                .then(() => {
-                    // Update all notifications as read
-                    this.notifications = this.notifications.map(notification => {
-                        if (!notification.read_at) {
-                            notification.read_at = new Date();
-                        }
-                        return notification;
-                    });
+                    ))
+                    .then(() => {
+                        // Update all notifications as read
+                        this.notifications = this.notifications.map(notification => {
+                            if (!notification.read_at) {
+                                notification.read_at = new Date();
+                            }
+                            return notification;
+                        });
 
-                    // Reset unread count
-                    this.unreadCount = 0;
-                })
-                .catch(error => {
-                    console.error('Error marking all notifications as read:', error);
-                });
+                        // Reset unread count
+                        this.unreadCount = 0;
+                    })
+                    .catch(error => {
+                        console.error('Error marking all notifications as read:', error);
+                    });
             },
             markNotificationsAsOpened() {
                 // We only update the frontend state here
@@ -458,7 +464,9 @@
     }
 </script>
 <style>
-    .dropdown-panel, [x-dropdown], [x-dropdown] > div {
+    .dropdown-panel,
+    [x-dropdown],
+    [x-dropdown]>div {
         opacity: 1 !important;
         background-color: white !important;
         backdrop-filter: none !important;

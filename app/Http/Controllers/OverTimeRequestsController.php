@@ -113,7 +113,7 @@ class OverTimeRequestsController extends Controller
             // Exclude both team members and users without teams from HR company requests
             $hrQuery->whereHas('user', function ($query) use ($teamMemberIds, $noTeamUserIds) {
                 $query->whereNotIn('id', $teamMemberIds)
-                      ->whereNotIn('id', $noTeamUserIds);
+                    ->whereNotIn('id', $noTeamUserIds);
             });
 
             $hrRequests = $hrQuery->latest()->paginate(10, ['*'], 'hr_page');
@@ -173,18 +173,18 @@ class OverTimeRequestsController extends Controller
                         ->first()
                 ];
             }
-        } elseif ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        } elseif ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $team = $user->currentTeam;
             if ($team) {
                 $allowedRoles = [];
-                if ($user->hasRole('team_leader')) {
+                if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'])) {
                     $allowedRoles = ['employee'];
-                } elseif ($user->hasRole('department_manager')) {
-                    $allowedRoles = ['employee', 'team_leader'];
+                } elseif ($user->hasRole(['department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'])) {
+                    $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader'];
                 } elseif ($user->hasRole('project_manager')) {
-                    $allowedRoles = ['employee', 'team_leader', 'department_manager'];
+                    $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager'];
                 } elseif ($user->hasRole('company_manager')) {
-                    $allowedRoles = ['employee', 'team_leader', 'department_manager', 'project_manager'];
+                    $allowedRoles = ['employee', 'team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager'];
                 }
 
                 $teamMembers = $team->users()
@@ -264,7 +264,7 @@ class OverTimeRequestsController extends Controller
                 ->value('total_hours')
         ];
 
-        if ($user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager'])) {
+        if ($user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager'])) {
             $teamStatistics = [
                 'total_requests' => OverTimeRequests::whereIn('user_id', $users->pluck('id'))
                     ->whereBetween('overtime_date', [$dateStart, $dateEnd])
@@ -328,21 +328,21 @@ class OverTimeRequestsController extends Controller
                 'approval_rate' => OverTimeRequests::whereBetween('overtime_date', [$dateStart, $dateEnd])
                     ->whereIn('status', ['approved', 'rejected'])
                     ->count() > 0
-                        ? (OverTimeRequests::where('status', 'approved')
-                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
-                            ->count() /
-                          OverTimeRequests::whereIn('status', ['approved', 'rejected'])
-                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
-                            ->count()) * 100
-                        : 0,
+                    ? (OverTimeRequests::where('status', 'approved')
+                        ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                        ->count() /
+                        OverTimeRequests::whereIn('status', ['approved', 'rejected'])
+                        ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                        ->count()) * 100
+                    : 0,
                 'average_hours_per_request' => OverTimeRequests::where('status', 'approved')
                     ->whereBetween('overtime_date', [$dateStart, $dateEnd])
                     ->count() > 0
-                        ? OverTimeRequests::where('status', 'approved')
-                            ->whereBetween('overtime_date', [$dateStart, $dateEnd])
-                            ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) / COUNT(*) as avg_hours')
-                            ->value('avg_hours')
-                        : 0,
+                    ? OverTimeRequests::where('status', 'approved')
+                    ->whereBetween('overtime_date', [$dateStart, $dateEnd])
+                    ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) / COUNT(*) as avg_hours')
+                    ->value('avg_hours')
+                    : 0,
                 'monthly_trends' => DB::table('over_time_requests')
                     ->select(DB::raw('YEAR(overtime_date) as year, MONTH(overtime_date) as month'))
                     ->selectRaw('COUNT(*) as total_requests')
@@ -399,14 +399,22 @@ class OverTimeRequestsController extends Controller
                             ->value('total_hours')
                     ],
                     'previous_period' => [
-                        'total_requests' => OverTimeRequests::whereBetween('overtime_date',
-                            [Carbon::parse($dateStart)->subDays(Carbon::parse($dateEnd)->diffInDays(Carbon::parse($dateStart))),
-                             Carbon::parse($dateStart)->subDay()])
+                        'total_requests' => OverTimeRequests::whereBetween(
+                            'overtime_date',
+                            [
+                                Carbon::parse($dateStart)->subDays(Carbon::parse($dateEnd)->diffInDays(Carbon::parse($dateStart))),
+                                Carbon::parse($dateStart)->subDay()
+                            ]
+                        )
                             ->count(),
                         'approved_hours' => OverTimeRequests::where('status', 'approved')
-                            ->whereBetween('overtime_date',
-                                [Carbon::parse($dateStart)->subDays(Carbon::parse($dateEnd)->diffInDays(Carbon::parse($dateStart))),
-                                 Carbon::parse($dateStart)->subDay()])
+                            ->whereBetween(
+                                'overtime_date',
+                                [
+                                    Carbon::parse($dateStart)->subDays(Carbon::parse($dateEnd)->diffInDays(Carbon::parse($dateStart))),
+                                    Carbon::parse($dateStart)->subDay()
+                                ]
+                            )
                             ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/3600), 0) as total_hours')
                             ->value('total_hours')
                     ]
@@ -550,8 +558,10 @@ class OverTimeRequestsController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
 
-        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+        if (
+            !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))
+        ) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
 
@@ -601,8 +611,10 @@ class OverTimeRequestsController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
         }
 
-        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+        if (
+            !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))
+        ) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية إعادة تعيين الرد على طلبات العمل الإضافي كمدير');
         }
 
@@ -654,8 +666,10 @@ class OverTimeRequestsController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
         }
 
-        if (!$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+        if (
+            !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))
+        ) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية تعديل الرد على طلبات العمل الإضافي كمدير');
         }
 
@@ -725,9 +739,11 @@ class OverTimeRequestsController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كموارد بشرية');
         }
 
-        if ($request->input('response_type') === 'manager' &&
-            !$user->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager']) &&
-            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))) {
+        if (
+            $request->input('response_type') === 'manager' &&
+            !$user->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager']) &&
+            !($user->hasRole('hr') && $user->hasPermissionTo('manager_respond_overtime_request'))
+        ) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية الرد على طلبات العمل الإضافي كمدير');
         }
 

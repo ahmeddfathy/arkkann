@@ -76,24 +76,24 @@ use Carbon\Carbon;
                             <td>
                                 <div class="action-buttons">
                                     @if(($request->status === 'pending' && Auth::id() === $request->user_id && $request->manager_status === 'pending' && $request->hr_status === 'pending') || (Auth::user()->hasRole('hr') && Auth::user()->hasPermissionTo('manager_respond_permission_request')))
-                                        <!-- زر تعديل الطلب -->
-                                        <button type="button"
-                                            class="btn btn-warning btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editPermissionModal"
-                                            data-request-id="{{ $request->id }}"
-                                            data-departure-time="{{ $request->departure_time }}"
-                                            data-return-time="{{ $request->return_time }}"
-                                            data-reason="{{ $request->reason }}">
-                                            <i class="fas fa-edit"></i> تعديل
-                                        </button>
+                                    <!-- زر تعديل الطلب -->
+                                    <button type="button"
+                                        class="btn btn-warning btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editPermissionModal"
+                                        data-request-id="{{ $request->id }}"
+                                        data-departure-time="{{ $request->departure_time }}"
+                                        data-return-time="{{ $request->return_time }}"
+                                        data-reason="{{ $request->reason }}">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </button>
 
-                                        <!-- زر حذف الطلب -->
-                                        <button type="button"
-                                            class="btn btn-danger btn-sm delete-request"
-                                            data-request-id="{{ $request->id }}">
-                                            <i class="fas fa-trash"></i> حذف
-                                        </button>
+                                    <!-- زر حذف الطلب -->
+                                    <button type="button"
+                                        class="btn btn-danger btn-sm delete-request"
+                                        data-request-id="{{ $request->id }}">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
                                     @endif
 
                                     @if($request->status === 'approved')
@@ -139,7 +139,7 @@ use Carbon\Carbon;
                                             </button>
 
                                             <!-- تعديل زر "لم يرجع" -->
-                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
+                                            @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
                                             <button type="button"
                                                 class="btn btn-danger btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
@@ -150,11 +150,11 @@ use Carbon\Carbon;
                                             @else
                                             <div class="alert alert-warning py-1 px-2 mb-0">
                                                 <small><i class="fas fa-exclamation-triangle me-1"></i>
-                                                @if(!$hasStarted)
+                                                    @if(!$hasStarted)
                                                     لم يبدأ وقت المغادرة بعد
-                                                @else
+                                                    @else
                                                     تم تسجيل حالة العودة
-                                                @endif
+                                                    @endif
                                                 </small>
                                             </div>
                                             @endif
@@ -186,7 +186,7 @@ use Carbon\Carbon;
 
 
 <!-- Table for team requests -->
-@if(Auth::user()->hasRole(['team_leader', 'department_manager', 'project_manager', 'company_manager', 'hr']))
+@if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
 <div class="row justify-content-center">
     <div class="col-md-12">
         <div class="card shadow-sm">
@@ -373,7 +373,7 @@ use Carbon\Carbon;
                                             </button>
 
                                             <!-- تعديل زر "لم يرجع" -->
-                                            @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
+                                            @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
                                             <button type="button"
                                                 class="btn btn-danger btn-sm return-btn me-2"
                                                 data-request-id="{{ $request->id }}"
@@ -681,7 +681,7 @@ use Carbon\Carbon;
                                     </button>
 
                                     <!-- تعديل زر "لم يرجع" -->
-                                    @if(Auth::user()->hasRole(['hr', 'team_leader', 'department_manager', 'project_manager', 'company_manager']))
+                                    @if(Auth::user()->hasRole(['team_leader', 'technical_team_leader', 'marketing_team_leader', 'customer_service_team_leader', 'coordination_team_leader', 'department_manager', 'technical_department_manager', 'marketing_department_manager', 'customer_service_department_manager', 'coordination_department_manager', 'project_manager', 'company_manager', 'hr']))
                                     <button type="button"
                                         class="btn btn-danger btn-sm return-btn me-2"
                                         data-request-id="{{ $request->id }}"
