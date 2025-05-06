@@ -63,8 +63,8 @@
               <!-- Finish Before Deadline -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">الانتهاء قبل الموعد النهائي</label>
-                  <input type="number" name="finish_before_deadline_score" value="{{ old('finish_before_deadline_score', $review->finish_before_deadline_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">الانتهاء قبل الموعد النهائي <span style="color:#888">(الحد الأقصى: 0)</span></label>
+                  <input type="number" name="finish_before_deadline_score" value="{{ old('finish_before_deadline_score', $review->finish_before_deadline_score) }}" min="0" max="0" required class="marketing-reviews-form-control">
                   @error('finish_before_deadline_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -74,8 +74,8 @@
               <!-- Deliver On Time -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">التسليم في الوقت المحدد</label>
-                  <input type="number" name="deliver_on_time_score" value="{{ old('deliver_on_time_score', $review->deliver_on_time_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">التسليم في الوقت المحدد <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="deliver_on_time_score" value="{{ old('deliver_on_time_score', $review->deliver_on_time_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('deliver_on_time_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -85,8 +85,8 @@
               <!-- Deliver Complete Project -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تسليم مشروع كامل</label>
-                  <input type="number" name="deliver_complete_project_score" value="{{ old('deliver_complete_project_score', $review->deliver_complete_project_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تسليم مشروع كامل <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="deliver_complete_project_score" value="{{ old('deliver_complete_project_score', $review->deliver_complete_project_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('deliver_complete_project_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -96,8 +96,8 @@
               <!-- Project Formatting -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تنسيق المشروع</label>
-                  <input type="number" name="project_formatting_score" value="{{ old('project_formatting_score', $review->project_formatting_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تنسيق المشروع <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="project_formatting_score" value="{{ old('project_formatting_score', $review->project_formatting_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('project_formatting_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -107,8 +107,8 @@
               <!-- No Project Revisions -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">عدم وجود مراجعات للمشروع</label>
-                  <input type="number" name="no_project_revisions_score" value="{{ old('no_project_revisions_score', $review->no_project_revisions_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">عدم وجود مراجعات للمشروع <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="no_project_revisions_score" value="{{ old('no_project_revisions_score', $review->no_project_revisions_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('no_project_revisions_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -118,8 +118,8 @@
               <!-- Continuous Update -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">التحديث المستمر</label>
-                  <input type="number" name="continuous_update_score" value="{{ old('continuous_update_score', $review->continuous_update_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">التحديث المستمر <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="continuous_update_score" value="{{ old('continuous_update_score', $review->continuous_update_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('continuous_update_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -129,8 +129,8 @@
               <!-- Competitor Analysis -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تحليل المنافسين</label>
-                  <input type="number" name="competitor_analysis_score" value="{{ old('competitor_analysis_score', $review->competitor_analysis_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تحليل المنافسين <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="competitor_analysis_score" value="{{ old('competitor_analysis_score', $review->competitor_analysis_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('competitor_analysis_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -140,8 +140,8 @@
               <!-- Data Presentation Change -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تغيير طريقة عرض البيانات</label>
-                  <input type="number" name="data_presentation_change_score" value="{{ old('data_presentation_change_score', $review->data_presentation_change_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تغيير طريقة عرض البيانات <span style="color:#888">(الحد الأقصى: 0)</span></label>
+                  <input type="number" name="data_presentation_change_score" value="{{ old('data_presentation_change_score', $review->data_presentation_change_score) }}" min="0" max="0" required class="marketing-reviews-form-control">
                   @error('data_presentation_change_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -151,8 +151,8 @@
               <!-- Project Sheet Update -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تحديث ورقة المشروع</label>
-                  <input type="number" name="project_sheet_update_score" value="{{ old('project_sheet_update_score', $review->project_sheet_update_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تحديث ورقة المشروع <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="project_sheet_update_score" value="{{ old('project_sheet_update_score', $review->project_sheet_update_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('project_sheet_update_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -162,8 +162,8 @@
               <!-- Timing Sheet Completion -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">إكمال جدول المواعيد</label>
-                  <input type="number" name="timing_sheet_completion_score" value="{{ old('timing_sheet_completion_score', $review->timing_sheet_completion_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">إكمال جدول المواعيد <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="timing_sheet_completion_score" value="{{ old('timing_sheet_completion_score', $review->timing_sheet_completion_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('timing_sheet_completion_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -173,8 +173,8 @@
               <!-- New Business Ideas -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">أفكار تجارية جديدة</label>
-                  <input type="number" name="new_business_ideas_score" value="{{ old('new_business_ideas_score', $review->new_business_ideas_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">أفكار تجارية جديدة <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="new_business_ideas_score" value="{{ old('new_business_ideas_score', $review->new_business_ideas_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('new_business_ideas_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -184,8 +184,8 @@
               <!-- New Sources -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">مصادر جديدة</label>
-                  <input type="number" name="new_sources_score" value="{{ old('new_sources_score', $review->new_sources_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">مصادر جديدة <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="new_sources_score" value="{{ old('new_sources_score', $review->new_sources_score) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('new_sources_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -195,8 +195,8 @@
               <!-- New Demand Measurement -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">قياس طلب جديد</label>
-                  <input type="number" name="new_demand_measurement_score" value="{{ old('new_demand_measurement_score', $review->new_demand_measurement_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">قياس طلب جديد <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="new_demand_measurement_score" value="{{ old('new_demand_measurement_score', $review->new_demand_measurement_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('new_demand_measurement_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -206,8 +206,8 @@
               <!-- Team Leader Tasks -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">مهام قائد الفريق</label>
-                  <input type="number" name="team_leader_tasks_score" value="{{ old('team_leader_tasks_score', $review->team_leader_tasks_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">مهام قائد الفريق <span style="color:#888">(الحد الأقصى: 0)</span></label>
+                  <input type="number" name="team_leader_tasks_score" value="{{ old('team_leader_tasks_score', $review->team_leader_tasks_score) }}" min="0" max="0" required class="marketing-reviews-form-control">
                   @error('team_leader_tasks_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -217,8 +217,8 @@
               <!-- Economic Impact -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">التأثير الاقتصادي</label>
-                  <input type="number" name="economic_impact_score" value="{{ old('economic_impact_score', $review->economic_impact_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">التأثير الاقتصادي <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="economic_impact_score" value="{{ old('economic_impact_score', $review->economic_impact_score) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('economic_impact_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -228,8 +228,8 @@
               <!-- Economic Report -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">التقرير الاقتصادي</label>
-                  <input type="number" name="economic_report_score" value="{{ old('economic_report_score', $review->economic_report_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">التقرير الاقتصادي <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="economic_report_score" value="{{ old('economic_report_score', $review->economic_report_score) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('economic_report_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -239,8 +239,8 @@
               <!-- New Data Sources -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">مصادر بيانات جديدة</label>
-                  <input type="number" name="new_data_sources_score" value="{{ old('new_data_sources_score', $review->new_data_sources_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">مصادر بيانات جديدة <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="new_data_sources_score" value="{{ old('new_data_sources_score', $review->new_data_sources_score) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('new_data_sources_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -250,8 +250,8 @@
               <!-- Client Calls -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">مكالمات العملاء</label>
-                  <input type="number" name="client_calls_score" value="{{ old('client_calls_score', $review->client_calls_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">مكالمات العملاء <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="client_calls_score" value="{{ old('client_calls_score', $review->client_calls_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('client_calls_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -261,8 +261,8 @@
               <!-- Potential Client Calls -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">مكالمات العملاء المحتملين</label>
-                  <input type="number" name="potential_client_calls_score" value="{{ old('potential_client_calls_score', $review->potential_client_calls_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">مكالمات العملاء المحتملين <span style="color:#888">(الحد الأقصى: 0)</span></label>
+                  <input type="number" name="potential_client_calls_score" value="{{ old('potential_client_calls_score', $review->potential_client_calls_score) }}" min="0" max="0" required class="marketing-reviews-form-control">
                   @error('potential_client_calls_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -272,8 +272,8 @@
               <!-- Project Questions -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">أسئلة المشروع</label>
-                  <input type="number" name="project_questions_score" value="{{ old('project_questions_score', $review->project_questions_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">أسئلة المشروع <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="project_questions_score" value="{{ old('project_questions_score', $review->project_questions_score) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('project_questions_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -283,8 +283,8 @@
               <!-- Project Followup -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">متابعة المشروع</label>
-                  <input type="number" name="project_followup_score" value="{{ old('project_followup_score', $review->project_followup_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">متابعة المشروع <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="project_followup_score" value="{{ old('project_followup_score', $review->project_followup_score) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('project_followup_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -294,8 +294,8 @@
               <!-- Team Leader Evaluation -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تقييم قائد الفريق</label>
-                  <input type="number" name="team_leader_evaluation_score" value="{{ old('team_leader_evaluation_score', $review->team_leader_evaluation_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تقييم قائد الفريق <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="team_leader_evaluation_score" value="{{ old('team_leader_evaluation_score', $review->team_leader_evaluation_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('team_leader_evaluation_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -305,8 +305,8 @@
               <!-- HR Evaluation -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">تقييم الموارد البشرية</label>
-                  <input type="number" name="hr_evaluation_score" value="{{ old('hr_evaluation_score', $review->hr_evaluation_score) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">تقييم الموارد البشرية <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="hr_evaluation_score" value="{{ old('hr_evaluation_score', $review->hr_evaluation_score) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('hr_evaluation_score')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -323,8 +323,8 @@
               <!-- Core Revisions Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم المراجعات الأساسية</label>
-                  <input type="number" name="core_revisions_penalty" value="{{ old('core_revisions_penalty', $review->core_revisions_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم المراجعات الأساسية <span style="color:#888">(الحد الأقصى: 25)</span></label>
+                  <input type="number" name="core_revisions_penalty" value="{{ old('core_revisions_penalty', $review->core_revisions_penalty) }}" min="0" max="25" required class="marketing-reviews-form-control">
                   @error('core_revisions_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -334,8 +334,8 @@
               <!-- Spelling Errors Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم أخطاء الإملاء</label>
-                  <input type="number" name="spelling_errors_penalty" value="{{ old('spelling_errors_penalty', $review->spelling_errors_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم أخطاء الإملاء <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="spelling_errors_penalty" value="{{ old('spelling_errors_penalty', $review->spelling_errors_penalty) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('spelling_errors_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -345,8 +345,8 @@
               <!-- Content Errors Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم أخطاء المحتوى</label>
-                  <input type="number" name="content_errors_penalty" value="{{ old('content_errors_penalty', $review->content_errors_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم أخطاء المحتوى <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="content_errors_penalty" value="{{ old('content_errors_penalty', $review->content_errors_penalty) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('content_errors_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -356,8 +356,8 @@
               <!-- Minimum Projects Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم الحد الأدنى للمشاريع</label>
-                  <input type="number" name="minimum_projects_penalty" value="{{ old('minimum_projects_penalty', $review->minimum_projects_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم الحد الأدنى للمشاريع <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="minimum_projects_penalty" value="{{ old('minimum_projects_penalty', $review->minimum_projects_penalty) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('minimum_projects_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -367,8 +367,8 @@
               <!-- Old Draft Words Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم كلمات المسودة القديمة</label>
-                  <input type="number" name="old_draft_words_penalty" value="{{ old('old_draft_words_penalty', $review->old_draft_words_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم كلمات المسودة القديمة <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="old_draft_words_penalty" value="{{ old('old_draft_words_penalty', $review->old_draft_words_penalty) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('old_draft_words_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -378,8 +378,8 @@
               <!-- Sheets Commitment Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم التزام الأوراق</label>
-                  <input type="number" name="sheets_commitment_penalty" value="{{ old('sheets_commitment_penalty', $review->sheets_commitment_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم التزام الأوراق <span style="color:#888">(الحد الأقصى: 20)</span></label>
+                  <input type="number" name="sheets_commitment_penalty" value="{{ old('sheets_commitment_penalty', $review->sheets_commitment_penalty) }}" min="0" max="20" required class="marketing-reviews-form-control">
                   @error('sheets_commitment_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -389,8 +389,8 @@
               <!-- Work Behavior Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم سلوك العمل</label>
-                  <input type="number" name="work_behavior_penalty" value="{{ old('work_behavior_penalty', $review->work_behavior_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم سلوك العمل <span style="color:#888">(الحد الأقصى: 15)</span></label>
+                  <input type="number" name="work_behavior_penalty" value="{{ old('work_behavior_penalty', $review->work_behavior_penalty) }}" min="0" max="15" required class="marketing-reviews-form-control">
                   @error('work_behavior_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror
@@ -400,8 +400,8 @@
               <!-- Revisions Commitment Penalty -->
               <div class="col-md-4">
                 <div class="marketing-reviews-form-group">
-                  <label class="marketing-reviews-form-label">خصم التزام المراجعات</label>
-                  <input type="number" name="revisions_commitment_penalty" value="{{ old('revisions_commitment_penalty', $review->revisions_commitment_penalty) }}" min="0" required class="marketing-reviews-form-control">
+                  <label class="marketing-reviews-form-label">خصم التزام المراجعات <span style="color:#888">(الحد الأقصى: 10)</span></label>
+                  <input type="number" name="revisions_commitment_penalty" value="{{ old('revisions_commitment_penalty', $review->revisions_commitment_penalty) }}" min="0" max="10" required class="marketing-reviews-form-control">
                   @error('revisions_commitment_penalty')
                   <p class="text-danger mt-1">{{ $message }}</p>
                   @enderror

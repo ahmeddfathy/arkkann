@@ -87,7 +87,7 @@
                         <select class="form-select search-input" name="status">
                             <option value="">All Status</option>
                             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Out</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -187,7 +187,7 @@
                 </table>
             </div>
             <div class="mt-4">
-                {{ $users->links() }}
+                {{ $users->appends(request()->query())->links() }}
             </div>
         </div>
     </div>

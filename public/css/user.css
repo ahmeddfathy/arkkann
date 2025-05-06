@@ -24,7 +24,7 @@ body {
 .container-fluid {
     padding: 2rem;
     min-height: 100vh;
-    background: linear-gradient(180deg, var(--light-blue) 0%, #ffffff 100%);
+
 }
 
 .card {

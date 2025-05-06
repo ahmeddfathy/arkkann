@@ -33,11 +33,9 @@ class CoordinationReviewController extends Controller
             // Get team members IDs
             $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
 
-            // Add current user's ID to the list
-            $teamMemberIds[] = $user->id;
-
-            // Filter reviews to only include team members
-            $query->whereIn('user_id', $teamMemberIds);
+            // Filter reviews to only include team members and exclude the current user
+            $query->whereIn('user_id', $teamMemberIds)
+                  ->where('user_id', '!=', $user->id);
         }
 
         // Filter by user if requested
@@ -280,21 +278,20 @@ class CoordinationReviewController extends Controller
         return $request->validate([
             'user_id' => ['required', 'exists:users,id'],
             'review_month' => ['required', 'string', 'max:7'],
-            'documentation_delivery_score' => ['required', 'integer', 'min:0'],
-            'daily_delivery_score' => ['required', 'integer', 'min:0'],
-            'scheduling_score' => ['required', 'integer', 'min:0'],
-            'error_free_delivery_score' => ['required', 'integer', 'min:0'],
-            'schedule_follow_up_score' => ['required', 'integer', 'min:0'],
-            'no_previous_drafts_score' => ['required', 'integer', 'min:0'],
-            'no_design_errors_score' => ['required', 'integer', 'min:0'],
-            'follow_up_modifications_score' => ['required', 'integer', 'min:0'],
-            'presentations_score' => ['required', 'integer', 'min:0'],
-            'customer_service_score' => ['required', 'integer', 'min:0'],
-            'project_monitoring_score' => ['required', 'integer', 'min:0'],
-            'feedback_score' => ['required', 'integer', 'min:0'],
-            'team_leader_evaluation_score' => ['required', 'integer', 'min:0'],
-            'hr_evaluation_score' => ['required', 'integer', 'min:0'],
-            'bonus_score' => ['required', 'integer', 'min:0'],
+            'documentation_delivery_score' => ['required', 'integer', 'min:0', 'max:40'],
+            'daily_delivery_score' => ['required', 'integer', 'min:0', 'max:26'],
+            'scheduling_score' => ['required', 'integer', 'min:0', 'max:40'],
+            'error_free_delivery_score' => ['required', 'integer', 'min:0', 'max:40'],
+            'schedule_follow_up_score' => ['required', 'integer', 'min:0', 'max:26'],
+            'no_previous_drafts_score' => ['required', 'integer', 'min:0', 'max:40'],
+            'no_design_errors_score' => ['required', 'integer', 'min:0', 'max:40'],
+            'follow_up_modifications_score' => ['required', 'integer', 'min:0', 'max:26'],
+            'presentations_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'customer_service_score' => ['required', 'integer', 'min:0', 'max:26'],
+            'project_monitoring_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'feedback_score' => ['required', 'integer', 'min:0', 'max:40'],
+            'team_leader_evaluation_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'hr_evaluation_score' => ['required', 'integer', 'min:0', 'max:10'],
             'required_deliveries_score' => ['required', 'integer', 'min:0'],
             'seo_score' => ['required', 'integer', 'min:0'],
             'portfolio_score' => ['required', 'integer', 'min:0'],

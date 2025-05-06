@@ -31,7 +31,6 @@ return new class extends Migration
             $table->integer('team_leader_evaluation_score')->default(0)->comment('تقييم التيم ليدر');
             $table->integer('hr_evaluation_score')->default(0)->comment('تقييم hr');
             $table->integer('total_score')->default(0)->comment('المجموع');
-            $table->integer('bonus_score')->default(0)->comment('البونص');
             $table->integer('required_deliveries_score')->default(0)->comment('تخطى العدد المحدد لتسليم الدراسات');
             $table->integer('seo_score')->default(0)->comment('الحصول على 10 مواقع خاصة (التصحيح اللغوي - التحرير ال ال PDF - التصميم - البيانات التحليلية وغيرها من القوالب الجاهزة )');
             $table->integer('portfolio_score')->default(0)->comment('عمل داتا بورد بالمشاريع للأعوام السابقة وفرز القطاعات منها (خدمى - تجارى - صناعى - زراعى )');

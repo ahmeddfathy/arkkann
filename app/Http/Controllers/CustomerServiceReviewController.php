@@ -32,11 +32,9 @@ class CustomerServiceReviewController extends Controller
             // Get team members IDs
             $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
 
-            // Add current user's ID to the list
-            $teamMemberIds[] = $user->id;
-
-            // Filter reviews to only include team members
-            $query->whereIn('user_id', $teamMemberIds);
+            // Filter reviews to only include team members and exclude the current user
+            $query->whereIn('user_id', $teamMemberIds)
+                  ->where('user_id', '!=', $user->id);
         }
 
         // Filter by user if requested

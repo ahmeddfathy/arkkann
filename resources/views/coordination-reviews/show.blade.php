@@ -81,98 +81,98 @@
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">تقفيل الدراسة وتوقيع أو إرسال الدراسة بجميع مرفقاتها</span>
-                                <span class="criteria-score">{{ $review->documentation_delivery_score }}</span>
+                                <span class="criteria-score">{{ $review->documentation_delivery_score }} / 40</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">تسليم حد أدنى 3 دراسات يوميا أو دراستين مع تعديلات</span>
-                                <span class="criteria-score">{{ $review->daily_delivery_score }}</span>
+                                <span class="criteria-score">{{ $review->daily_delivery_score }} / 26</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">أن لا يتخطى وقت تنسيق وتقفيل الدراسة 2:30</span>
-                                <span class="criteria-score">{{ $review->scheduling_score }}</span>
+                                <span class="criteria-score">{{ $review->scheduling_score }} / 40</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">تسليم الدراسة بدون أخطاء</span>
-                                <span class="criteria-score">{{ $review->error_free_delivery_score }}</span>
+                                <span class="criteria-score">{{ $review->error_free_delivery_score }} / 40</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">متابعة جدول الأسبوع مع الفريق التنفيذي</span>
-                                <span class="criteria-score">{{ $review->schedule_follow_up_score }}</span>
+                                <span class="criteria-score">{{ $review->schedule_follow_up_score }} / 26</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">التأكد من عدم وجود أي كلمات من مسودات سابقة</span>
-                                <span class="criteria-score">{{ $review->no_previous_drafts_score }}</span>
+                                <span class="criteria-score">{{ $review->no_previous_drafts_score }} / 40</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">التأكد من عدم وجود أي كلمات من أخطاء بالتصاميم</span>
-                                <span class="criteria-score">{{ $review->no_design_errors_score }}</span>
+                                <span class="criteria-score">{{ $review->no_design_errors_score }} / 40</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">متابعة (التعديلات - التهائيات)</span>
-                                <span class="criteria-score">{{ $review->follow_up_modifications_score }}</span>
+                                <span class="criteria-score">{{ $review->follow_up_modifications_score }} / 26</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">عمل عروض تقديمية بوربوينت للمشاريع</span>
-                                <span class="criteria-score">{{ $review->presentations_score }}</span>
+                                <span class="criteria-score">{{ $review->presentations_score }} / 10</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">متابعة التسليمات اليومية مع خدمة العملاء</span>
-                                <span class="criteria-score">{{ $review->customer_service_score }}</span>
+                                <span class="criteria-score">{{ $review->customer_service_score }} / 26</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">عمل أرشفة و متابعة لجميع المشاريع</span>
-                                <span class="criteria-score">{{ $review->project_monitoring_score }}</span>
+                                <span class="criteria-score">{{ $review->project_monitoring_score }} / 10</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">ملف تثبيت بالملاحظات على الدراسات</span>
-                                <span class="criteria-score">{{ $review->feedback_score }}</span>
+                                <span class="criteria-score">{{ $review->feedback_score }} / 40</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">تقييم التيم ليدر</span>
-                                <span class="criteria-score">{{ $review->team_leader_evaluation_score }}</span>
+                                <span class="criteria-score">{{ $review->team_leader_evaluation_score }} / 10</span>
                             </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">تقييم HR</span>
-                                <span class="criteria-score">{{ $review->hr_evaluation_score }}</span>
+                                <span class="criteria-score">{{ $review->hr_evaluation_score }} / 10</span>
                             </div>
                         </div>
                     </div>
@@ -183,13 +183,7 @@
                     <h3 class="form-section-title">البونص</h3>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="criteria-item">
-                                <span class="criteria-name">البونص</span>
-                                <span class="criteria-score">{{ $review->bonus_score }}</span>
-                            </div>
-                        </div>
-
+                    
                         <div class="col-md-6 mb-3">
                             <div class="criteria-item">
                                 <span class="criteria-name">تخطى العدد المحدد لتسليم الدراسات</span>
@@ -280,9 +274,12 @@
                             <i class="fas fa-trash-alt me-1"></i> حذف التقييم
                         </button>
                     </form>
+                    <!-- Wherever the edit button appears -->
+                    @if(auth()->id() != $review->user_id && auth()->id() != $review->reviewer_id)
                     <a href="{{ route('coordination-reviews.edit', $review) }}" class="coordination-reviews-btn coordination-reviews-btn-primary">
                         <i class="fas fa-edit me-1"></i> تعديل التقييم
                     </a>
+                    @endif
                 </div>
             </div>
         </div>

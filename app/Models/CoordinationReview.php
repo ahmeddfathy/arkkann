@@ -5,12 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 use OwenIt\Auditing\Auditable as AuditableTrait;
 
 class CoordinationReview extends Model implements Auditable
 {
-    use HasFactory, AuditableTrait;
+    use HasFactory, AuditableTrait, SoftDeletes;
 
     /**
      * The audit events to record
@@ -47,7 +48,6 @@ class CoordinationReview extends Model implements Auditable
         'team_leader_evaluation_score',
         'hr_evaluation_score',
         'total_score',
-        'bonus_score',
         'required_deliveries_score',
         'seo_score',
         'portfolio_score',
@@ -86,7 +86,6 @@ class CoordinationReview extends Model implements Auditable
         'team_leader_evaluation_score',
         'hr_evaluation_score',
         'total_score',
-        'bonus_score',
         'required_deliveries_score',
         'seo_score',
         'portfolio_score',
@@ -146,7 +145,6 @@ class CoordinationReview extends Model implements Auditable
             'feedback_score',
             'team_leader_evaluation_score',
             'hr_evaluation_score',
-            'bonus_score',
             'required_deliveries_score',
             'seo_score',
             'portfolio_score',

@@ -18,7 +18,7 @@
           <a href="{{ route('technical-team-reviews.index') }}" class="technical-team-reviews-btn technical-team-reviews-btn-secondary">
             <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
           </a>
-          @if(auth()->id() != $review->user_id)
+          @if(auth()->id() != $review->user_id && auth()->id() != $review->reviewer_id)
           <a href="{{ route('technical-team-reviews.edit', $review) }}" class="technical-team-reviews-btn technical-team-reviews-btn-primary ms-2">
             <i class="fas fa-edit me-1"></i> تعديل
           </a>
@@ -373,9 +373,11 @@
         @endif
 
         <div class="form-actions">
+          @if(auth()->id() != $review->user_id && auth()->id() != $review->reviewer_id)
           <a href="{{ route('technical-team-reviews.edit', $review) }}" class="technical-team-reviews-btn technical-team-reviews-btn-primary">
             <i class="fas fa-edit me-1"></i> تعديل التقييم
           </a>
+          @endif
         </div>
       </div>
     </div>

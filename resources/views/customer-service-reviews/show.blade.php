@@ -19,9 +19,12 @@
             <span>ملخص التقييم</span>
             <div>
               @if(auth()->id() != $review->user_id)
-              <a href="{{ route('customer-service-reviews.edit', $review) }}" class="customer-service-reviews-btn customer-service-reviews-btn-success customer-service-reviews-btn-sm">
-                <i class="fas fa-edit me-1"></i> تعديل
+              <!-- Wherever the edit button appears -->
+              @if(auth()->id() != $review->user_id && auth()->id() != $review->reviewer_id)
+              <a href="{{ route('customer-service-reviews.edit', $review) }}" class="customer-service-reviews-btn customer-service-reviews-btn-primary">
+                <i class="fas fa-edit me-1"></i> تعديل التقييم
               </a>
+              @endif
               @endif
               <a href="{{ route('customer-service-reviews.index') }}" class="customer-service-reviews-btn customer-service-reviews-btn-secondary customer-service-reviews-btn-sm">
                 <i class="fas fa-arrow-right me-1"></i> العودة

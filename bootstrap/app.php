@@ -15,10 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             // Spatie Permission Middlewares
-
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
-
+            // Basic Auth Middleware
+            'basic.auth' => \App\Http\Middleware\BasicAuthMiddleware::class,
         ]);
 
         // إضافة middleware القرارات الإدارية

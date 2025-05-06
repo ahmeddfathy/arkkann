@@ -54,6 +54,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_coordination_review',
             'update_coordination_review',
             'delete_coordination_review',
+            // Review Management Permission
+            'manage_reviews',
         ];
 
         foreach ($permissions as $permission) {
@@ -251,6 +253,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'update_customer_service_review',
             'view_coordination_review',
             'update_coordination_review',
+            'manage_reviews',
         ]);
 
         $companyManager->givePermissionTo([

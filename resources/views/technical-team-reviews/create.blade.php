@@ -84,8 +84,8 @@
                             <!-- Deliver On Time -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تسليم المشروع في الوقت المحدد له</label>
-                                    <input type="number" name="deliver_on_time_score" value="{{ old('deliver_on_time_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تسليم المشروع في الوقت المحدد له (10)</label>
+                                    <input type="number" name="deliver_on_time_score" value="{{ old('deliver_on_time_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('deliver_on_time_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -95,8 +95,8 @@
                             <!-- Deliver Complete Project -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تسليم المشروع كامل بجميع مرفقاته</label>
-                                    <input type="number" name="deliver_complete_project_score" value="{{ old('deliver_complete_project_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تسليم المشروع كامل بجميع مرفقاته (10)</label>
+                                    <input type="number" name="deliver_complete_project_score" value="{{ old('deliver_complete_project_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('deliver_complete_project_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -106,7 +106,7 @@
                             <!-- Price Quote Comparison -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">مفاضلة عروض الأسعار</label>
+                                    <label class="technical-team-reviews-form-label">مفاضلة عروض الأسعار (2 لكل مشروع)</label>
                                     <input type="number" name="price_quote_comparison_score" value="{{ old('price_quote_comparison_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
                                     @error('price_quote_comparison_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
@@ -117,8 +117,8 @@
                             <!-- Operation Plan Delivery -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تسليم خطة التشغيل لكل المشروعات</label>
-                                    <input type="number" name="operation_plan_delivery_score" value="{{ old('operation_plan_delivery_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تسليم خطة التشغيل لكل المشروعات (0)</label>
+                                    <input type="number" name="operation_plan_delivery_score" value="{{ old('operation_plan_delivery_score', 0) }}" min="0" max="0" required class="technical-team-reviews-form-control">
                                     @error('operation_plan_delivery_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -128,8 +128,8 @@
                             <!-- Project Formatting -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تنسيقات المشروع كاملة</label>
-                                    <input type="number" name="project_formatting_score" value="{{ old('project_formatting_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تنسيقات المشروع كاملة (10)</label>
+                                    <input type="number" name="project_formatting_score" value="{{ old('project_formatting_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('project_formatting_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -139,8 +139,8 @@
                             <!-- No Project Revisions -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">عدم ارجاع أي تعديلات على المشروع</label>
-                                    <input type="number" name="no_project_revisions_score" value="{{ old('no_project_revisions_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">عدم ارجاع أي تعديلات على المشروع (10)</label>
+                                    <input type="number" name="no_project_revisions_score" value="{{ old('no_project_revisions_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('no_project_revisions_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -150,8 +150,8 @@
                             <!-- Continuous Update -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">التحديث المستمر</label>
-                                    <input type="number" name="continuous_update_score" value="{{ old('continuous_update_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">التحديث المستمر (10)</label>
+                                    <input type="number" name="continuous_update_score" value="{{ old('continuous_update_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('continuous_update_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -161,7 +161,7 @@
                             <!-- Industry Standards -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">معايير الصناعة</label>
+                                    <label class="technical-team-reviews-form-label">معايير الصناعة (5 لكل مشروع)</label>
                                     <input type="number" name="industry_standards_score" value="{{ old('industry_standards_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
                                     @error('industry_standards_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
@@ -172,8 +172,8 @@
                             <!-- Project Sheet Update -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تحديث ورقة المشروع</label>
-                                    <input type="number" name="project_sheet_update_score" value="{{ old('project_sheet_update_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تحديث ورقة المشروع (10)</label>
+                                    <input type="number" name="project_sheet_update_score" value="{{ old('project_sheet_update_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('project_sheet_update_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -183,7 +183,7 @@
                             <!-- Final Product Price -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">سعر المنتج النهائي</label>
+                                    <label class="technical-team-reviews-form-label">سعر المنتج النهائي (2 لكل مشروع، 24 كحد أقصى)</label>
                                     <input type="number" name="final_product_price_score" value="{{ old('final_product_price_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
                                     @error('final_product_price_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
@@ -194,8 +194,8 @@
                             <!-- Legal Risks -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">المخاطر القانونية</label>
-                                    <input type="number" name="legal_risks_score" value="{{ old('legal_risks_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">المخاطر القانونية (10)</label>
+                                    <input type="number" name="legal_risks_score" value="{{ old('legal_risks_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('legal_risks_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -249,8 +249,8 @@
                             <!-- New Data Sources -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">مصادر بيانات جديدة</label>
-                                    <input type="number" name="new_data_sources_score" value="{{ old('new_data_sources_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">مصادر بيانات جديدة (15)</label>
+                                    <input type="number" name="new_data_sources_score" value="{{ old('new_data_sources_score', 15) }}" min="0" max="15" required class="technical-team-reviews-form-control">
                                     @error('new_data_sources_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -260,8 +260,8 @@
                             <!-- Client Calls -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">مكالمات العملاء</label>
-                                    <input type="number" name="client_calls_score" value="{{ old('client_calls_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">مكالمات العملاء (10)</label>
+                                    <input type="number" name="client_calls_score" value="{{ old('client_calls_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('client_calls_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -282,8 +282,8 @@
                             <!-- Project Questions -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">أسئلة المشروع</label>
-                                    <input type="number" name="project_questions_score" value="{{ old('project_questions_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">أسئلة المشروع (10)</label>
+                                    <input type="number" name="project_questions_score" value="{{ old('project_questions_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('project_questions_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -293,8 +293,8 @@
                             <!-- Project Followup -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">متابعة المشروع</label>
-                                    <input type="number" name="project_followup_score" value="{{ old('project_followup_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">متابعة المشروع (10)</label>
+                                    <input type="number" name="project_followup_score" value="{{ old('project_followup_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('project_followup_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -359,8 +359,8 @@
                             <!-- Team Leader Evaluation -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تقييم قائد الفريق</label>
-                                    <input type="number" name="team_leader_evaluation_score" value="{{ old('team_leader_evaluation_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تقييم قائد الفريق (10)</label>
+                                    <input type="number" name="team_leader_evaluation_score" value="{{ old('team_leader_evaluation_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('team_leader_evaluation_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -370,8 +370,8 @@
                             <!-- HR Evaluation -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">تقييم الموارد البشرية</label>
-                                    <input type="number" name="hr_evaluation_score" value="{{ old('hr_evaluation_score', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تقييم الموارد البشرية (10)</label>
+                                    <input type="number" name="hr_evaluation_score" value="{{ old('hr_evaluation_score', 10) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('hr_evaluation_score')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -388,8 +388,8 @@
                             <!-- Core Revisions Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">مراجعات أساسية</label>
-                                    <input type="number" name="core_revisions_penalty" value="{{ old('core_revisions_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تعديلات جوهرية من التيم ليدر (-2 بوينت لكل مشروع، حد أقصى 14)</label>
+                                    <input type="number" name="core_revisions_penalty" value="{{ old('core_revisions_penalty', 0) }}" min="0" max="14" required class="technical-team-reviews-form-control">
                                     @error('core_revisions_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -399,7 +399,7 @@
                             <!-- Spelling Errors Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">أخطاء إملائية</label>
+                                    <label class="technical-team-reviews-form-label">أخطاء إملائية وهمزات (حد أقصى 14)</label>
                                     <input type="number" name="spelling_errors_penalty" value="{{ old('spelling_errors_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
                                     @error('spelling_errors_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
@@ -410,7 +410,7 @@
                             <!-- Content Errors Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">أخطاء في المحتوى</label>
+                                    <label class="technical-team-reviews-form-label">أخطاء في المحتوى (-1 لكل مشروع، حد أقصى 8)</label>
                                     <input type="number" name="content_errors_penalty" value="{{ old('content_errors_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
                                     @error('content_errors_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
@@ -421,7 +421,7 @@
                             <!-- Minimum Projects Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">الحد الأدنى للمشاريع</label>
+                                    <label class="technical-team-reviews-form-label">عدم تسليم الحد الأدنى للمشروعات (-5 لكل مشروع)</label>
                                     <input type="number" name="minimum_projects_penalty" value="{{ old('minimum_projects_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
                                     @error('minimum_projects_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
@@ -432,8 +432,8 @@
                             <!-- Old Draft Words Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">كلمات المسودة القديمة</label>
-                                    <input type="number" name="old_draft_words_penalty" value="{{ old('old_draft_words_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">كلمات من مسودات سابقة (حد أقصى 15)</label>
+                                    <input type="number" name="old_draft_words_penalty" value="{{ old('old_draft_words_penalty', 0) }}" min="0" max="15" required class="technical-team-reviews-form-control">
                                     @error('old_draft_words_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -443,8 +443,8 @@
                             <!-- Sheets Commitment Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">التزام الأوراق</label>
-                                    <input type="number" name="sheets_commitment_penalty" value="{{ old('sheets_commitment_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">عدم الالتزام بملئ الشيتات (حد أقصى 20)</label>
+                                    <input type="number" name="sheets_commitment_penalty" value="{{ old('sheets_commitment_penalty', 0) }}" min="0" max="20" required class="technical-team-reviews-form-control">
                                     @error('sheets_commitment_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -454,8 +454,8 @@
                             <!-- Questions Neglect Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">إهمال الأسئلة</label>
-                                    <input type="number" name="questions_neglect_penalty" value="{{ old('questions_neglect_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">تجاهل ارسال أسئلة ل 4 مشروعات (حد أقصى 20)</label>
+                                    <input type="number" name="questions_neglect_penalty" value="{{ old('questions_neglect_penalty', 0) }}" min="0" max="20" required class="technical-team-reviews-form-control">
                                     @error('questions_neglect_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -465,8 +465,8 @@
                             <!-- Work Behavior Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">سلوك العمل</label>
-                                    <input type="number" name="work_behavior_penalty" value="{{ old('work_behavior_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">طريقة التعامل وسلوكيات العمل (حد أقصى 10)</label>
+                                    <input type="number" name="work_behavior_penalty" value="{{ old('work_behavior_penalty', 0) }}" min="0" max="10" required class="technical-team-reviews-form-control">
                                     @error('work_behavior_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror
@@ -476,8 +476,8 @@
                             <!-- Revisions Commitment Penalty -->
                             <div class="col-md-4">
                                 <div class="technical-team-reviews-form-group">
-                                    <label class="technical-team-reviews-form-label">التزام المراجعات</label>
-                                    <input type="number" name="revisions_commitment_penalty" value="{{ old('revisions_commitment_penalty', 0) }}" min="0" required class="technical-team-reviews-form-control">
+                                    <label class="technical-team-reviews-form-label">عدم الالتزام بالتعديلات (-2 لكل تعديل، حد أقصى 12)</label>
+                                    <input type="number" name="revisions_commitment_penalty" value="{{ old('revisions_commitment_penalty', 0) }}" min="0" max="12" required class="technical-team-reviews-form-control">
                                     @error('revisions_commitment_penalty')
                                     <p class="text-danger mt-1">{{ $message }}</p>
                                     @enderror

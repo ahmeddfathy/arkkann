@@ -398,3 +398,38 @@ Route::prefix('technical-team-reviews')->name('technical-team-reviews.')->middle
 
 // Add My Reviews route
 Route::get('/my-reviews', [MyReviewsController::class, 'index'])->name('my-reviews.index')->middleware('auth');
+
+/*
+ * HR Routes for Managing Reviews
+ */
+Route::middleware(['auth', 'role:manager', 'permission:manage_reviews'])->prefix('hr/reviews')->name('hr.reviews.')->group(function () {
+    Route::get('/', [App\Http\Controllers\ReviewsManagementController::class, 'index'])->name('index');
+
+    // Technical Reviews
+    Route::delete('/technical/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'deleteTechnicalReview'])->name('technical.delete');
+    Route::post('/technical/{id}/restore', [App\Http\Controllers\ReviewsManagementController::class, 'restoreTechnicalReview'])->name('technical.restore');
+    Route::get('/technical/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'showTechnicalReview'])->name('technical.show');
+    Route::post('/technical/bulk-restore', [App\Http\Controllers\ReviewsManagementController::class, 'bulkRestoreTechnicalReviews'])->name('technical.bulk-restore');
+    Route::post('/technical/bulk-delete', [App\Http\Controllers\ReviewsManagementController::class, 'bulkDeleteTechnicalReviews'])->name('technical.bulk-delete');
+
+    // Marketing Reviews
+    Route::delete('/marketing/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'deleteMarketingReview'])->name('marketing.delete');
+    Route::post('/marketing/{id}/restore', [App\Http\Controllers\ReviewsManagementController::class, 'restoreMarketingReview'])->name('marketing.restore');
+    Route::get('/marketing/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'showMarketingReview'])->name('marketing.show');
+    Route::post('/marketing/bulk-restore', [App\Http\Controllers\ReviewsManagementController::class, 'bulkRestoreMarketingReviews'])->name('marketing.bulk-restore');
+    Route::post('/marketing/bulk-delete', [App\Http\Controllers\ReviewsManagementController::class, 'bulkDeleteMarketingReviews'])->name('marketing.bulk-delete');
+
+    // Customer Service Reviews
+    Route::delete('/customer-service/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'deleteCustomerServiceReview'])->name('customer-service.delete');
+    Route::post('/customer-service/{id}/restore', [App\Http\Controllers\ReviewsManagementController::class, 'restoreCustomerServiceReview'])->name('customer-service.restore');
+    Route::get('/customer-service/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'showCustomerServiceReview'])->name('customer-service.show');
+    Route::post('/customer-service/bulk-restore', [App\Http\Controllers\ReviewsManagementController::class, 'bulkRestoreCustomerServiceReviews'])->name('customer-service.bulk-restore');
+    Route::post('/customer-service/bulk-delete', [App\Http\Controllers\ReviewsManagementController::class, 'bulkDeleteCustomerServiceReviews'])->name('customer-service.bulk-delete');
+
+    // Coordination Reviews
+    Route::delete('/coordination/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'deleteCoordinationReview'])->name('coordination.delete');
+    Route::post('/coordination/{id}/restore', [App\Http\Controllers\ReviewsManagementController::class, 'restoreCoordinationReview'])->name('coordination.restore');
+    Route::get('/coordination/{id}', [App\Http\Controllers\ReviewsManagementController::class, 'showCoordinationReview'])->name('coordination.show');
+    Route::post('/coordination/bulk-restore', [App\Http\Controllers\ReviewsManagementController::class, 'bulkRestoreCoordinationReviews'])->name('coordination.bulk-restore');
+    Route::post('/coordination/bulk-delete', [App\Http\Controllers\ReviewsManagementController::class, 'bulkDeleteCoordinationReviews'])->name('coordination.bulk-delete');
+});

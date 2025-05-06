@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Spatie\Permission\Models\Role;
+
 
 class TechnicalTeamReviewController extends Controller
 {
@@ -33,11 +33,9 @@ class TechnicalTeamReviewController extends Controller
             // Get team members IDs
             $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
 
-            // Add current user's ID to the list
-            $teamMemberIds[] = $user->id;
-
-            // Filter reviews to only include team members
-            $query->whereIn('user_id', $teamMemberIds);
+            // Filter reviews to only include team members and exclude the current user
+            $query->whereIn('user_id', $teamMemberIds)
+                  ->where('user_id', '!=', $user->id);
         }
 
         // Filter by user if requested
@@ -292,42 +290,42 @@ class TechnicalTeamReviewController extends Controller
             'review_month' => ['required', 'string', 'max:7'],
             'monthly_project_target_score' => ['required', 'integer', 'min:0'],
             'finish_before_deadline_score' => ['required', 'integer', 'min:0'],
-            'deliver_on_time_score' => ['required', 'integer', 'min:0'],
-            'deliver_complete_project_score' => ['required', 'integer', 'min:0'],
+            'deliver_on_time_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'deliver_complete_project_score' => ['required', 'integer', 'min:0', 'max:10'],
             'price_quote_comparison_score' => ['required', 'integer', 'min:0'],
-            'operation_plan_delivery_score' => ['required', 'integer', 'min:0'],
-            'project_formatting_score' => ['required', 'integer', 'min:0'],
-            'no_project_revisions_score' => ['required', 'integer', 'min:0'],
-            'continuous_update_score' => ['required', 'integer', 'min:0'],
-            'industry_standards_score' => ['required', 'integer', 'min:0'],
-            'project_sheet_update_score' => ['required', 'integer', 'min:0'],
-            'final_product_price_score' => ['required', 'integer', 'min:0'],
-            'legal_risks_score' => ['required', 'integer', 'min:0'],
+            'operation_plan_delivery_score' => ['required', 'integer', 'min:0', 'max:0'],
+            'project_formatting_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'no_project_revisions_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'continuous_update_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'industry_standards_score' => ['required', 'integer', 'min:0', 'max:25'],
+            'project_sheet_update_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'final_product_price_score' => ['required', 'integer', 'min:0', 'max:24'],
+            'legal_risks_score' => ['required', 'integer', 'min:0', 'max:10'],
             'study_development_proposals_score' => ['required', 'integer', 'min:0'],
             'company_ideas_score' => ['required', 'integer', 'min:0'],
             'other_project_revisions_score' => ['required', 'integer', 'min:0'],
             'non_project_task_score' => ['required', 'integer', 'min:0'],
-            'new_data_sources_score' => ['required', 'integer', 'min:0'],
-            'client_calls_score' => ['required', 'integer', 'min:0'],
+            'new_data_sources_score' => ['required', 'integer', 'min:0', 'max:15'],
+            'client_calls_score' => ['required', 'integer', 'min:0', 'max:10'],
             'potential_client_calls_score' => ['required', 'integer', 'min:0'],
-            'project_questions_score' => ['required', 'integer', 'min:0'],
-            'project_followup_score' => ['required', 'integer', 'min:0'],
+            'project_questions_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'project_followup_score' => ['required', 'integer', 'min:0', 'max:10'],
             'client_addition_score' => ['required', 'integer', 'min:0'],
             'urgent_projects_score' => ['required', 'integer', 'min:0'],
             'direct_delivery_projects_score' => ['required', 'integer', 'min:0'],
             'no_leave_score' => ['required', 'integer', 'min:0'],
             'workshop_participation_score' => ['required', 'integer', 'min:0'],
-            'team_leader_evaluation_score' => ['required', 'integer', 'min:0'],
-            'hr_evaluation_score' => ['required', 'integer', 'min:0'],
-            'core_revisions_penalty' => ['required', 'integer', 'min:0'],
-            'spelling_errors_penalty' => ['required', 'integer', 'min:0'],
-            'content_errors_penalty' => ['required', 'integer', 'min:0'],
+            'team_leader_evaluation_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'hr_evaluation_score' => ['required', 'integer', 'min:0', 'max:10'],
+            'core_revisions_penalty' => ['required', 'integer', 'min:0', 'max:14'],
+            'spelling_errors_penalty' => ['required', 'integer', 'min:0', 'max:14'],
+            'content_errors_penalty' => ['required', 'integer', 'min:0', 'max:8'],
             'minimum_projects_penalty' => ['required', 'integer', 'min:0'],
-            'old_draft_words_penalty' => ['required', 'integer', 'min:0'],
-            'sheets_commitment_penalty' => ['required', 'integer', 'min:0'],
-            'questions_neglect_penalty' => ['required', 'integer', 'min:0'],
-            'work_behavior_penalty' => ['required', 'integer', 'min:0'],
-            'revisions_commitment_penalty' => ['required', 'integer', 'min:0'],
+            'old_draft_words_penalty' => ['required', 'integer', 'min:0', 'max:15'],
+            'sheets_commitment_penalty' => ['required', 'integer', 'min:0', 'max:20'],
+            'questions_neglect_penalty' => ['required', 'integer', 'min:0', 'max:20'],
+            'work_behavior_penalty' => ['required', 'integer', 'min:0', 'max:10'],
+            'revisions_commitment_penalty' => ['required', 'integer', 'min:0', 'max:12'],
             'sales_amount' => ['nullable', 'numeric', 'min:0'],
             'sales_commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'total_salary' => ['required', 'numeric', 'min:0'],
