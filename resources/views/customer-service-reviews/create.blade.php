@@ -81,7 +81,7 @@
                                         {{ $data[0] }}
                                         <small class="text-muted">({{ $data[1] }} نقطة)</small>
                                     </label>
-                                    <input type="number" name="{{ $field }}" value="{{ old($field, 0) }}" min="0" max="{{ $data[1] }}" class="customer-service-reviews-form-control" required placeholder="الحد الأقصى {{ $data[1] }}">
+                                    <input type="number" name="{{ $field }}" value="{{ old($field, $data[1]) }}" min="0" max="{{ $data[1] }}" class="customer-service-reviews-form-control" required placeholder="الحد الأقصى {{ $data[1] }}">
                                     @error($field)
                                     <div class="text-danger mt-1">{{ $message }}</div>
                                     @enderror

@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 
 class TechnicalTeamReviewController extends Controller
@@ -102,34 +103,41 @@ class TechnicalTeamReviewController extends Controller
         }
 
         $user = Auth::user();
-        $validated = $this->validateReview($request);
 
-        // Check if the user being reviewed is in the reviewer's team
-        if ($user->hasRole(['technical_team_leader', 'technical_department_manager'])) {
-            if (!$user->currentTeam) {
-                abort(403, 'ليس لديك فريق حالي لإدارته');
+        try {
+            $validated = $this->validateReview($request);
+
+            // Check if the user being reviewed is in the reviewer's team
+            if ($user->hasRole(['technical_team_leader', 'technical_department_manager'])) {
+                if (!$user->currentTeam) {
+                    abort(403, 'ليس لديك فريق حالي لإدارته');
+                }
+
+                $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
+                if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
+                    abort(403, 'لا يمكنك إنشاء تقييم لشخص ليس في فريقك');
+                }
             }
 
-            $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
-            if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
-                abort(403, 'لا يمكنك إنشاء تقييم لشخص ليس في فريقك');
+            $validated['reviewer_id'] = Auth::id();
+
+            // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
+            $validated['review_month'] = $validated['review_month'] ?? now()->format('Y-m');
+
+            // حساب العمولة بناءً على المبلغ ونسبة العمولة
+            if (isset($validated['sales_amount']) && $validated['sales_amount'] > 0) {
+                $validated['sales_commission'] = ($validated['sales_amount'] * $validated['sales_commission_percentage']) / 100;
             }
+
+            TechnicalTeamReview::create($validated);
+
+            return redirect()->route('technical-team-reviews.index')
+                ->with('success', 'تم إنشاء التقييم بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         }
-
-        $validated['reviewer_id'] = Auth::id();
-
-        // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
-        $validated['review_month'] = $validated['review_month'] ?? now()->format('Y-m');
-
-        // حساب العمولة بناءً على المبلغ ونسبة العمولة
-        if (isset($validated['sales_amount']) && $validated['sales_amount'] > 0) {
-            $validated['sales_commission'] = ($validated['sales_amount'] * $validated['sales_commission_percentage']) / 100;
-        }
-
-        TechnicalTeamReview::create($validated);
-
-        return redirect()->route('technical-team-reviews.index')
-            ->with('success', 'تم إنشاء التقييم بنجاح');
     }
 
     /**
@@ -225,29 +233,35 @@ class TechnicalTeamReviewController extends Controller
             abort(403, 'لا يمكنك تعديل تقييمك الخاص');
         }
 
-        $validated = $this->validateReview($request);
+        try {
+            $validated = $this->validateReview($request);
 
-        // Check if the user being reviewed is in the reviewer's team
-        if ($user->hasRole(['technical_team_leader', 'technical_department_manager'])) {
-            if (!$user->currentTeam) {
-                abort(403, 'ليس لديك فريق حالي لإدارته');
+            // Check if the user being reviewed is in the reviewer's team
+            if ($user->hasRole(['technical_team_leader', 'technical_department_manager'])) {
+                if (!$user->currentTeam) {
+                    abort(403, 'ليس لديك فريق حالي لإدارته');
+                }
+
+                $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
+                if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
+                    abort(403, 'لا يمكنك تعديل تقييم لشخص ليس في فريقك');
+                }
             }
 
-            $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
-            if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
-                abort(403, 'لا يمكنك تعديل تقييم لشخص ليس في فريقك');
+            // حساب العمولة بناءً على المبلغ ونسبة العمولة
+            if (isset($validated['sales_amount']) && $validated['sales_amount'] > 0) {
+                $validated['sales_commission'] = ($validated['sales_amount'] * $validated['sales_commission_percentage']) / 100;
             }
+
+            $technicalTeamReview->update($validated);
+
+            return redirect()->route('technical-team-reviews.index')
+                ->with('success', 'تم تحديث التقييم بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         }
-
-        // حساب العمولة بناءً على المبلغ ونسبة العمولة
-        if (isset($validated['sales_amount']) && $validated['sales_amount'] > 0) {
-            $validated['sales_commission'] = ($validated['sales_amount'] * $validated['sales_commission_percentage']) / 100;
-        }
-
-        $technicalTeamReview->update($validated);
-
-        return redirect()->route('technical-team-reviews.index')
-            ->with('success', 'تم تحديث التقييم بنجاح');
     }
 
     /**
@@ -285,8 +299,20 @@ class TechnicalTeamReviewController extends Controller
      */
     private function validateReview(Request $request)
     {
+        $messages = [
+            'user_id.unique' => 'هذا الموظف لديه تقييم بالفعل لهذا الشهر، لا يمكن إنشاء تقييم مكرر.',
+        ];
+
         return $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => [
+                'required',
+                'exists:users,id',
+                Rule::unique('technical_team_reviews')->where(function ($query) use ($request) {
+                    return $query->where('user_id', $request->user_id)
+                                ->where('review_month', $request->review_month)
+                                ->whereNull('deleted_at');
+                })->ignore($request->route('technicalTeamReview') ? $request->route('technicalTeamReview')->id : null)
+            ],
             'review_month' => ['required', 'string', 'max:7'],
             'monthly_project_target_score' => ['required', 'integer', 'min:0'],
             'finish_before_deadline_score' => ['required', 'integer', 'min:0'],
@@ -330,6 +356,6 @@ class TechnicalTeamReviewController extends Controller
             'sales_commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'total_salary' => ['required', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-        ]);
+        ], $messages);
     }
 }

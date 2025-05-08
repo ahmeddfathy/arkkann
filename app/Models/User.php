@@ -169,4 +169,23 @@ class User extends Authenticatable
   {
     return $this->belongsTo(WorkShift::class);
   }
+
+  /**
+   * Determine if the given team is the current team.
+   *
+   * @param  mixed  $team
+   * @return bool
+   */
+  public function isCurrentTeam($team)
+  {
+      if (is_null($team) || !$team) {
+          return false;
+      }
+
+      if (is_null($this->currentTeam)) {
+          return false;
+      }
+
+      return $team->id === $this->currentTeam->id;
+  }
 }

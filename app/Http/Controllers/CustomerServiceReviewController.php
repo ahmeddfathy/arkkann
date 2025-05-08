@@ -115,6 +115,17 @@ class CustomerServiceReviewController extends Controller
             }
         }
 
+        // Check if a review already exists for this user in the same month
+        $existingReview = CustomerServiceReview::where('user_id', $validated['user_id'])
+                            ->where('review_month', $validated['review_month'])
+                            ->first();
+
+        if ($existingReview) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['user_id' => 'يوجد بالفعل تقييم لهذا الموظف في نفس الشهر']);
+        }
+
         $validated['reviewer_id'] = Auth::id();
 
         // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
@@ -231,6 +242,18 @@ class CustomerServiceReviewController extends Controller
             if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
                 abort(403, 'لا يمكنك تعديل تقييم لشخص ليس في فريقك');
             }
+        }
+
+        // Check if a review already exists for this user in the same month (excluding the current review)
+        $existingReview = CustomerServiceReview::where('user_id', $validated['user_id'])
+                        ->where('review_month', $validated['review_month'])
+                        ->where('id', '!=', $customerServiceReview->id)
+                        ->first();
+
+        if ($existingReview) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['review_month' => 'يوجد بالفعل تقييم لهذا الموظف في نفس الشهر']);
         }
 
         $customerServiceReview->update($validated);

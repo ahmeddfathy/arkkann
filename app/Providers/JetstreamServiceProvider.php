@@ -12,6 +12,9 @@ use App\Actions\Jetstream\UpdateTeamName;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Jetstream\Jetstream;
 use Livewire\Livewire;
+use App\Models\Team;
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 
 class JetstreamServiceProvider extends ServiceProvider
 {
@@ -40,6 +43,12 @@ class JetstreamServiceProvider extends ServiceProvider
 
         // Register custom components
         Livewire::component('teams.team-member-manager', \App\Http\Livewire\Teams\TeamMemberManager::class);
+        Livewire::component('teams.transfer-team-ownership', \App\Http\Livewire\Teams\TransferTeamOwnership::class);
+
+        // Define custom team permissions
+        Gate::define('transferTeamOwnership', function (User $user, Team $team) {
+            return $user->id === $team->user_id;
+        });
     }
 
     /**

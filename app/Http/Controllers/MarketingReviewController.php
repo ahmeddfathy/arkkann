@@ -106,29 +106,36 @@ class MarketingReviewController extends Controller
         }
 
         $user = Auth::user();
-        $validated = $this->validateReview($request);
 
-        // Check if the user being reviewed is in the reviewer's team
-        if ($user->hasRole(['marketing_team_leader', 'marketing_department_manager'])) {
-            if (!$user->currentTeam) {
-                abort(403, 'ليس لديك فريق حالي لإدارته');
+        try {
+            $validated = $this->validateReview($request);
+
+            // Check if the user being reviewed is in the reviewer's team
+            if ($user->hasRole(['marketing_team_leader', 'marketing_department_manager'])) {
+                if (!$user->currentTeam) {
+                    abort(403, 'ليس لديك فريق حالي لإدارته');
+                }
+
+                $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
+                if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
+                    abort(403, 'لا يمكنك إنشاء تقييم لشخص ليس في فريقك');
+                }
             }
 
-            $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
-            if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
-                abort(403, 'لا يمكنك إنشاء تقييم لشخص ليس في فريقك');
-            }
+            $validated['reviewer_id'] = Auth::id();
+
+            // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
+            $validated['review_month'] = $validated['review_month'] ?? now()->format('Y-m');
+
+            MarketingReview::create($validated);
+
+            return redirect()->route('marketing-reviews.index')
+                ->with('success', 'تم إنشاء التقييم بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         }
-
-        $validated['reviewer_id'] = Auth::id();
-
-        // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
-        $validated['review_month'] = $validated['review_month'] ?? now()->format('Y-m');
-
-        MarketingReview::create($validated);
-
-        return redirect()->route('marketing-reviews.index')
-            ->with('success', 'تم إنشاء التقييم بنجاح');
     }
 
     /**
@@ -224,24 +231,30 @@ class MarketingReviewController extends Controller
             abort(403, 'لا يمكنك تعديل تقييمك الخاص');
         }
 
-        $validated = $this->validateReview($request);
+        try {
+            $validated = $this->validateReview($request);
 
-        // Check if the user being reviewed is in the reviewer's team
-        if ($user->hasRole(['marketing_team_leader', 'marketing_department_manager'])) {
-            if (!$user->currentTeam) {
-                abort(403, 'ليس لديك فريق حالي لإدارته');
+            // Check if the user being reviewed is in the reviewer's team
+            if ($user->hasRole(['marketing_team_leader', 'marketing_department_manager'])) {
+                if (!$user->currentTeam) {
+                    abort(403, 'ليس لديك فريق حالي لإدارته');
+                }
+
+                $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
+                if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
+                    abort(403, 'لا يمكنك تعديل تقييم لشخص ليس في فريقك');
+                }
             }
 
-            $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
-            if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
-                abort(403, 'لا يمكنك تعديل تقييم لشخص ليس في فريقك');
-            }
+            $marketingReview->update($validated);
+
+            return redirect()->route('marketing-reviews.index')
+                ->with('success', 'تم تحديث التقييم بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         }
-
-        $marketingReview->update($validated);
-
-        return redirect()->route('marketing-reviews.index')
-            ->with('success', 'تم تحديث التقييم بنجاح');
     }
 
     /**
@@ -279,8 +292,20 @@ class MarketingReviewController extends Controller
      */
     private function validateReview(Request $request)
     {
+        $messages = [
+            'user_id.unique' => 'هذا الموظف لديه تقييم بالفعل لهذا الشهر، لا يمكن إنشاء تقييم مكرر.',
+        ];
+
         return $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => [
+                'required',
+                'exists:users,id',
+                Rule::unique('marketing_reviews')->where(function ($query) use ($request) {
+                    return $query->where('user_id', $request->user_id)
+                                ->where('review_month', $request->review_month)
+                                ->whereNull('deleted_at');
+                })->ignore($request->route('marketingReview') ? $request->route('marketingReview')->id : null)
+            ],
             'review_month' => ['required', 'string', 'max:7'],
             'finish_before_deadline_score' => ['required', 'integer', 'min:0', 'max:0'],
             'deliver_on_time_score' => ['required', 'integer', 'min:0', 'max:20'],
@@ -315,6 +340,6 @@ class MarketingReviewController extends Controller
             'revisions_commitment_penalty' => ['required', 'integer', 'min:0', 'max:10'],
             'total_salary' => ['required', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-        ]);
+        ], $messages);
     }
 }

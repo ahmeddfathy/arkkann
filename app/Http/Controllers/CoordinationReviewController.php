@@ -102,29 +102,36 @@ class CoordinationReviewController extends Controller
         }
 
         $user = Auth::user();
-        $validated = $this->validateReview($request);
 
-        // Check if the user being reviewed is in the reviewer's team
-        if ($user->hasRole(['coordination_team_leader', 'coordination_department_manager'])) {
-            if (!$user->currentTeam) {
-                abort(403, 'ليس لديك فريق حالي لإدارته');
+        try {
+            $validated = $this->validateReview($request);
+
+            // Check if the user being reviewed is in the reviewer's team
+            if ($user->hasRole(['coordination_team_leader', 'coordination_department_manager'])) {
+                if (!$user->currentTeam) {
+                    abort(403, 'ليس لديك فريق حالي لإدارته');
+                }
+
+                $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
+                if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
+                    abort(403, 'لا يمكنك إنشاء تقييم لشخص ليس في فريقك');
+                }
             }
 
-            $teamMemberIds = $user->currentTeam->users()->pluck('users.id')->toArray();
-            if (!in_array($validated['user_id'], $teamMemberIds) && $validated['user_id'] != $user->id) {
-                abort(403, 'لا يمكنك إنشاء تقييم لشخص ليس في فريقك');
-            }
+            $validated['reviewer_id'] = Auth::id();
+
+            // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
+            $validated['review_month'] = $validated['review_month'] ?? now()->format('Y-m');
+
+            CoordinationReview::create($validated);
+
+            return redirect()->route('coordination-reviews.index')
+                ->with('success', 'تم إنشاء التقييم بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         }
-
-        $validated['reviewer_id'] = Auth::id();
-
-        // إذا لم يتم تحديد شهر التقييم، استخدم الشهر والسنة الحالية
-        $validated['review_month'] = $validated['review_month'] ?? now()->format('Y-m');
-
-        CoordinationReview::create($validated);
-
-        return redirect()->route('coordination-reviews.index')
-            ->with('success', 'تم إنشاء التقييم بنجاح');
     }
 
     /**
@@ -275,8 +282,20 @@ class CoordinationReviewController extends Controller
      */
     private function validateReview(Request $request)
     {
+        $messages = [
+            'user_id.unique' => 'هذا الموظف لديه تقييم بالفعل لهذا الشهر، لا يمكن إنشاء تقييم مكرر.',
+        ];
+
         return $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => [
+                'required',
+                'exists:users,id',
+                Rule::unique('coordination_reviews')->where(function ($query) use ($request) {
+                    return $query->where('user_id', $request->user_id)
+                                ->where('review_month', $request->review_month)
+                                ->whereNull('deleted_at');
+                })->ignore($request->route('coordinationReview') ? $request->route('coordinationReview')->id : null)
+            ],
             'review_month' => ['required', 'string', 'max:7'],
             'documentation_delivery_score' => ['required', 'integer', 'min:0', 'max:40'],
             'daily_delivery_score' => ['required', 'integer', 'min:0', 'max:26'],
@@ -303,6 +322,6 @@ class CoordinationReviewController extends Controller
             'review_failure_penalty' => ['required', 'integer', 'min:0'],
             'total_salary' => ['required', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-        ]);
+        ], $messages);
     }
 }
